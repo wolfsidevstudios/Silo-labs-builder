@@ -19,6 +19,7 @@ export interface SavedProject {
   previewHtml: string;
   summary: string[];
   createdAt: string;
+  githubUrl?: string; // Add optional GitHub URL
 }
 
 // New types for chat history
@@ -68,4 +69,21 @@ export interface NewsItem {
   title: string;
   content: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
+}
+
+// New types for GitHub Integration
+export interface GitHubUser {
+    login: string;
+    avatar_url: string;
+    html_url: string;
+    name: string;
+}
+
+export interface GitHubRepo {
+    id: number;
+    name: string;
+    full_name: string;
+    private: boolean;
+    html_url: string;
+    description: string | null;
 }

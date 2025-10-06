@@ -39,3 +39,13 @@ export function saveProject(projectData: {
   
   return newProject;
 }
+
+export function updateProject(id: string, updates: Partial<SavedProject>): void {
+    const projects = getProjects();
+    const projectIndex = projects.findIndex(p => p.id === id);
+
+    if (projectIndex !== -1) {
+        projects[projectIndex] = { ...projects[projectIndex], ...updates };
+        localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+    }
+}

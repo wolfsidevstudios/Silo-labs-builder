@@ -4,9 +4,11 @@ import CodeViewer from '../components/CodeViewer';
 import Preview from '../components/Preview';
 import ChatHistory from '../components/ChatHistory';
 import ViewSwitcher from '../components/ViewSwitcher';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage } from '../types';
+import GitHubSaveModal from '../components/GitHubSaveModal';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser } from '../types';
 import { generateOrUpdateAppCode } from '../services/geminiService';
-import { saveProject } from '../services/projectService';
+import { saveProject, updateProject } from '../services/projectService';
+import { getPat, getUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -19,6 +21,12 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+  
+  // GitHub State
+  const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const [currentProjectRepo, setCurrentProjectRepo] = useState<string | null>(null); // e.g., "owner/repo"
+  const [lastSavedProjectId, setLastSavedProjectId] = useState<string | null>(null);
   
   const isInitialGenerationDone = useRef(false);
 
@@ -49,7 +57,11 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
       const projectPrompt = firstUserMessage ? firstUserMessage.content : userPrompt;
-      saveProject({ prompt: projectPrompt, ...result });
+      const saved = saveProject({ prompt: projectPrompt, ...result });
+      setLastSavedProjectId(saved.id);
+      if (!currentProjectRepo && saved.githubUrl) {
+        setCurrentProjectRepo(new URL(saved.githubUrl).pathname.substring(1));
+      }
 
     } catch (err) {
       if (err instanceof Error) {
@@ -84,7 +96,11 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
       const projectPrompt = firstUserMessage ? firstUserMessage.content : "AI Generated App";
-      saveProject({ prompt: projectPrompt, ...result });
+      const saved = saveProject({ prompt: projectPrompt, ...result });
+      setLastSavedProjectId(saved.id);
+       if (!currentProjectRepo && saved.githubUrl) {
+        setCurrentProjectRepo(new URL(saved.githubUrl).pathname.substring(1));
+      }
 
     } catch (err) {
       if (err instanceof Error) {
@@ -96,8 +112,59 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setIsLoading(false);
     }
   };
+  
+  const handleGitHubSave = async (details: { repoName?: string, description?: string, commitMessage: string }) => {
+    const token = getPat();
+    if (!token || !githubUser || files.length === 0) {
+        setError("Cannot save to GitHub. Ensure you are connected and have generated an app.");
+        return;
+    }
+    
+    setIsLoading(true);
+    let repoFullName = currentProjectRepo;
+
+    try {
+        // Step 1: Create repo if it doesn't exist
+        if (!repoFullName && details.repoName) {
+            const newRepo = await createRepository(token, details.repoName, details.description);
+            repoFullName = newRepo.full_name;
+            setCurrentProjectRepo(repoFullName);
+            // Link it to the project in our DB
+            if (lastSavedProjectId) {
+                updateProject(lastSavedProjectId, { githubUrl: newRepo.html_url });
+            }
+        }
+        
+        if (!repoFullName) throw new Error("Repository not specified.");
+
+        // Step 2: Push files
+        const [owner, repo] = repoFullName.split('/');
+        for (const file of files) {
+            let sha: string | undefined = undefined;
+            try {
+                const existingFile = await getRepoContent(token, owner, repo, file.path);
+                sha = existingFile.sha;
+            } catch (error) {
+                // File doesn't exist, which is fine for the first push.
+                console.log(`File ${file.path} not found in repo, creating it.`);
+            }
+            await createOrUpdateFile(token, owner, repo, file.path, file.content, details.commitMessage, sha);
+        }
+    } catch (err) {
+        if (err instanceof Error) setError(err.message);
+        else setError("An unknown error occurred while saving to GitHub.");
+    } finally {
+        setIsLoading(false);
+        setIsGitHubModalOpen(false);
+    }
+  };
 
   useEffect(() => {
+    const token = getPat();
+    if (token) {
+        getUserInfo(token).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
+    }
+    
     if (initialProject) {
       const initialUserMessage: UserMessage = { role: 'user', content: initialProject.prompt };
       const initialAssistantMessage: AssistantMessage = {
@@ -109,16 +176,18 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         }
       };
       setChatHistory([initialUserMessage, initialAssistantMessage]);
+      setLastSavedProjectId(initialProject.id);
+      if(initialProject.githubUrl) {
+          setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
+      }
       isInitialGenerationDone.current = true;
     } else if (initialPrompt) {
       setPrompt(initialPrompt);
     }
-    // This effect should only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject, initialPrompt]);
   
   useEffect(() => {
-    // This effect triggers the initial generation if a prompt was passed from home.
     if (prompt && !isInitialGenerationDone.current && chatHistory.length === 0) {
         handleSendMessage();
         isInitialGenerationDone.current = true;
@@ -128,29 +197,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   return (
     <div className="h-screen w-screen bg-black text-white flex pl-20">
-      {/* Left Pane: Chat and Prompt */}
+      <GitHubSaveModal
+        isOpen={isGitHubModalOpen}
+        onClose={() => setIsGitHubModalOpen(false)}
+        onSave={handleGitHubSave}
+        isNewRepo={!currentProjectRepo}
+      />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
-            <ChatHistory
-              messages={chatHistory}
-              isLoading={isLoading}
-              error={error}
-            />
+            <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
         </div>
         <div className="flex-shrink-0">
-            <PromptInput
-              prompt={prompt}
-              setPrompt={setPrompt}
-              onSubmit={handleSendMessage}
-              onBoostUi={handleBoostUi}
-              isLoading={isLoading}
-            />
+            <PromptInput prompt={prompt} setPrompt={setPrompt} onSubmit={handleSendMessage} onBoostUi={handleBoostUi} isLoading={isLoading} />
         </div>
       </div>
-
-      {/* Right Pane: Code and Preview */}
       <div className="hidden lg:flex flex-col w-3/5 h-full">
-         <ViewSwitcher activeView={rightPaneView} setActiveView={setRightPaneView} />
+         <ViewSwitcher 
+            activeView={rightPaneView} 
+            setActiveView={setRightPaneView}
+            isGitHubConnected={!!githubUser}
+            onGitHubClick={() => setIsGitHubModalOpen(true)}
+            hasFiles={files.length > 0}
+         />
          <div className="flex-grow p-4 pt-0 overflow-hidden">
             {rightPaneView === 'code' ? (
                 <CodeViewer files={files} />
