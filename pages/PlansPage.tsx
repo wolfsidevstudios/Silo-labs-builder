@@ -90,7 +90,7 @@ const PlansPage: React.FC = () => {
                 </div>
                 <div>
                     <h3 className="text-2xl font-semibold text-white">Affiliate Program</h3>
-                    <p className="text-slate-400 mt-2">Share your code and get <strong>1 free generation</strong> for every new user who signs up!</p>
+                    <p className="text-slate-400 mt-2 max-w-lg">Share your code to get <strong>1 free generation</strong> per sign-up. Soon, you'll also earn <strong>10% cash back</strong> every time a referred user buys premium!</p>
                 </div>
             </div>
             <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-2">
