@@ -7,7 +7,7 @@ const GiphyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     {...props}
   >
-    <path d="M0 11.2h5.1V0H0v11.2zm6.4 11.3h5.1V6.4H6.4v16.1zM18.9 0v11.2h5.1V0h-5.1zm-6.4 16.2h5.1V6.4h-5.1v9.8z" />
+    <path d="M2.666 0v24h18.668V8.666l-2.668 2.668v10H5.334V2.668H10L12.666 0zm10.668 0v8h8V5.334h-2.668V2.668H16V0" />
   </svg>
 );
 
