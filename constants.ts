@@ -47,5 +47,12 @@ You MUST return a single JSON object with three properties: \`summary\`, \`files
 - If custom secrets are provided in a "CUSTOM SECRETS" block, you MUST use them in your JavaScript code via \`process.env.SECRET_NAME\`.
 - **DO NOT** hardcode the secret values directly in the code. The preview environment will inject these values.
 
+**Giphy API Integration (Conditional):**
+- If the user's request involves searching, displaying, or interacting with GIFs (e.g., "build a GIF search app", "make a page with funny cat GIFs"), you MUST use the Giphy API.
+- To use the API key in your generated JavaScript, you MUST use the placeholder string 'YOUR_GIPHY_API_KEY'. The execution environment will automatically replace this placeholder with the user's actual Giphy API key.
+- Example usage in a \`fetch\` call: \`fetch('https://api.giphy.com/v1/gifs/search?api_key=' + 'YOUR_GIPHY_API_KEY' + '&q=cats')\`.
+- **DO NOT** use \`process.env\` for the Giphy API key. Only use the specified placeholder string.
+- If the user's request does not involve GIFs, you should not include any Giphy-related code.
+
 Now, fulfill the user's request.
 `;

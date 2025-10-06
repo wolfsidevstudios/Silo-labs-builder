@@ -3,6 +3,7 @@ import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets } from './secretsService';
+import { getApiKey as getGiphyApiKey } from './giphyService';
 
 interface UploadedImage {
     data: string;
@@ -91,6 +92,19 @@ ${secretNames}
 `;
 }
 
+function getGiphyInstruction(): string {
+  const giphyKey = getGiphyApiKey();
+  if (!giphyKey) {
+    return '';
+  }
+  return `
+---
+**GIPHY API AVAILABLE:**
+A Giphy API key is available. If the user asks for a GIF-related application, follow the Giphy API integration rules in the system prompt.
+---
+`;
+}
+
 function constructFullPrompt(
     prompt: string,
     existingFiles: AppFile[] | null,
@@ -98,6 +112,7 @@ function constructFullPrompt(
 ): string {
     const themeInstruction = getThemeInstruction();
     const secretsInstruction = getSecretsInstruction();
+    const giphyInstruction = getGiphyInstruction();
     const filesString = existingFiles
         ? existingFiles
             .map(f => `// File: ${f.path}\n\n${f.content}`)
@@ -105,11 +120,11 @@ function constructFullPrompt(
         : '';
 
     if (visualEditTarget && existingFiles) {
-        return `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
+        return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
     } else if (existingFiles && existingFiles.length > 0) {
-      return `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+      return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
     } else {
-        return `${themeInstruction}${secretsInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
+        return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
     }
 }
 
@@ -125,6 +140,15 @@ function injectSecrets(html: string): string {
         return html.replace('</head>', `${secretScript}</head>`);
     }
     return html;
+}
+
+function injectGiphyKey(code: string): string {
+    const giphyKey = getGiphyApiKey();
+    if (giphyKey) {
+        // Use a regular expression to replace all occurrences of the placeholder
+        return code.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`);
+    }
+    return code;
 }
 
 export async function generateOrUpdateAppCode(
@@ -176,7 +200,17 @@ export async function generateOrUpdateAppCode(
       throw new Error("AI response is not in the expected format or is empty.");
     }
 
-    generatedApp.previewHtml = injectSecrets(generatedApp.previewHtml);
+    // Inject Giphy key into file content first, as it's the source of truth
+    generatedApp.files = generatedApp.files.map(file => ({
+        ...file,
+        content: injectGiphyKey(file.content),
+    }));
+
+    // Update previewHtml from the modified file content, then inject preview-only secrets
+    if (generatedApp.files[0]) {
+      generatedApp.previewHtml = injectSecrets(generatedApp.files[0].content);
+    }
+    
     return generatedApp;
 
   } catch (error) {
@@ -264,17 +298,28 @@ export async function* streamGenerateOrUpdateAppCode(
         
         if (startIndex !== -1) {
             const htmlFragment = buffer.substring(startIndex + startMarker.length);
-            yield { previewHtml: htmlFragment };
+            // Inject Giphy key into the streaming preview for a better live experience
+            yield { previewHtml: injectGiphyKey(htmlFragment) };
         }
     }
 
-    const generatedApp = JSON.parse(buffer) as GeminiResponse;
-    if (!generatedApp || !generatedApp.previewHtml || !generatedApp.files || !generatedApp.summary) {
+    const finalResponse = JSON.parse(buffer) as GeminiResponse;
+    if (!finalResponse || !finalResponse.previewHtml || !finalResponse.files || !finalResponse.summary) {
         throw new Error("Stream finished but AI response is not in the expected format or is empty.");
     }
+    
+    // Inject Giphy key into file content first
+    finalResponse.files = finalResponse.files.map(file => ({
+        ...file,
+        content: injectGiphyKey(file.content),
+    }));
 
-    generatedApp.previewHtml = injectSecrets(generatedApp.previewHtml);
-    yield { finalResponse: generatedApp };
+    // Update previewHtml from the modified file content, then inject preview-only secrets
+    if (finalResponse.files[0]) {
+      finalResponse.previewHtml = injectSecrets(finalResponse.files[0].content);
+    }
+
+    yield { finalResponse };
 
   } catch (error) {
     console.error("Error streaming app code:", error);
