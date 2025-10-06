@@ -94,7 +94,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   return (
     <div className="h-screen w-screen bg-black text-white flex pl-20">
       {/* Left Pane: Chat and Prompt */}
-      <div className="flex flex-col w-full lg:w-1/2 h-full border-r border-slate-800">
+      <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory
               messages={chatHistory}
@@ -113,7 +113,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       </div>
 
       {/* Right Pane: Code and Preview */}
-      <div className="hidden lg:flex flex-col w-1/2 h-full">
+      <div className="hidden lg:flex flex-col w-3/5 h-full">
          <ViewSwitcher activeView={rightPaneView} setActiveView={setRightPaneView} />
          <div className="flex-grow p-4 pt-0 overflow-hidden">
             {rightPaneView === 'code' ? (

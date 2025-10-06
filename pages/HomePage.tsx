@@ -79,9 +79,6 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, isTrialActive, trialEnd
         </div>
       </main>
 
-       <footer className="w-full text-center p-4 text-xs text-gray-600">
-          Built with Gemini
-      </footer>
        <style>{`
         @keyframes fade-in-down {
             from { opacity: 0; transform: translateY(-20px); }
