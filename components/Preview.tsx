@@ -1,3 +1,4 @@
+
 import React from 'react';
 import EyeIcon from './icons/EyeIcon';
 
@@ -78,7 +79,17 @@ const visualEditScript = `
 `;
 
 const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode }) => {
-  const displayHtml = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
+  const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
+
+  const convertBbcodeToHtml = (html: string): string => {
+    // This regex looks for [img]...[/img] and captures the content inside.
+    // The 'g' flag ensures all occurrences are replaced.
+    // The 'i' flag makes it case-insensitive ([IMG] would also work).
+    return html.replace(/\[img\](.*?)\[\/img\]/gi, '<img src="$1" style="max-width: 100%; height: auto;" alt="User uploaded image" />');
+  };
+  
+  const displayHtml = convertBbcodeToHtml(displayHtmlRaw);
+
   const enhancedHtmlContent = isVisualEditMode
     ? displayHtml.replace('</body>', `<script>${visualEditScript}</script></body>`)
     : displayHtml;
