@@ -15,41 +15,47 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading }) =
             <h2 className="font-semibold text-slate-300">Live Preview</h2>
         </div>
 
-        <div className={`
-            flex-grow 
-            ${isLoading ? 'p-1 bg-gradient-to-r from-pink-500 via-orange-400 to-yellow-300 animate-gradient-border' : ''}
-        `}>
-            {hasFiles ? (
-                <iframe
-                    srcDoc={htmlContent}
-                    title="App Preview"
-                    sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
-                    className="w-full h-full border-0 bg-white"
-                />
-            ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-800">
-                    Your app preview will appear here.
-                </div>
+        <div className={`flex-grow relative ${isLoading ? 'p-2' : ''}`}>
+            {isLoading && (
+                <div className="absolute inset-0 animate-glowing-border rounded-lg"></div>
             )}
+            
+            <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
+                {hasFiles ? (
+                    <iframe
+                        srcDoc={htmlContent}
+                        title="App Preview"
+                        sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+                        className="w-full h-full border-0 bg-white"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                        Your app preview will appear here.
+                    </div>
+                )}
+            </div>
         </div>
         
         {isLoading && (
             <style>{`
-                @keyframes gradient-border-animation {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
+                @keyframes glowing-border-spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
-                @keyframes pulse-glow-shadow {
-                    0% { box-shadow: inset 0 0 5px 1px rgba(255, 255, 255, 0.2); }
-                    50% { box-shadow: inset 0 0 10px 2px rgba(255, 255, 255, 0.5); }
-                    100% { box-shadow: inset 0 0 5px 1px rgba(255, 255, 255, 0.2); }
-                }
-                .animate-gradient-border {
-                    background-size: 200% 200%;
-                    animation: 
-                        gradient-border-animation 3s ease infinite,
-                        pulse-glow-shadow 2s ease-in-out infinite;
+
+                .animate-glowing-border {
+                    background: conic-gradient(
+                        from 180deg at 50% 50%,
+                        #d946ef, /* fuchsia-500 */
+                        #ec4899, /* pink-500 */
+                        #f97316, /* orange-500 */
+                        #eab308, /* yellow-500 */
+                        #ec4899, /* pink-500 */
+                        #d946ef  /* fuchsia-500 */
+                    );
+                    animation: glowing-border-spin 4s linear infinite;
+                    filter: blur(8px);
+                    opacity: 0.9;
                 }
             `}</style>
         )}
