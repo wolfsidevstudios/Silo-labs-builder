@@ -37,24 +37,25 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
             {projects.map((project, index) => (
               <div
                 key={project.id}
-                className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden flex flex-col group cursor-pointer transition-all hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 animate-fade-in-up"
+                className="relative bg-slate-900 border border-slate-700 rounded-lg overflow-hidden group cursor-pointer transition-all hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 animate-fade-in-up aspect-[16/10]"
                 onClick={() => onLoadProject(project)}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="aspect-[16/10] bg-white overflow-hidden pointer-events-none border-b border-slate-700">
+                <div className="absolute inset-0 pointer-events-none">
                   <iframe
                     srcDoc={project.previewHtml}
                     title={project.prompt}
                     sandbox="allow-scripts"
                     scrolling="no"
-                    className="w-full h-full transform scale-[0.6] origin-top-left"
+                    className="w-[166.67%] h-[166.67%] transform scale-[0.6] origin-top-left bg-white"
                   />
                 </div>
-                <div className="p-4 flex-grow flex flex-col">
-                  <p className="font-semibold text-slate-200 truncate group-hover:text-indigo-400 transition-colors" title={project.prompt}>
+                
+                <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
+                  <p className="font-semibold text-slate-100 truncate group-hover:text-indigo-300 transition-colors" title={project.prompt}>
                     {project.prompt}
                   </p>
-                  <p className="text-xs text-slate-500 mt-auto pt-2">
+                  <p className="text-xs text-slate-400 mt-1">
                     {new Date(project.createdAt).toLocaleString()}
                   </p>
                 </div>
