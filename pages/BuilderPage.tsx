@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PromptInput from '../components/PromptInput';
 import CodeViewer from '../components/CodeViewer';
 import Preview from '../components/Preview';
 import ChatHistory from '../components/ChatHistory';
 import ViewSwitcher from '../components/ViewSwitcher';
-import { AppFile, SavedProject } from '../types';
-import { generateAppCode } from '../services/geminiService';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage } from '../types';
+import { generateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject } from '../services/projectService';
 
 interface BuilderPageProps {
@@ -14,33 +14,42 @@ interface BuilderPageProps {
 }
 
 const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null }) => {
-  const [prompt, setPrompt] = useState<string>(initialProject?.prompt || initialPrompt);
-  const [files, setFiles] = useState<AppFile[]>(initialProject?.files || []);
-  const [summary, setSummary] = useState<string[]>(initialProject?.summary || []);
-  const [previewHtml, setPreviewHtml] = useState<string>(initialProject?.previewHtml || '');
+  const [prompt, setPrompt] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+  
+  const isInitialGenerationDone = useRef(false);
 
-  const handleGenerate = async (e?: React.FormEvent) => {
+  const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant') as AssistantMessage | undefined;
+  const files = latestAssistantMessage?.content.files || [];
+  const previewHtml = latestAssistantMessage?.content.previewHtml || '';
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!prompt.trim()) return;
+    const userPrompt = prompt.trim();
+    if (!userPrompt || isLoading) return;
 
-    setIsLoading(true);
     setError(null);
-    setFiles([]);
-    setSummary([]);
-    // Move view to preview on new generation
+    setIsLoading(true);
+
+    const newUserMessage: UserMessage = { role: 'user', content: userPrompt };
+    setChatHistory(prev => [...prev, newUserMessage]);
+    setPrompt(''); // Clear input after sending
+    
     setRightPaneView('preview');
 
     try {
-      const result = await generateAppCode(prompt);
-      setFiles(result.files);
-      setPreviewHtml(result.previewHtml);
-      setSummary(result.summary);
+      const currentFiles = files.length > 0 ? files : null;
+      const result = await generateOrUpdateAppCode(userPrompt, currentFiles);
       
-      // Auto-save the successfully generated project
-      saveProject({ prompt, ...result });
+      const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
+      setChatHistory(prev => [...prev, newAssistantMessage]);
+      
+      const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
+      const projectPrompt = firstUserMessage ? firstUserMessage.content : userPrompt;
+      saveProject({ prompt: projectPrompt, ...result });
 
     } catch (err) {
       if (err instanceof Error) {
@@ -54,14 +63,33 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
 
   useEffect(() => {
-    // Auto-generate only if coming from home page with a prompt,
-    // not when loading an existing project.
-    if (initialPrompt && !initialProject) {
-      handleGenerate();
+    if (initialProject) {
+      const initialUserMessage: UserMessage = { role: 'user', content: initialProject.prompt };
+      const initialAssistantMessage: AssistantMessage = {
+        role: 'assistant',
+        content: {
+          files: initialProject.files,
+          previewHtml: initialProject.previewHtml,
+          summary: initialProject.summary,
+        }
+      };
+      setChatHistory([initialUserMessage, initialAssistantMessage]);
+      isInitialGenerationDone.current = true;
+    } else if (initialPrompt) {
+      setPrompt(initialPrompt);
     }
-    // This effect should only run once when the component mounts.
+    // This effect should only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrompt, initialProject]);
+  }, [initialProject, initialPrompt]);
+  
+  useEffect(() => {
+    // This effect triggers the initial generation if a prompt was passed from home.
+    if (prompt && !isInitialGenerationDone.current && chatHistory.length === 0) {
+        handleSendMessage();
+        isInitialGenerationDone.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt, chatHistory.length]);
 
   return (
     <div className="h-screen w-screen bg-black text-white flex pl-20">
@@ -69,18 +97,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <div className="flex flex-col w-full lg:w-1/2 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory
-              prompt={prompt}
+              messages={chatHistory}
               isLoading={isLoading}
               error={error}
-              summary={summary}
-              files={files}
             />
         </div>
         <div className="flex-shrink-0">
             <PromptInput
               prompt={prompt}
               setPrompt={setPrompt}
-              onSubmit={handleGenerate}
+              onSubmit={handleSendMessage}
               isLoading={isLoading}
             />
         </div>

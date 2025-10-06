@@ -1,3 +1,4 @@
+
 export interface AppFile {
   path: string;
   content: string;
@@ -17,3 +18,16 @@ export interface SavedProject {
   summary: string[];
   createdAt: string;
 }
+
+// New types for chat history
+export interface UserMessage {
+  role: 'user';
+  content: string;
+}
+
+export interface AssistantMessage {
+  role: 'assistant';
+  content: GeminiResponse;
+}
+
+export type ChatMessage = UserMessage | AssistantMessage;

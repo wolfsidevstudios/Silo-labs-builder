@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeminiResponse } from "../types";
+import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 
 function getApiKey(): string {
@@ -41,7 +41,7 @@ const schema = {
 };
 
 
-export async function generateAppCode(prompt: string): Promise<GeminiResponse> {
+export async function generateOrUpdateAppCode(prompt: string, existingFiles: AppFile[] | null): Promise<GeminiResponse> {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -49,9 +49,18 @@ export async function generateAppCode(prompt: string): Promise<GeminiResponse> {
     }
     const ai = new GoogleGenAI({ apiKey });
 
+    let fullPrompt = prompt;
+    if (existingFiles && existingFiles.length > 0) {
+      const filesString = existingFiles
+        .map(f => `// File: ${f.path}\n\n${f.content}`)
+        .join('\n\n---\n\n');
+      
+      fullPrompt = `Here is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: prompt,
+      contents: fullPrompt,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         responseMimeType: "application/json",
@@ -67,9 +76,10 @@ export async function generateAppCode(prompt: string): Promise<GeminiResponse> {
       !generatedApp ||
       typeof generatedApp.previewHtml !== 'string' ||
       !Array.isArray(generatedApp.files) ||
+      generatedApp.files.length === 0 ||
       !Array.isArray(generatedApp.summary)
     ) {
-      throw new Error("AI response is not in the expected format ({ previewHtml: string, files: AppFile[], summary: string[] }).");
+      throw new Error("AI response is not in the expected format or is empty.");
     }
 
     return generatedApp as GeminiResponse;
