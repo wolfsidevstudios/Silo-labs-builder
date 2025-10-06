@@ -5,6 +5,7 @@ import MousePointerClickIcon from './icons/MousePointerClickIcon';
 import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
 import GiphyIcon from './icons/GiphyIcon';
+import ImageIcon from './icons/ImageIcon';
 
 interface PromptInputProps {
   prompt: string;
@@ -20,9 +21,11 @@ interface PromptInputProps {
   onOpenImageLibrary: () => void;
   isGiphyConnected: boolean;
   onAddGifClick: () => void;
+  isUnsplashConnected: boolean;
+  onAddStockPhotoClick: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
@@ -112,6 +115,16 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             >
                 <GiphyIcon className="w-4 h-4" />
                 <span>GIFs</span>
+            </button>
+             <button
+                type="button"
+                onClick={onAddStockPhotoClick}
+                disabled={isLoading || !isUnsplashConnected}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+                title={isUnsplashConnected ? "Add stock photo from Unsplash" : "Connect to Unsplash in Settings"}
+            >
+                <ImageIcon className="w-4 h-4" />
+                <span>Photos</span>
             </button>
         </div>
       {uploadedImages.length > 0 && (

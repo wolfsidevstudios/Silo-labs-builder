@@ -6,6 +6,8 @@ import KeyIcon from '../components/icons/KeyIcon';
 import GitHubIcon from '../components/icons/GitHubIcon';
 import NetlifyIcon from '../components/icons/NetlifyIcon';
 import GiphyIcon from '../components/icons/GiphyIcon';
+import UnsplashIcon from '../components/icons/UnsplashIcon';
+import OpenAiIcon from '../components/icons/OpenAiIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
@@ -13,6 +15,8 @@ import { getSecrets, addSecret, removeSecret } from '../services/secretsService'
 import { savePat as saveGitHubPat, getPat as getGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo, getRepositories } from '../services/githubService';
 import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo, getSites as getNetlifySites } from '../services/netlifyService';
 import { saveApiKey as saveGiphyKey, getApiKey as getGiphyKey, removeApiKey as removeGiphyKey, searchGifs } from '../services/giphyService';
+import { saveAccessKey as saveUnsplashKey, getAccessKey as getUnsplashKey, removeAccessKey as removeUnsplashKey, searchPhotos as testUnsplash } from '../services/unsplashService';
+import { saveApiKey as saveOpenAiKey, getApiKey as getOpenAiKey, removeApiKey as removeOpenAiKey, verifyApiKey as testOpenAi } from '../services/openaiService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -54,6 +58,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [isGiphyConnected, setIsGiphyConnected] = useState(false);
   const [giphyError, setGiphyError] = useState<string | null>(null);
   const [isGiphyConnecting, setIsGiphyConnecting] = useState(false);
+
+  // Unsplash State
+  const [unsplashKey, setUnsplashKey] = useState('');
+  const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
+  const [unsplashError, setUnsplashError] = useState<string | null>(null);
+  const [isUnsplashConnecting, setIsUnsplashConnecting] = useState(false);
+
+  // OpenAI State
+  const [openAiKey, setOpenAiKey] = useState('');
+  const [isOpenAiConnected, setIsOpenAiConnected] = useState(false);
+  const [openAiError, setOpenAiError] = useState<string | null>(null);
+  const [isOpenAiConnecting, setIsOpenAiConnecting] = useState(false);
 
   // Experimental Features
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
@@ -106,6 +122,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     const gphKey = getGiphyKey();
     if (gphKey) {
       setIsGiphyConnected(true);
+    }
+
+    // Load and verify Unsplash connection
+    const uspKey = getUnsplashKey();
+    if (uspKey) {
+      setIsUnsplashConnected(true);
+    }
+
+    // Load and verify OpenAI connection
+    const oaiKey = getOpenAiKey();
+    if (oaiKey) {
+      setIsOpenAiConnected(true);
     }
 
   }, []);
@@ -224,6 +252,45 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     setGiphyError(null);
   };
 
+  const handleConnectUnsplash = async () => {
+    if (!unsplashKey.trim()) { setUnsplashError("Please enter an Unsplash Access Key."); return; }
+    setIsUnsplashConnecting(true);
+    setUnsplashError(null);
+    try {
+        await testUnsplash(unsplashKey, 'test'); // Test the key with a simple search
+        saveUnsplashKey(unsplashKey);
+        setIsUnsplashConnected(true);
+        setUnsplashKey('');
+    } catch (err) { setUnsplashError("Connection failed. Please check your Access Key."); }
+    finally { setIsUnsplashConnecting(false); }
+  };
+
+  const handleDisconnectUnsplash = () => {
+    removeUnsplashKey();
+    setIsUnsplashConnected(false);
+    setUnsplashError(null);
+  };
+
+  const handleConnectOpenAI = async () => {
+    if (!openAiKey.trim()) { setOpenAiError("Please enter an OpenAI API Key."); return; }
+    setIsOpenAiConnecting(true);
+    setOpenAiError(null);
+    try {
+        const isValid = await testOpenAi(openAiKey);
+        if (!isValid) throw new Error("Invalid key or API error.");
+        saveOpenAiKey(openAiKey);
+        setIsOpenAiConnected(true);
+        setOpenAiKey('');
+    } catch (err) { setOpenAiError("Connection failed. Please check your API Key."); }
+    finally { setIsOpenAiConnecting(false); }
+  };
+
+  const handleDisconnectOpenAI = () => {
+    removeOpenAiKey();
+    setIsOpenAiConnected(false);
+    setOpenAiError(null);
+  };
+
   const handleToggleLivePreview = () => {
     const newValue = !isLivePreviewEnabled;
     setIsLivePreviewEnabled(newValue);
@@ -312,7 +379,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             )}
           </div>
           {/* Giphy Section */}
-          <div>
+          <div className="mb-8 pb-8 border-b border-slate-800">
             {isGiphyConnected ? (
                 <div>
                   <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
@@ -334,6 +401,58 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                 <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Giphy API Key</a> to search and add GIFs to your projects.</p>
                 <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={giphyApiKey} onChange={e => setGiphyApiKey(e.target.value)} placeholder="Your Giphy API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGiphy} disabled={isGiphyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGiphyConnecting ? 'Connecting...' : 'Connect'}</button></div>
                 {giphyError && <p className="text-red-400 text-sm mt-3">{giphyError}</p>}
+              </div>
+            )}
+          </div>
+          {/* Unsplash Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isUnsplashConnected ? (
+                <div>
+                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
+                         <UnsplashIcon className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg text-white">Unsplash Connected</p>
+                        <p className="text-sm text-slate-400">Ready to add stock photos.</p>
+                      </div>
+                    </div>
+                    <button onClick={handleDisconnectUnsplash} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
+                  </div>
+                </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3 mb-2"><UnsplashIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Unsplash</h3></div>
+                <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://unsplash.com/oauth/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Unsplash Access Key</a> to search and add high-quality photos.</p>
+                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={unsplashKey} onChange={e => setUnsplashKey(e.target.value)} placeholder="Your Unsplash Access Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectUnsplash} disabled={isUnsplashConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isUnsplashConnecting ? 'Connecting...' : 'Connect'}</button></div>
+                {unsplashError && <p className="text-red-400 text-sm mt-3">{unsplashError}</p>}
+              </div>
+            )}
+          </div>
+          {/* OpenAI Section */}
+          <div>
+            {isOpenAiConnected ? (
+                <div>
+                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
+                         <OpenAiIcon className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg text-white">OpenAI Connected</p>
+                        <p className="text-sm text-slate-400">Ready to generate images with DALL-E.</p>
+                      </div>
+                    </div>
+                    <button onClick={handleDisconnectOpenAI} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
+                  </div>
+                </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3 mb-2"><OpenAiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to OpenAI</h3></div>
+                <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">OpenAI API Key</a> to generate images with DALL-E in your projects.</p>
+                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectOpenAI} disabled={isOpenAiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isOpenAiConnecting ? 'Connecting...' : 'Connect'}</button></div>
+                {openAiError && <p className="text-red-400 text-sm mt-3">{openAiError}</p>}
               </div>
             )}
           </div>

@@ -161,3 +161,26 @@ export interface GiphyGif {
     }
   };
 }
+
+// Unsplash Integration types
+export interface UnsplashPhoto {
+  id: string;
+  description: string | null;
+  alt_description: string | null;
+  urls: {
+    raw: string;
+    full: string;
+    regular: string;
+    small: string;
+    thumb: string;
+  };
+  links: {
+    html: string;
+  };
+  user: {
+    name: string;
+    links: {
+      html: string;
+    };
+  };
+}

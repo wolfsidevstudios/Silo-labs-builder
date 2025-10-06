@@ -9,13 +9,15 @@ import DeployModal from '../components/DeployModal';
 import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
+import UnsplashSearchModal from '../components/UnsplashSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif } from '../types';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
 import { getApiKey as getGiphyKey } from '../services/giphyService';
+import { getAccessKey as getUnsplashKey } from '../services/unsplashService';
 import { saveImage } from '../services/imageService';
 
 interface BuilderPageProps {
@@ -64,6 +66,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   // Giphy State
   const [isGiphyConnected, setIsGiphyConnected] = useState(false);
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
+
+  // Unsplash State
+  const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
+  const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
 
   const [lastSavedProjectId, setLastSavedProjectId] = useState<string | null>(null);
   
@@ -134,6 +140,35 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
     } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred while adding the GIF.");
+    }
+  };
+
+  const handleSelectStockPhoto = async (photo: UnsplashPhoto) => {
+    setIsUnsplashModalOpen(false);
+    setError(null);
+    try {
+        const response = await fetch(photo.urls.regular);
+        if (!response.ok) throw new Error("Failed to fetch photo data from Unsplash.");
+
+        const blob = await response.blob();
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUrl = reader.result as string;
+            const [header, base64Data] = dataUrl.split(',');
+            const mimeType = blob.type || 'image/jpeg';
+            
+            setUploadedImages(prev => [...prev, {
+                data: base64Data,
+                mimeType: mimeType,
+                previewUrl: dataUrl
+            }]);
+        };
+        reader.onerror = () => { throw new Error("Failed to read photo data."); };
+        reader.readAsDataURL(blob);
+
+    } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred while adding the photo.");
     }
   };
 
@@ -364,6 +399,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const gphKey = getGiphyKey();
     if (gphKey) setIsGiphyConnected(true);
 
+    const unsplashKey = getUnsplashKey();
+    if (unsplashKey) setIsUnsplashConnected(true);
+
     if (initialProject) {
       const initialUserMessage: UserMessage = { id: `user-${initialProject.id}`, role: 'user', content: initialProject.prompt };
       const initialAssistantMessage: AssistantMessage = { id: `assistant-${initialProject.id}`, role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
@@ -391,6 +429,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={currentNetlifyUrl} isNewDeploy={!currentNetlifySiteId} />
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
+      <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectStockPhoto} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         {isTrialActive && trialEndTime && (
             <div className="p-4 border-b border-slate-800">
@@ -415,6 +454,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
                 isGiphyConnected={isGiphyConnected}
                 onAddGifClick={() => setIsGiphyModalOpen(true)}
+                isUnsplashConnected={isUnsplashConnected}
+                onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
             />
         </div>
       </div>

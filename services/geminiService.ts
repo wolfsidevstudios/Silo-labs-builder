@@ -5,6 +5,8 @@ import { SYSTEM_PROMPT, STUDIO_SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets } from './secretsService';
 import { getApiKey as getGiphyApiKey } from './giphyService';
+import { getAccessKey as getUnsplashAccessKey } from './unsplashService';
+import { getApiKey as getOpenAiApiKey } from './openaiService';
 
 interface UploadedImage {
     data: string;
@@ -120,6 +122,32 @@ A Gemini API key is available. If the user asks for an AI-powered application (c
   }
 }
 
+function getUnsplashInstruction(): string {
+  const unsplashKey = getUnsplashAccessKey();
+  if (!unsplashKey) {
+    return '';
+  }
+  return `
+---
+**UNSPLASH API AVAILABLE:**
+An Unsplash Access Key is available. If the user asks for a stock photo-related application, follow the Unsplash API integration rules in the system prompt.
+---
+`;
+}
+
+function getOpenAiInstruction(): string {
+  const openAiKey = getOpenAiApiKey();
+  if (!openAiKey) {
+    return '';
+  }
+  return `
+---
+**OPENAI API AVAILABLE:**
+An OpenAI API Key is available. If the user asks for an AI image generation application (e.g., using DALL-E), follow the OpenAI API integration rules in the system prompt.
+---
+`;
+}
+
 function constructFullPrompt(
     prompt: string,
     existingFiles: AppFile[] | null,
@@ -129,13 +157,16 @@ function constructFullPrompt(
     const secretsInstruction = getSecretsInstruction();
     const giphyInstruction = getGiphyInstruction();
     const geminiInstruction = getGeminiInstruction();
+    const unsplashInstruction = getUnsplashInstruction();
+    const openAiInstruction = getOpenAiInstruction();
+
     const filesString = existingFiles
         ? existingFiles
             .map(f => `// File: ${f.path}\n\n${f.content}`)
             .join('\n\n---\n\n')
         : '';
 
-    const instructions = [themeInstruction, secretsInstruction, giphyInstruction, geminiInstruction].filter(Boolean).join('\n');
+    const instructions = [themeInstruction, secretsInstruction, giphyInstruction, geminiInstruction, unsplashInstruction, openAiInstruction].filter(Boolean).join('\n');
 
     if (visualEditTarget && existingFiles) {
         return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
@@ -174,6 +205,18 @@ function injectApiKeys(code: string): string {
         const geminiKey = getGeminiApiKey();
         injectedCode = injectedCode.replace(/'YOUR_GEMINI_API_KEY'/g, `'${geminiKey}'`);
     } catch(e) { /* No Gemini key, do nothing */ }
+
+    // Inject Unsplash Key
+    const unsplashKey = getUnsplashAccessKey();
+    if (unsplashKey) {
+        injectedCode = injectedCode.replace(/'YOUR_UNSPLASH_ACCESS_KEY'/g, `'${unsplashKey}'`);
+    }
+
+    // Inject OpenAI Key
+    const openAiKey = getOpenAiApiKey();
+    if (openAiKey) {
+        injectedCode = injectedCode.replace(/'YOUR_OPENAI_API_KEY'/g, `'${openAiKey}'`);
+    }
     
     return injectedCode;
 }

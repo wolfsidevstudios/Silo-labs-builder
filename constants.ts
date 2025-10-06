@@ -61,6 +61,22 @@ You MUST return a single JSON object with three properties: \`summary\`, \`files
 - **DO NOT** use \`process.env\` for the Gemini API key in the generated app. Only use the specified placeholder string.
 - If the user's request does not involve AI features, you should not include any Gemini-related code.
 
+**Unsplash API Integration (Conditional):**
+- If the user's request involves searching, displaying, or interacting with high-quality stock photos, you MUST use the Unsplash API.
+- To use the API key in your generated JavaScript, you MUST use the placeholder string 'YOUR_UNSPLASH_ACCESS_KEY'. The execution environment will automatically replace this placeholder.
+- Example usage in a \`fetch\` call: \`fetch('https://api.unsplash.com/search/photos?query=cats', { headers: { Authorization: 'Client-ID ' + 'YOUR_UNSPLASH_ACCESS_KEY' } })\`.
+- **DO NOT** use \`process.env\` for the Unsplash API key. Only use the specified placeholder string.
+- If the user's request does not involve stock photos, you should not include any Unsplash-related code.
+
+**OpenAI API Integration (Conditional):**
+- If the user's request involves generating images with AI (e.g., "create a logo", "generate an image of a cat"), you MUST use the OpenAI DALL-E 3 API.
+- To use the API key in your generated JavaScript, you MUST use the placeholder string 'YOUR_OPENAI_API_KEY'. The execution environment will replace this.
+- You must make a POST request to \`https://api.openai.com/v1/images/generations\`.
+- The request body should be: \`{ "model": "dall-e-3", "prompt": "...", "n": 1, "size": "1024x1024" }\`.
+- Example usage: \`fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + 'YOUR_OPENAI_API_KEY' }, body: JSON.stringify({ ... }) })\`.
+- **DO NOT** use \`process.env\` for the OpenAI API key. Only use the specified placeholder string.
+- If the user's request does not involve AI image generation, do not include OpenAI-related code.
+
 Now, fulfill the user's request.
 `;
 
