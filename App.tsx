@@ -12,6 +12,7 @@ import ReferralModal from './components/ReferralModal';
 import OnboardingModal from './components/OnboardingModal';
 import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
+import Logo from './components/Logo';
 import { SavedProject } from './types';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
@@ -139,6 +140,10 @@ const App: React.FC = () => {
       alert(`The '${page}' page is not implemented in this demo.`);
     }
   };
+  
+  const handleGoHome = () => {
+    setCurrentPage('home');
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -171,7 +176,9 @@ const App: React.FC = () => {
   return (
     <>
       <header className="fixed top-6 left-20 z-30 flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white tracking-wider">Silo Build</h1>
+          <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
+            <Logo type={currentPage === 'home' ? 'full' : 'icon'} />
+          </button>
           {currentPage === 'home' && <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />}
       </header>
       <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} />
