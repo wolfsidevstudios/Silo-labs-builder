@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import EyeIcon from '../components/icons/EyeIcon';
 import EyeOffIcon from '../components/icons/EyeOffIcon';
@@ -12,6 +13,7 @@ import PexelsIcon from '../components/icons/PexelsIcon';
 import FreeSoundIcon from '../components/icons/FreeSoundIcon';
 import SpotifyIcon from '../components/icons/SpotifyIcon';
 import StableDiffusionIcon from '../components/icons/StableDiffusionIcon';
+import LogoDevIcon from '../components/icons/LogoDevIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
@@ -233,6 +235,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
           {/* Unsplash Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">
             {isUnsplashConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <UnsplashIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Unsplash Connected</p> <p className="text-sm text-slate-400">Ready to add stock photos.</p> </div> </div> <button onClick={handleDisconnectUnsplash} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><UnsplashIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Unsplash</h3></div> <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://unsplash.com/oauth/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Unsplash Access Key</a> to search and add high-quality photos.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={unsplashKey} onChange={e => setUnsplashKey(e.target.value)} placeholder="Your Unsplash Access Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectUnsplash} disabled={isUnsplashConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isUnsplashConnecting ? 'Connecting...' : 'Connect'}</button></div> {unsplashError && <p className="text-red-400 text-sm mt-3">{unsplashError}</p>} </div> )}
+          </div>
+           {/* Logo.dev Section (Always On) */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+              <div>
+                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
+                              <LogoDevIcon className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                              <p className="font-bold text-lg text-white">logo.dev</p>
+                              <p className="text-sm text-slate-400">Fetch any company's logo by domain.</p>
+                          </div>
+                      </div>
+                      <div className="px-4 py-2 text-sm font-semibold bg-green-600/20 text-green-300 rounded-lg">
+                          Connected
+                      </div>
+                  </div>
+              </div>
           </div>
            {/* Pexels Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">

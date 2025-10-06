@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT, STUDIO_SYSTEM_PROMPT } from '../constants';
@@ -96,6 +97,15 @@ function getSecretsInstruction(): string {
 **CUSTOM SECRETS (MUST USE process.env):**
 You have access to the following secrets. Use them in your code with \`process.env.SECRET_NAME\`.
 ${secretNames}
+---
+`;
+}
+
+function getLogoDevInstruction(): string {
+  return `
+---
+**LOGO.DEV API AVAILABLE:**
+The logo.dev API is available for fetching company logos. Follow the logo.dev API integration rules in the system prompt. This API is always available and does not require a key.
 ---
 `;
 }
@@ -214,6 +224,7 @@ function constructFullPrompt(
     const instructions = [
         getThemeInstruction(),
         getSecretsInstruction(),
+        getLogoDevInstruction(),
         getGiphyInstruction(),
         getGeminiInstruction(),
         getUnsplashInstruction(),
