@@ -10,11 +10,9 @@ import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
 import UnsplashSearchModal from '../components/UnsplashSearchModal';
-import PexelsSearchModal from '../components/PexelsSearchModal';
-import FreeSoundSearchModal from '../components/FreeSoundSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, PexelsMedia, FreeSound } from '../types';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -94,8 +92,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
-  const [isPexelsModalOpen, setIsPexelsModalOpen] = useState(false);
-  const [isFreeSoundModalOpen, setIsFreeSoundModalOpen] = useState(false);
 
   // Connections can be global
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
@@ -206,8 +202,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handleSelectGif = (gif: GiphyGif) => { setIsGiphyModalOpen(false); addMediaAsUploadedImage(gif.images.original.url, 'image/gif'); };
   const handleSelectUnsplashPhoto = (photo: UnsplashPhoto) => { setIsUnsplashModalOpen(false); addMediaAsUploadedImage(photo.urls.regular, 'image/jpeg'); };
-  const handleSelectPexels = (media: PexelsMedia) => { setIsPexelsModalOpen(false); addMediaAsUploadedImage(media.src.original, media.type === 'Photo' ? 'image/jpeg' : 'video/mp4'); };
-  const handleSelectFreeSound = (sound: FreeSound) => { setIsFreeSoundModalOpen(false); addMediaAsUploadedImage(sound.previews['preview-hq-mp3'], 'audio/mpeg'); };
 
 
   const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
@@ -453,8 +447,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
-      <PexelsSearchModal isOpen={isPexelsModalOpen} onClose={() => setIsPexelsModalOpen(false)} onSelectMedia={handleSelectPexels} />
-      <FreeSoundSearchModal isOpen={isFreeSoundModalOpen} onClose={() => setIsFreeSoundModalOpen(false)} onSelectSound={handleSelectFreeSound} />
       
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
@@ -486,8 +478,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
                         isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
                         isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
-                        isPexelsConnected={isPexelsConnected} onAddPexelsClick={() => setIsPexelsModalOpen(true)}
-                        isFreeSoundConnected={isFreeSoundConnected} onAddFreeSoundClick={() => setIsFreeSoundModalOpen(true)}
                     />
                 )}
             </div>
