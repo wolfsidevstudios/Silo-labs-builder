@@ -49,12 +49,12 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) =
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full max-w-sm p-3 bg-white/[0.05] border border-white/10 rounded-lg text-center text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full max-w-sm p-3 bg-white/[0.05] border border-white/10 rounded-full text-center text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               onClick={() => setStep(2)}
               disabled={!name.trim()}
-              className="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all disabled:bg-slate-600 disabled:cursor-not-allowed"
+              className="mt-8 px-8 py-3 bg-white hover:bg-gray-200 text-black font-semibold rounded-full transition-all disabled:bg-gray-500 disabled:text-gray-800 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -128,13 +128,13 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) =
                 <div className="flex items-center gap-4 mt-8">
                     <button
                         onClick={() => setStep(2)}
-                        className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+                        className="px-8 py-3 bg-slate-200 hover:bg-slate-300 text-black font-semibold rounded-full transition-colors"
                     >
                         Back
                     </button>
                     <button
                         onClick={handleFinishBusiness}
-                        className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors"
+                        className="px-8 py-3 bg-white hover:bg-gray-200 text-black font-semibold rounded-full transition-colors"
                     >
                         Finish Setup
                     </button>
