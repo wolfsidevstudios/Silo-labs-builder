@@ -150,7 +150,7 @@ const App: React.FC = () => {
   return (
     <>
       <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} />
-      {userName && <UserGreeting name={userName} />}
+      {userName && currentPage === 'home' && <UserGreeting name={userName} />}
       <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />
        <ReferralModal
         isOpen={isReferralModalOpen}

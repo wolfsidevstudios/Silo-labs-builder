@@ -1,16 +1,27 @@
+
 import React, { useState, useEffect } from 'react';
 import EyeIcon from '../components/icons/EyeIcon';
 import EyeOffIcon from '../components/icons/EyeOffIcon';
+import { THEMES } from '../data/themes';
+import ThemeTemplateCard from '../components/ThemeTemplateCard';
+import { Theme } from '../types';
 
 const SettingsPage: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isKeyVisible, setIsKeyVisible] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<string>(THEMES[0].id);
 
   useEffect(() => {
     const storedKey = localStorage.getItem('gemini_api_key');
     if (storedKey) {
       setApiKey(storedKey);
+    }
+    const storedTheme = localStorage.getItem('ui_theme_template');
+    if (storedTheme) {
+      setSelectedTheme(storedTheme);
+    } else {
+      localStorage.setItem('ui_theme_template', THEMES[0].id); // Set default if none
     }
   }, []);
 
@@ -28,6 +39,11 @@ const SettingsPage: React.FC = () => {
     }, 500);
   };
 
+  const handleSelectTheme = (themeId: string) => {
+    setSelectedTheme(themeId);
+    localStorage.setItem('ui_theme_template', themeId);
+  };
+
   const getButtonText = () => {
     switch (saveStatus) {
       case 'saving':
@@ -40,8 +56,8 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
-      <main className="w-full max-w-2xl px-4">
+    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
+      <main className="w-full max-w-5xl px-4 py-12">
         <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12 text-center animate-fade-in-down">
           Settings
         </h1>
@@ -90,12 +106,35 @@ const SettingsPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </main>
+        
+        {/* UI Theme Templates Section */}
+        <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-slate-100 mb-2">UI Theme Templates</h2>
+            <p className="text-base text-slate-400 mb-8 max-w-2xl mx-auto">
+              Choose a theme to guide the AI's design. The generated app will use these colors, fonts, and styles.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {THEMES.map(theme => (
+              <ThemeTemplateCard
+                key={theme.id}
+                theme={theme}
+                isSelected={selectedTheme === theme.id}
+                onSelect={handleSelectTheme}
+              />
+            ))}
+          </div>
+        </div>
 
-      <footer className="w-full text-center p-4 text-xs text-gray-600">
+      </main>
+      
+      <footer className="w-full text-center p-4 text-xs text-gray-600 mt-auto">
           API keys are required for app generation
       </footer>
        <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Mono:wght@400;700&family=Lora:wght@400;700&display=swap');
+        
         @keyframes fade-in-down {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }

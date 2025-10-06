@@ -1,4 +1,7 @@
 
+// FIX: Add React import for CSSProperties type.
+import React from 'react';
+
 export interface AppFile {
   path: string;
   content: string;
@@ -31,3 +34,25 @@ export interface AssistantMessage {
 }
 
 export type ChatMessage = UserMessage | AssistantMessage;
+
+export interface Theme {
+  id: string;
+  name: string;
+  fontFamily: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+    accent: string;
+  };
+  navbar: {
+    description: string;
+    style: React.CSSProperties;
+    textStyle: React.CSSProperties;
+  };
+  button: {
+    description: string;
+    style: React.CSSProperties;
+  };
+}

@@ -34,40 +34,10 @@ You MUST return a single JSON object with three properties: \`summary\`, \`files
         d. Finally, include the rendering logic from \`index.tsx\` (\`const root = ...; root.render(<App />);\`).
 -   **ABSOLUTELY NO** relative imports (e.g., \`import App from './App'\`) are allowed inside this single script tag, as all components will exist in the same scope.
 
-**Example \`previewHtml\` structure:**
-\`\`\`html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Preview</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="importmap">
-    { "imports": { "react": "https://esm.sh/react@18.2.0", "react-dom/client": "https://esm.sh/react-dom@18.2.0/client" } }
-  </script>
-  <script type="text/babel" data-type="module">
-    import React from 'react';
-    import ReactDOM from 'react-dom/client';
-
-    // All components from the 'files' array are defined here.
-    const Button = () => { /* ... button code ... */ };
-
-    const App = () => {
-      // Main app logic...
-      return <div><Button /></div>;
-    };
-
-    const rootElement = document.getElementById('root');
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(<App />);
-  </script>
-</body>
-</html>
-\`\`\`
+**Theme Adherence (VERY IMPORTANT):**
+- If UI theme instructions are provided at the start of the prompt, you MUST adhere to its styling guidelines (colors, fonts, component styles) strictly.
+- All Tailwind CSS classes and inline styles should reflect the provided theme. For example, if the primary color is '#6366F1', use classes like \`bg-indigo-500\` or inline styles with that hex code, not a generic color like 'purple'.
+- The specified font family MUST be imported in the HTML head from a service like Google Fonts and applied to the body.
 
 Now, fulfill the user's request.
 `;

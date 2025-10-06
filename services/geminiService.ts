@@ -1,6 +1,8 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
+import { THEMES } from '../data/themes';
 
 function getApiKey(): string {
   const storedKey = localStorage.getItem('gemini_api_key');
@@ -40,6 +42,30 @@ const schema = {
   required: ["previewHtml", "files", "summary"],
 };
 
+function getThemeInstruction(): string {
+  const themeId = localStorage.getItem('ui_theme_template') || THEMES[0].id; // Default to first theme
+  const theme = THEMES.find(t => t.id === themeId);
+  if (!theme) return '';
+
+  return `
+---
+**UI THEME INSTRUCTIONS (MUST FOLLOW):**
+- **Theme Name:** ${theme.name}
+- **Font Family:** Apply "${theme.fontFamily}" to the entire application. You must include the Google Font import for this font in the HTML head.
+- **Colors:**
+  - Primary: ${theme.colors.primary} (Use for main actions, buttons, highlights)
+  - Secondary: ${theme.colors.secondary} (Use for secondary actions, accents)
+  - Background: ${theme.colors.background} (Main app background color)
+  - Text: ${theme.colors.text} (Default text color)
+  - Accent: ${theme.colors.accent} (For links, focus rings, etc.)
+- **Navbar Style:** ${theme.navbar.description}
+- **Button Style:** ${theme.button.description}
+
+Strictly use these theme properties in the generated code, primarily using Tailwind CSS classes that correspond to these styles. For example, if background is ${theme.colors.background}, use a dark gray class like bg-slate-900. If primary color is ${theme.colors.primary}, use a corresponding color class.
+---
+`;
+}
+
 
 export async function generateOrUpdateAppCode(prompt: string, existingFiles: AppFile[] | null): Promise<GeminiResponse> {
   try {
@@ -48,14 +74,17 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
         throw new Error("Gemini API key is missing. Please add it in the Settings page.");
     }
     const ai = new GoogleGenAI({ apiKey });
+    const themeInstruction = getThemeInstruction();
 
-    let fullPrompt = prompt;
+    let fullPrompt = '';
     if (existingFiles && existingFiles.length > 0) {
       const filesString = existingFiles
         .map(f => `// File: ${f.path}\n\n${f.content}`)
         .join('\n\n---\n\n');
       
-      fullPrompt = `Here is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+      fullPrompt = `${themeInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+    } else {
+        fullPrompt = `${themeInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
     }
 
     const response = await ai.models.generateContent({
