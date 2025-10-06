@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
-import { SYSTEM_PROMPT } from '../constants';
+import { SYSTEM_PROMPT, STUDIO_SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets } from './secretsService';
 import { getApiKey as getGiphyApiKey } from './giphyService';
@@ -352,5 +352,53 @@ export async function* streamGenerateOrUpdateAppCode(
     console.error("Error streaming app code:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     yield { error: `Failed to generate app code: ${errorMessage}` };
+  }
+}
+
+
+function getStudioSystemPrompt(): string {
+  const isGiphyConnected = !!getGiphyApiKey();
+  let isGeminiConnected = false;
+  try {
+    getGeminiApiKey();
+    isGeminiConnected = true;
+  } catch (e) { /* ignore */ }
+  const secrets = getSecrets();
+  const secretsList = secrets.length > 0 ? secrets.map(s => s.name).join(', ') : 'None';
+
+  return STUDIO_SYSTEM_PROMPT
+    .replace('{{GIPHY_STATUS}}', isGiphyConnected ? 'Connected' : 'Not Connected')
+    .replace('{{GEMINI_STATUS}}', isGeminiConnected ? 'Connected' : 'Not Connected')
+    .replace('{{SECRETS_LIST}}', secretsList);
+}
+
+// New function for Studio Chat
+export async function chatWithStudioAgent(
+  history: { role: 'user' | 'model'; parts: { text: string }[] }[]
+): Promise<string> {
+  try {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      throw new Error("Gemini API key is missing. Please add it in the Settings page.");
+    }
+    const ai = new GoogleGenAI({ apiKey });
+    const model = 'gemini-2.5-flash'; // Always use flash for chat
+
+    const response = await ai.models.generateContent({
+        model: model,
+        contents: history,
+        config: {
+            systemInstruction: getStudioSystemPrompt()
+        }
+    });
+
+    return response.text;
+
+  } catch (error) {
+    console.error("Error chatting with Studio Agent:", error);
+    if (error instanceof Error) {
+      throw new Error(`Studio Agent failed: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while chatting with the Studio Agent.");
   }
 }

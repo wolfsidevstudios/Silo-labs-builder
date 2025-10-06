@@ -31,7 +31,7 @@ export interface SavedImage {
   createdAt: string;
 }
 
-// New types for chat history
+// --- Builder Page Chat Types ---
 export interface UserMessage {
   id: string;
   role: 'user';
@@ -47,6 +47,22 @@ export interface AssistantMessage {
 }
 
 export type ChatMessage = UserMessage | AssistantMessage;
+
+// --- Studio Page Chat Types ---
+export interface StudioUserMessage {
+  id: string;
+  role: 'user';
+  content: string;
+}
+
+export interface StudioAssistantMessage {
+  id: string;
+  role: 'assistant';
+  content: string;
+}
+
+export type StudioChatMessage = StudioUserMessage | StudioAssistantMessage;
+
 
 export interface Theme {
   id: string;
