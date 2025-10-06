@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
@@ -10,7 +11,7 @@ interface UploadedImage {
     mimeType: string;
 }
 
-function getApiKey(): string {
+function getGeminiApiKey(): string {
   const storedKey = localStorage.getItem('gemini_api_key');
   if (storedKey && storedKey.trim() !== '') {
     return storedKey;
@@ -105,6 +106,20 @@ A Giphy API key is available. If the user asks for a GIF-related application, fo
 `;
 }
 
+function getGeminiInstruction(): string {
+  try {
+    getGeminiApiKey(); // This will throw if the key doesn't exist
+    return `
+---
+**GEMINI API AVAILABLE:**
+A Gemini API key is available. If the user asks for an AI-powered application (chatbot, summarizer, etc.), follow the Gemini API integration rules in the system prompt.
+---
+`;
+  } catch (error) {
+    return '';
+  }
+}
+
 function constructFullPrompt(
     prompt: string,
     existingFiles: AppFile[] | null,
@@ -113,18 +128,21 @@ function constructFullPrompt(
     const themeInstruction = getThemeInstruction();
     const secretsInstruction = getSecretsInstruction();
     const giphyInstruction = getGiphyInstruction();
+    const geminiInstruction = getGeminiInstruction();
     const filesString = existingFiles
         ? existingFiles
             .map(f => `// File: ${f.path}\n\n${f.content}`)
             .join('\n\n---\n\n')
         : '';
 
+    const instructions = [themeInstruction, secretsInstruction, giphyInstruction, geminiInstruction].filter(Boolean).join('\n');
+
     if (visualEditTarget && existingFiles) {
-        return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
+        return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
     } else if (existingFiles && existingFiles.length > 0) {
-      return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+      return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
     } else {
-        return `${themeInstruction}${secretsInstruction}${giphyInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
+        return `${instructions}\n\nPlease generate an application based on the following request: ${prompt}`;
     }
 }
 
@@ -142,13 +160,22 @@ function injectSecrets(html: string): string {
     return html;
 }
 
-function injectGiphyKey(code: string): string {
+function injectApiKeys(code: string): string {
+    let injectedCode = code;
+    
+    // Inject Giphy Key
     const giphyKey = getGiphyApiKey();
     if (giphyKey) {
-        // Use a regular expression to replace all occurrences of the placeholder
-        return code.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`);
+        injectedCode = injectedCode.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`);
     }
-    return code;
+
+    // Inject Gemini Key
+    try {
+        const geminiKey = getGeminiApiKey();
+        injectedCode = injectedCode.replace(/'YOUR_GEMINI_API_KEY'/g, `'${geminiKey}'`);
+    } catch(e) { /* No Gemini key, do nothing */ }
+    
+    return injectedCode;
 }
 
 export async function generateOrUpdateAppCode(
@@ -158,7 +185,7 @@ export async function generateOrUpdateAppCode(
     images?: UploadedImage[] | null
 ): Promise<GeminiResponse> {
   try {
-    const apiKey = getApiKey();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) {
         throw new Error("Gemini API key is missing. Please add it in the Settings page.");
     }
@@ -200,10 +227,10 @@ export async function generateOrUpdateAppCode(
       throw new Error("AI response is not in the expected format or is empty.");
     }
 
-    // Inject Giphy key into file content first, as it's the source of truth
+    // Inject API keys into file content first, as it's the source of truth
     generatedApp.files = generatedApp.files.map(file => ({
         ...file,
-        content: injectGiphyKey(file.content),
+        content: injectApiKeys(file.content),
     }));
 
     // Update previewHtml from the modified file content, then inject preview-only secrets
@@ -230,7 +257,7 @@ export async function* streamGenerateOrUpdateAppCode(
     images?: UploadedImage[] | null
 ): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
-    const apiKey = getApiKey();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) throw new Error("Gemini API key is missing. Please add it in the Settings page.");
     
     const ai = new GoogleGenAI({ apiKey });
@@ -298,8 +325,8 @@ export async function* streamGenerateOrUpdateAppCode(
         
         if (startIndex !== -1) {
             const htmlFragment = buffer.substring(startIndex + startMarker.length);
-            // Inject Giphy key into the streaming preview for a better live experience
-            yield { previewHtml: injectGiphyKey(htmlFragment) };
+            // Inject API keys into the streaming preview for a better live experience
+            yield { previewHtml: injectApiKeys(htmlFragment) };
         }
     }
 
@@ -308,10 +335,10 @@ export async function* streamGenerateOrUpdateAppCode(
         throw new Error("Stream finished but AI response is not in the expected format or is empty.");
     }
     
-    // Inject Giphy key into file content first
+    // Inject API keys into file content first
     finalResponse.files = finalResponse.files.map(file => ({
         ...file,
-        content: injectGiphyKey(file.content),
+        content: injectApiKeys(file.content),
     }));
 
     // Update previewHtml from the modified file content, then inject preview-only secrets
