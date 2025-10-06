@@ -14,6 +14,7 @@ interface BuilderPageProps {
 const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt }) => {
   const [prompt, setPrompt] = useState<string>(initialPrompt);
   const [files, setFiles] = useState<AppFile[]>([]);
+  const [summary, setSummary] = useState<string[]>([]);
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +26,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt }) => {
 
     setIsLoading(true);
     setError(null);
+    setFiles([]);
+    setSummary([]);
     // Move view to preview on new generation
     setRightPaneView('preview');
 
     try {
-      const { files: generatedFiles, previewHtml: generatedHtml } = await generateAppCode(prompt);
+      const { files: generatedFiles, previewHtml: generatedHtml, summary: generatedSummary } = await generateAppCode(prompt);
       setFiles(generatedFiles);
       setPreviewHtml(generatedHtml);
+      setSummary(generatedSummary);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -56,7 +60,13 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt }) => {
       {/* Left Pane: Chat and Prompt */}
       <div className="flex flex-col w-full lg:w-1/2 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
-            <ChatHistory prompt={prompt} isLoading={isLoading} error={error} />
+            <ChatHistory
+              prompt={prompt}
+              isLoading={isLoading}
+              error={error}
+              summary={summary}
+              files={files}
+            />
         </div>
         <div className="flex-shrink-0">
             <PromptInput

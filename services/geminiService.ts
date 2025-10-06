@@ -30,8 +30,14 @@ const schema = {
         required: ["path", "content"],
       },
     },
+    summary: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.STRING,
+      },
+    },
   },
-  required: ["previewHtml", "files"],
+  required: ["previewHtml", "files", "summary"],
 };
 
 
@@ -60,9 +66,10 @@ export async function generateAppCode(prompt: string): Promise<GeminiResponse> {
     if (
       !generatedApp ||
       typeof generatedApp.previewHtml !== 'string' ||
-      !Array.isArray(generatedApp.files)
+      !Array.isArray(generatedApp.files) ||
+      !Array.isArray(generatedApp.summary)
     ) {
-      throw new Error("AI response is not in the expected format ({ previewHtml: string, files: AppFile[] }).");
+      throw new Error("AI response is not in the expected format ({ previewHtml: string, files: AppFile[], summary: string[] }).");
     }
 
     return generatedApp as GeminiResponse;

@@ -6,4 +6,5 @@ export interface AppFile {
 export interface GeminiResponse {
   files: AppFile[];
   previewHtml: string;
+  summary: string[];
 }

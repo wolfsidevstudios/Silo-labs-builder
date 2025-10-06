@@ -1,11 +1,23 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import CheckIcon from '../components/icons/CheckIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
+import GiftIcon from '../components/icons/GiftIcon';
 
 const PRO_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
 
 const PlansPage: React.FC = () => {
+  const [copyText, setCopyText] = useState('Copy Code');
+  const affiliateCode = 'FRIEND-2024';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(affiliateCode).then(() => {
+      setCopyText('Copied!');
+      setTimeout(() => setCopyText('Copy Code'), 2000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
+  };
+
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-20">
       <main className="w-full max-w-5xl px-4 animate-fade-in-up">
@@ -68,6 +80,28 @@ const PlansPage: React.FC = () => {
               Coming Soon
             </button>
           </div>
+        </div>
+
+        {/* Affiliate Program Section */}
+        <div className="mt-20 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+                <div className="hidden sm:block">
+                    <GiftIcon className="w-16 h-16 text-indigo-400" />
+                </div>
+                <div>
+                    <h3 className="text-2xl font-semibold text-white">Affiliate Program</h3>
+                    <p className="text-slate-400 mt-2">Share your code and get <strong>1 free generation</strong> for every new user who signs up!</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-2">
+                <span className="text-indigo-300 font-mono text-lg px-4">{affiliateCode}</span>
+                <button 
+                    onClick={handleCopy}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md transition-colors w-28"
+                >
+                    {copyText}
+                </button>
+            </div>
         </div>
       </main>
       <style>{`
