@@ -40,9 +40,16 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading }) =
                     50% { background-position: 100% 50%; }
                     100% { background-position: 0% 50%; }
                 }
+                @keyframes pulse-glow-shadow {
+                    0% { box-shadow: inset 0 0 5px 1px rgba(255, 255, 255, 0.2); }
+                    50% { box-shadow: inset 0 0 10px 2px rgba(255, 255, 255, 0.5); }
+                    100% { box-shadow: inset 0 0 5px 1px rgba(255, 255, 255, 0.2); }
+                }
                 .animate-gradient-border {
                     background-size: 200% 200%;
-                    animation: gradient-border-animation 3s ease infinite;
+                    animation: 
+                        gradient-border-animation 3s ease infinite,
+                        pulse-glow-shadow 2s ease-in-out infinite;
                 }
             `}</style>
         )}
