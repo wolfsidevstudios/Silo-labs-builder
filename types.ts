@@ -1,4 +1,3 @@
-// FIX: Add React import for CSSProperties type.
 import React from 'react';
 
 export interface AppFile {

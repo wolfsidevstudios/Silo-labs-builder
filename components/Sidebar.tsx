@@ -4,8 +4,9 @@ import ProjectsIcon from './icons/ProjectsIcon';
 import SettingsIcon from './icons/SettingsIcon';
 import ZapIcon from './icons/ZapIcon';
 import BellIcon from './icons/BellIcon';
+import BeakerIcon from './icons/BeakerIcon';
 
-export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news';
+export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
 
 interface SidebarProps {
   activePage: SidebarPage | null;
@@ -16,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   const navItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'projects', icon: ProjectsIcon, label: 'Projects' },
+    { id: 'studio', icon: BeakerIcon, label: 'Studio'},
     { id: 'news', icon: BellIcon, label: 'News' },
     { id: 'plans', icon: ZapIcon, label: 'Plans' },
     { id: 'settings', icon: SettingsIcon, label: 'Settings' },

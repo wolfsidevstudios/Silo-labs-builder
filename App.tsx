@@ -5,6 +5,7 @@ import SettingsPage from './pages/SettingsPage';
 import PlansPage from './pages/PlansPage';
 import ProjectsPage from './pages/ProjectsPage';
 import NewsPage from './pages/NewsPage';
+import StudioPage from './pages/StudioPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -13,7 +14,7 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import { SavedProject } from './types';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -132,7 +133,7 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: SidebarPage) => {
-    if (['home', 'settings', 'projects', 'plans', 'news'].includes(page)) {
+    if (['home', 'settings', 'projects', 'plans', 'news', 'studio'].includes(page)) {
       setCurrentPage(page as Page);
     } else {
       alert(`The '${page}' page is not implemented in this demo.`);
@@ -153,13 +154,15 @@ const App: React.FC = () => {
         return <ProjectsPage onLoadProject={handleLoadProject} />;
       case 'news':
         return <NewsPage />;
+      case 'studio':
+        return <StudioPage onGenerate={handleStartBuilding} />;
       default:
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
     }
   };
 
   const getActivePageForSidebar = (): SidebarPage | null => {
-    if (['home', 'projects', 'settings', 'plans', 'news'].includes(currentPage)) {
+    if (['home', 'projects', 'settings', 'plans', 'news', 'studio'].includes(currentPage)) {
       return currentPage as SidebarPage;
     }
     return null;
