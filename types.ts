@@ -28,6 +28,7 @@ export interface SavedProject {
 export interface UserMessage {
   role: 'user';
   content: string;
+  imagePreviewUrl?: string;
 }
 
 export interface AssistantMessage {

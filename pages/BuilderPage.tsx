@@ -18,6 +18,12 @@ interface BuilderPageProps {
   initialProject?: SavedProject | null;
 }
 
+interface UploadedImageState {
+    data: string; // base64 string without data URL prefix
+    mimeType: string;
+    previewUrl: string; // data URL for preview
+}
+
 const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null }) => {
   const [prompt, setPrompt] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -27,6 +33,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
   // Experimental Features State
   const [streamingPreviewHtml, setStreamingPreviewHtml] = useState<string | null>(null);
+
+  // Image Upload State
+  const [uploadedImage, setUploadedImage] = useState<UploadedImageState | null>(null);
   
   // Visual Edit Mode State
   const [isVisualEditMode, setIsVisualEditMode] = useState(false);
@@ -51,9 +60,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant') as AssistantMessage | undefined;
   const files = latestAssistantMessage?.content.files || [];
   const previewHtml = latestAssistantMessage?.content.previewHtml || '';
+
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const [header, base64Data] = dataUrl.split(',');
+        const mimeType = header.match(/:(.*?);/)?.[1] || file.type;
+        setUploadedImage({
+            data: base64Data,
+            mimeType: mimeType,
+            previewUrl: dataUrl
+        });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageRemove = () => {
+      setUploadedImage(null);
+  };
   
   const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
-      if (!promptToSubmit || isLoading) return;
+      if ((!promptToSubmit && !uploadedImage) || isLoading) return;
 
       setError(null);
       setIsLoading(true);
@@ -63,9 +91,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       if (options.isBoost) userMessageContent = "✨ Boost UI";
       if (options.visualEditTarget) userMessageContent = `Edited element ("${options.visualEditTarget.selector}"): "${promptToSubmit}"`;
       
-      const newUserMessage: UserMessage = { role: 'user', content: userMessageContent };
+      const imageToSubmit = uploadedImage;
+      const newUserMessage: UserMessage = { 
+        role: 'user', 
+        content: userMessageContent,
+        imagePreviewUrl: imageToSubmit?.previewUrl,
+      };
       setChatHistory(prev => [...prev, newUserMessage]);
       setPrompt('');
+      setUploadedImage(null); // Clear image from UI after submitting
+
       if (options.visualEditTarget) {
         setSelectedElementSelector(null);
         setIsVisualEditMode(false);
@@ -78,8 +113,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           let result: GeminiResponse;
 
           if (useLivePreview) {
-              setStreamingPreviewHtml(''); // Start with a blank slate for the stream
-              const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget);
+              setStreamingPreviewHtml('');
+              const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imageToSubmit);
               let finalResponse: GeminiResponse | null = null;
               for await (const update of stream) {
                   if (update.previewHtml) setStreamingPreviewHtml(update.previewHtml);
@@ -89,10 +124,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               if (!finalResponse) throw new Error("Stream finished without a valid result.");
               result = finalResponse;
           } else {
-              result = await generateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget);
+              result = await generateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imageToSubmit);
           }
 
-          // Process the final result
           const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
           setChatHistory(prev => [...prev, newAssistantMessage]);
 
@@ -104,7 +138,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               const saved = saveProject({ prompt: projectPrompt, ...result });
               setLastSavedProjectId(saved.id);
           }
-          // Preserve deployment/repo info
           if (lastSavedProjectId) {
             if (currentNetlifySiteId) updateProject(lastSavedProjectId, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
             if (currentProjectRepo) updateProject(lastSavedProjectId, { githubUrl: `https://github.com/${currentProjectRepo}`});
@@ -113,10 +146,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
           setError(errorMessage);
-          setChatHistory(prev => prev.slice(0, -1)); // Remove the user message on failure
+          setChatHistory(prev => prev.slice(0, -1));
       } finally {
           setIsLoading(false);
-          setStreamingPreviewHtml(null); // Clear streaming preview on completion
+          setStreamingPreviewHtml(null);
       }
   };
 
@@ -207,7 +240,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const handleDeployClick = () => {
     setDeployStatus('idle'); // Reset status
     setIsDeployModalOpen(true);
-    // If it's a new deploy, trigger it immediately upon opening the modal.
     if (!currentNetlifySiteId) {
         handleDeploy();
     }
@@ -278,6 +310,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 isLoading={isLoading}
                 isVisualEditMode={isVisualEditMode}
                 onToggleVisualEditMode={toggleVisualEditMode}
+                uploadedImage={uploadedImage?.previewUrl || null}
+                onImageUpload={handleImageUpload}
+                onImageRemove={handleImageRemove}
             />
         </div>
       </div>

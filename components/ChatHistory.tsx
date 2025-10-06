@@ -31,7 +31,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, isLoading, error })
             <div className="flex flex-col items-start">
                 <div className="bg-slate-700 text-white p-3 rounded-lg max-w-xl">
                     <p className="font-semibold text-sm mb-1 text-indigo-300">You</p>
-                    <p>{message.content}</p>
+                    {message.imagePreviewUrl && (
+                        <img src={message.imagePreviewUrl} alt="User upload" className="rounded-md max-h-48 mb-2" />
+                    )}
+                    {message.content && <p>{message.content}</p>}
                 </div>
             </div>
           ) : (

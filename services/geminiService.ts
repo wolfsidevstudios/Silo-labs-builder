@@ -4,6 +4,11 @@ import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets } from './secretsService';
 
+interface UploadedImage {
+    data: string;
+    mimeType: string;
+}
+
 function getApiKey(): string {
   const storedKey = localStorage.getItem('gemini_api_key');
   if (storedKey && storedKey.trim() !== '') {
@@ -125,7 +130,8 @@ function injectSecrets(html: string): string {
 export async function generateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
-    visualEditTarget?: { selector: string } | null
+    visualEditTarget?: { selector: string } | null,
+    image?: UploadedImage | null
 ): Promise<GeminiResponse> {
   try {
     const apiKey = getApiKey();
@@ -136,9 +142,20 @@ export async function generateOrUpdateAppCode(
     const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
     const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
 
+    let contents: any;
+    if (image) {
+        const imagePart = {
+            inlineData: { mimeType: image.mimeType, data: image.data },
+        };
+        const textPart = { text: fullPrompt };
+        contents = { parts: [textPart, imagePart] };
+    } else {
+        contents = fullPrompt;
+    }
+
     const response = await ai.models.generateContent({
       model: model,
-      contents: fullPrompt,
+      contents: contents,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         responseMimeType: "application/json",
@@ -175,7 +192,8 @@ export async function generateOrUpdateAppCode(
 export async function* streamGenerateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
-    visualEditTarget?: { selector: string } | null
+    visualEditTarget?: { selector: string } | null,
+    image?: UploadedImage | null
 ): AsyncGenerator<{ previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
     const apiKey = getApiKey();
@@ -185,9 +203,20 @@ export async function* streamGenerateOrUpdateAppCode(
     const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
     const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
 
+    let contents: any;
+    if (image) {
+        const imagePart = {
+            inlineData: { mimeType: image.mimeType, data: image.data },
+        };
+        const textPart = { text: fullPrompt };
+        contents = { parts: [textPart, imagePart] };
+    } else {
+        contents = fullPrompt;
+    }
+
     const responseStream = await ai.models.generateContentStream({
       model: model,
-      contents: fullPrompt,
+      contents: contents,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         responseMimeType: "application/json",
