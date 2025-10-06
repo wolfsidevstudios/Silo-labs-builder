@@ -107,6 +107,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   };
   
   const handleAddSecret = () => {
+    if (!isPro) {
+      onUpgradeClick();
+      return;
+    }
+
     setSecretError(null);
     if (!newSecretName.trim() || !newSecretValue.trim()) {
         setSecretError("Both name and value are required."); return;
@@ -276,7 +281,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
         </div>
         
         <div className="mt-16 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-[0_0_120px_rgba(255,255,255,0.1)] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            <h2 className="text-2xl font-bold text-slate-100 mb-2">Custom Secrets</h2>
+            <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-2xl font-bold text-slate-100">Custom Secrets</h2>
+                {!isPro && (
+                    <span className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        PRO
+                    </span>
+                )}
+            </div>
             <p className="text-sm text-slate-500 mb-6">Add secrets for third-party APIs. They will be available as environment variables.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 <div className="flex flex-col gap-2"><label htmlFor="secret-name" className="font-semibold text-sm text-slate-400">Secret Name</label><input id="secret-name" type="text" value={newSecretName} onChange={(e) => setNewSecretName(e.target.value)} placeholder="E.g., OPENAI_API_KEY" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>

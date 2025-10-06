@@ -70,6 +70,7 @@ const PlansPage: React.FC = () => {
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Unlimited generations</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Download project code</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Save projects</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Use custom secrets</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Priority support</li>
             </ul>
              <a href={PRO_PAYMENT_URL} className="mt-8 text-center w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
