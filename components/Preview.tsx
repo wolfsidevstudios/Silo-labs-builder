@@ -5,9 +5,82 @@ interface PreviewProps {
   htmlContent: string;
   hasFiles: boolean;
   isLoading: boolean;
+  isVisualEditMode: boolean;
 }
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading }) => {
+const visualEditScript = `
+  const getCssSelector = (el) => {
+    if (!(el instanceof Element)) return;
+    const path = [];
+    while (el.nodeType === Node.ELEMENT_NODE) {
+        let selector = el.nodeName.toLowerCase();
+        if (el.id) {
+            selector = '#' + el.id;
+            path.unshift(selector);
+            break; // ID is unique
+        } else {
+            let sib = el, nth = 1;
+            while (sib = sib.previousElementSibling) {
+                if (sib.nodeName.toLowerCase() === selector) {
+                   nth++;
+                }
+            }
+            const classNames = Array.from(el.classList);
+            const uniqueClassName = classNames.find(cn => el.parentElement.querySelectorAll('.' + cn).length === 1);
+
+            if (uniqueClassName) {
+                selector += '.' + uniqueClassName;
+            } else if (nth !== 1) {
+                selector += \`:nth-of-type(\${nth})\`;
+            }
+        }
+        path.unshift(selector);
+        el = el.parentNode;
+    }
+    return path.join(' > ').replace('html > body > ', '');
+  };
+
+  let highlightedElement = null;
+
+  document.addEventListener('mouseover', e => {
+      if (!e.target || e.target === document.body) return;
+      highlightedElement = e.target;
+      e.target.style.outline = '2px dashed #6366F1';
+      e.target.style.outlineOffset = '2px';
+      e.target.style.cursor = 'pointer';
+  });
+
+  document.addEventListener('mouseout', e => {
+      if (e.target) {
+          e.target.style.outline = '';
+          e.target.style.outlineOffset = '';
+          e.target.style.cursor = '';
+      }
+      highlightedElement = null;
+  });
+
+  document.addEventListener('click', e => {
+    if (!highlightedElement) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Clear styles before sending message
+    highlightedElement.style.outline = '';
+    highlightedElement.style.outlineOffset = '';
+    highlightedElement.style.cursor = '';
+
+    const selector = getCssSelector(highlightedElement);
+    window.parent.postMessage({ type: 'VISUAL_EDIT_SELECT', selector: selector }, '*');
+    
+    highlightedElement = null;
+}, true);
+`;
+
+const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading, isVisualEditMode }) => {
+  const enhancedHtmlContent = isVisualEditMode
+    ? htmlContent.replace('</body>', `<script>${visualEditScript}</script></body>`)
+    : htmlContent;
+
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 p-3 bg-slate-900 border-b border-slate-700">
@@ -23,14 +96,21 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading }) =
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
                 {hasFiles ? (
                     <iframe
-                        srcDoc={htmlContent}
+                        srcDoc={enhancedHtmlContent}
                         title="App Preview"
                         sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
-                        className="w-full h-full border-0 bg-white"
+                        className={`w-full h-full border-0 bg-white ${isVisualEditMode ? 'pointer-events-auto' : ''}`}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-500">
                         Your app preview will appear here.
+                    </div>
+                )}
+                 {isVisualEditMode && (
+                    <div className="absolute inset-0 bg-indigo-900/20 pointer-events-none rounded-md flex items-center justify-center">
+                        <p className="bg-black/50 text-white px-4 py-2 rounded-full font-semibold">
+                            Select an element to edit
+                        </p>
                     </div>
                 )}
             </div>

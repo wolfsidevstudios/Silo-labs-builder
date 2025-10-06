@@ -6,6 +6,7 @@ import ChatHistory from '../components/ChatHistory';
 import ViewSwitcher from '../components/ViewSwitcher';
 import GitHubSaveModal from '../components/GitHubSaveModal';
 import DeployModal from '../components/DeployModal';
+import VisualEditBar from '../components/VisualEditBar';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser } from '../types';
 import { generateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
@@ -23,6 +24,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+  
+  // Visual Edit Mode State
+  const [isVisualEditMode, setIsVisualEditMode] = useState(false);
+  const [selectedElementSelector, setSelectedElementSelector] = useState<string | null>(null);
   
   // GitHub State
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
@@ -82,6 +87,35 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVisualEditSubmit = async (editPrompt: string) => {
+    if (!selectedElementSelector || !editPrompt.trim() || isLoading) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    const userMessageContent = `Edited element ("${selectedElementSelector}"): "${editPrompt}"`;
+    const newUserMessage: UserMessage = { role: 'user', content: userMessageContent };
+    setChatHistory(prev => [...prev, newUserMessage]);
+
+    const target = { selector: selectedElementSelector };
+    setSelectedElementSelector(null);
+    setIsVisualEditMode(false);
+    
+    try {
+        const result = await generateOrUpdateAppCode(editPrompt, files, target);
+        const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
+        setChatHistory(prev => [...prev, newAssistantMessage]);
+        
+        if (lastSavedProjectId) {
+            updateProject(lastSavedProjectId, { files: result.files, previewHtml: result.previewHtml, summary: result.summary });
+        }
+    } catch (err) {
+        if (err instanceof Error) setError(err.message); else setError("An unexpected error occurred.");
+    } finally {
+        setIsLoading(false);
     }
   };
   
@@ -184,6 +218,26 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     }
   };
 
+  const toggleVisualEditMode = () => {
+    const nextState = !isVisualEditMode;
+    setIsVisualEditMode(nextState);
+    if (!nextState) { // If turning off
+        setSelectedElementSelector(null);
+    }
+  };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'VISUAL_EDIT_SELECT' && isVisualEditMode) {
+            setSelectedElementSelector(event.data.selector);
+            setRightPaneView('preview');
+        }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isVisualEditMode]);
+
+
   useEffect(() => {
     const ghToken = getGitHubPat();
     if (ghToken) getGitHubUserInfo(ghToken).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
@@ -221,10 +275,18 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
         </div>
         <div className="flex-shrink-0">
-            <PromptInput prompt={prompt} setPrompt={setPrompt} onSubmit={handleSendMessage} onBoostUi={handleBoostUi} isLoading={isLoading} />
+            <PromptInput 
+                prompt={prompt} 
+                setPrompt={setPrompt} 
+                onSubmit={handleSendMessage} 
+                onBoostUi={handleBoostUi} 
+                isLoading={isLoading}
+                isVisualEditMode={isVisualEditMode}
+                onToggleVisualEditMode={toggleVisualEditMode}
+            />
         </div>
       </div>
-      <div className="hidden lg:flex flex-col w-3/5 h-full">
+      <div className="hidden lg:flex flex-col w-3/5 h-full relative">
          <ViewSwitcher 
             activeView={rightPaneView} 
             setActiveView={setRightPaneView}
@@ -239,9 +301,22 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             {rightPaneView === 'code' ? (
                 <CodeViewer files={files} />
             ) : (
-                <Preview htmlContent={previewHtml} hasFiles={files.length > 0} isLoading={isLoading} />
+                <Preview 
+                    htmlContent={previewHtml} 
+                    hasFiles={files.length > 0} 
+                    isLoading={isLoading}
+                    isVisualEditMode={isVisualEditMode && !selectedElementSelector}
+                />
             )}
          </div>
+         {selectedElementSelector && (
+            <VisualEditBar
+                selector={selectedElementSelector}
+                onSubmit={handleVisualEditSubmit}
+                onCancel={() => setSelectedElementSelector(null)}
+                isLoading={isLoading}
+            />
+         )}
       </div>
     </div>
   );

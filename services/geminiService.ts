@@ -86,7 +86,11 @@ ${secretNames}
 `;
 }
 
-export async function generateOrUpdateAppCode(prompt: string, existingFiles: AppFile[] | null): Promise<GeminiResponse> {
+export async function generateOrUpdateAppCode(
+    prompt: string, 
+    existingFiles: AppFile[] | null,
+    visualEditTarget?: { selector: string } | null
+): Promise<GeminiResponse> {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -98,11 +102,15 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
     const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
 
     let fullPrompt = '';
-    if (existingFiles && existingFiles.length > 0) {
-      const filesString = existingFiles
-        .map(f => `// File: ${f.path}\n\n${f.content}`)
-        .join('\n\n---\n\n');
-      
+    const filesString = existingFiles
+        ? existingFiles
+            .map(f => `// File: ${f.path}\n\n${f.content}`)
+            .join('\n\n---\n\n')
+        : '';
+
+    if (visualEditTarget && existingFiles) {
+        fullPrompt = `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
+    } else if (existingFiles && existingFiles.length > 0) {
       fullPrompt = `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
     } else {
         fullPrompt = `${themeInstruction}${secretsInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;

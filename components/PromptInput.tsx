@@ -1,6 +1,7 @@
 import React from 'react';
 import ArrowUpIcon from './icons/ArrowUpIcon';
 import SparklesIcon from './icons/SparklesIcon';
+import MousePointerClickIcon from './icons/MousePointerClickIcon';
 
 interface PromptInputProps {
   prompt: string;
@@ -8,9 +9,11 @@ interface PromptInputProps {
   onSubmit: (e: React.FormEvent) => void;
   onBoostUi: () => void;
   isLoading: boolean;
+  isVisualEditMode: boolean;
+  onToggleVisualEditMode: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode }) => {
   return (
     <form onSubmit={onSubmit} className="p-4">
       <div className="flex justify-start mb-3 ml-2">
@@ -22,6 +25,20 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             >
                 <SparklesIcon className="w-4 h-4" />
                 <span>Boost UI</span>
+            </button>
+            <button
+                type="button"
+                onClick={onToggleVisualEditMode}
+                disabled={isLoading}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2 ${
+                    isVisualEditMode
+                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                    : 'bg-white/5 border-white/10 text-indigo-300 hover:bg-white/10'
+                }`}
+                title="Toggle Visual Edit Mode"
+            >
+                <MousePointerClickIcon className="w-4 h-4" />
+                <span>Edit</span>
             </button>
         </div>
       <div className="relative">
