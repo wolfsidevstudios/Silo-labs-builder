@@ -12,6 +12,7 @@ import { getApiKey as getPexelsApiKey } from './pexelsService';
 import { getApiKey as getFreeSoundApiKey } from './freesoundService';
 import { getClientCredentials as getSpotifyCredentials } from './spotifyService';
 import { getApiKey as getStabilityApiKey } from './stabilityService';
+import { getApiKey as getStreamlineApiKey } from './streamlineService';
 
 
 interface UploadedImage {
@@ -189,6 +190,19 @@ Spotify API credentials are available. If the user asks for a music-related appl
 `;
 }
 
+function getStreamlineInstruction(): string {
+  const key = getStreamlineApiKey();
+  if (!key) {
+    return '';
+  }
+  return `
+---
+**STREAMLINEHQ API AVAILABLE:**
+A StreamlineHQ API Key is available. If the user asks for an icon finder application, follow the StreamlineHQ API integration rules in the system prompt.
+---
+`;
+}
+
 function getStabilityInstruction(): string {
   const key = getStabilityApiKey();
   if (!key) {
@@ -231,6 +245,7 @@ function constructFullPrompt(
         getPexelsInstruction(),
         getFreeSoundInstruction(),
         getSpotifyInstruction(),
+        getStreamlineInstruction(),
         getStabilityInstruction(), // Placed before OpenAI to encourage preference
         getOpenAiInstruction(),
     ].filter(Boolean).join('\n');
@@ -304,6 +319,10 @@ function injectApiKeys(code: string): string {
     const stabilityKey = getStabilityApiKey();
     if (stabilityKey) injectedCode = injectedCode.replace(/'YOUR_STABILITY_API_KEY'/g, `'${stabilityKey}'`);
     
+    // StreamlineHQ
+    const streamlineKey = getStreamlineApiKey();
+    if (streamlineKey) injectedCode = injectedCode.replace(/'YOUR_STREAMLINE_API_KEY'/g, `'${streamlineKey}'`);
+
     return injectedCode;
 }
 

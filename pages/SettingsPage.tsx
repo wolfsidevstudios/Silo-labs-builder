@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import EyeIcon from '../components/icons/EyeIcon';
 import EyeOffIcon from '../components/icons/EyeOffIcon';
@@ -14,6 +15,7 @@ import FreeSoundIcon from '../components/icons/FreeSoundIcon';
 import SpotifyIcon from '../components/icons/SpotifyIcon';
 import StableDiffusionIcon from '../components/icons/StableDiffusionIcon';
 import LogoDevIcon from '../components/icons/LogoDevIcon';
+import StreamlineIcon from '../components/icons/StreamlineIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
@@ -27,6 +29,7 @@ import { saveApiKey as savePexelsKey, getApiKey as getPexelsKey, removeApiKey as
 import { saveApiKey as saveFreeSoundKey, getApiKey as getFreeSoundKey, removeApiKey as removeFreeSoundKey, searchFreeSound } from '../services/freesoundService';
 import { saveClientCredentials as saveSpotifyCreds, getClientCredentials as getSpotifyCreds, removeClientCredentials as removeSpotifyCreds, testSpotifyCredentials } from '../services/spotifyService';
 import { saveApiKey as saveStabilityKey, getApiKey as getStabilityKey, removeApiKey as removeStabilityKey, testStabilityApiKey } from '../services/stabilityService';
+import { saveApiKey as saveStreamlineKey, getApiKey as getStreamlineKey, removeApiKey as removeStreamlineKey, testStreamlineApiKey } from '../services/streamlineService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -97,6 +100,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [isStabilityConnected, setIsStabilityConnected] = useState(false);
   const [stabilityError, setStabilityError] = useState<string | null>(null);
   const [isStabilityConnecting, setIsStabilityConnecting] = useState(false);
+  
+  const [streamlineKey, setStreamlineKey] = useState('');
+  const [isStreamlineConnected, setIsStreamlineConnected] = useState(false);
+  const [streamlineError, setStreamlineError] = useState<string | null>(null);
+  const [isStreamlineConnecting, setIsStreamlineConnecting] = useState(false);
 
   // Experimental Features
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
@@ -130,6 +138,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     if (getFreeSoundKey()) setIsFreeSoundConnected(true);
     if (getSpotifyCreds()) setIsSpotifyConnected(true);
     if (getStabilityKey()) setIsStabilityConnected(true);
+    if (getStreamlineKey()) setIsStreamlineConnected(true);
 
   }, []);
 
@@ -186,6 +195,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const handleDisconnectSpotify = () => { removeSpotifyCreds(); setIsSpotifyConnected(false); setSpotifyError(null); };
   const handleConnectStability = async () => { if (!stabilityKey.trim()) { setStabilityError("Please enter a Stability AI API Key."); return; } setIsStabilityConnecting(true); setStabilityError(null); try { await testStabilityApiKey(stabilityKey); saveStabilityKey(stabilityKey); setIsStabilityConnected(true); setStabilityKey(''); } catch (err) { setStabilityError("Connection failed. Please check your API key."); } finally { setIsStabilityConnecting(false); } };
   const handleDisconnectStability = () => { removeStabilityKey(); setIsStabilityConnected(false); setStabilityError(null); };
+  const handleConnectStreamline = async () => { if (!streamlineKey.trim()) { setStreamlineError("Please enter a Streamline API Key."); return; } setIsStreamlineConnecting(true); setStreamlineError(null); try { await testStreamlineApiKey(streamlineKey); saveStreamlineKey(streamlineKey); setIsStreamlineConnected(true); setStreamlineKey(''); } catch (err) { setStreamlineError("Connection failed. Please check your API key."); } finally { setIsStreamlineConnecting(false); } };
+  const handleDisconnectStreamline = () => { removeStreamlineKey(); setIsStreamlineConnected(false); setStreamlineError(null); };
 
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
@@ -266,6 +277,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
            {/* Spotify Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">
             {isSpotifyConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <SpotifyIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Spotify Connected</p> <p className="text-sm text-slate-400">Ready to build music apps.</p> </div> </div> <button onClick={handleDisconnectSpotify} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><SpotifyIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Spotify</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Client ID and Secret</a> to build apps with Spotify data.</p> <div className="grid md:grid-cols-2 gap-4"><input type="password" value={spotifyClientId} onChange={e => setSpotifyClientId(e.target.value)} placeholder="Spotify Client ID" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg" /><input type="password" value={spotifyClientSecret} onChange={e => setSpotifyClientSecret(e.target.value)} placeholder="Spotify Client Secret" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg" /></div> <div className="mt-4 text-right"><button onClick={handleConnectSpotify} disabled={isSpotifyConnecting} className="px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isSpotifyConnecting ? 'Connecting...' : 'Connect'}</button></div> {spotifyError && <p className="text-red-400 text-sm mt-3">{spotifyError}</p>} </div> )}
+          </div>
+           {/* Streamline Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isStreamlineConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <StreamlineIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Streamline Connected</p> <p className="text-sm text-slate-400">Ready to find icons for your apps.</p> </div> </div> <button onClick={handleDisconnectStreamline} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><StreamlineIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Streamline</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://streamlinehq.com/developers" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Streamline API Key</a> to search and use icons in your projects.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={streamlineKey} onChange={e => setStreamlineKey(e.target.value)} placeholder="Your Streamline API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectStreamline} disabled={isStreamlineConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isStreamlineConnecting ? 'Connecting...' : 'Connect'}</button></div> {streamlineError && <p className="text-red-400 text-sm mt-3">{streamlineError}</p>} </div> )}
           </div>
           {/* OpenAI Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">

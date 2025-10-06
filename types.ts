@@ -223,3 +223,12 @@ export interface FreeSound {
   download: string; // The authenticated download link
   username: string;
 }
+
+// StreamlineHQ Integration types
+export interface StreamlineIcon {
+  id: number;
+  name: string;
+  family_slug: string;
+  image: string; // URL to PNG
+  svg: string; // Full SVG content
+}

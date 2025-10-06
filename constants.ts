@@ -93,6 +93,12 @@ You MUST return a single JSON object with three properties: \`summary\`, \`files
 - The request body must be \`grant_type=client_credentials\` and the Authorization header must be \`Basic base64_encoded(client_id:client_secret)\`.
 - Use the obtained token in subsequent API requests (e.g., \`fetch('https://api.spotify.com/v1/search?q=...&type=track', { headers: { Authorization: 'Bearer ' + your_token } })\`).
 
+**StreamlineHQ API Integration (Conditional):**
+- If the user's request involves searching for icons or illustrations, you MUST use the StreamlineHQ API.
+- To use the API key, you MUST use the placeholder 'YOUR_STREAMLINE_API_KEY'.
+- Example usage: \`fetch('https://api.streamlinehq.com/v3/search?query=user&api_token=' + 'YOUR_STREAMLINE_API_KEY')\`.
+- The response contains an array of icon objects. You can display the PNG using the 'image' property or embed the raw SVG from the 'svg' property.
+
 **OpenAI API Integration (Conditional):**
 - If the user's request involves generating images with AI (e.g., "create a logo", "generate an image of a cat"), you MUST use the OpenAI DALL-E 3 API.
 - To use the API key in your generated JavaScript, you MUST use the placeholder string 'YOUR_OPENAI_API_KEY'. The execution environment will replace this.
