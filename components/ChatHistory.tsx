@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import CheckIcon from './icons/CheckIcon';
 import { ChatMessage } from '../types';
@@ -31,8 +32,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, isLoading, error })
             <div className="flex flex-col items-start">
                 <div className="bg-slate-700 text-white p-3 rounded-lg max-w-xl">
                     <p className="font-semibold text-sm mb-1 text-indigo-300">You</p>
-                    {message.imagePreviewUrl && (
-                        <img src={message.imagePreviewUrl} alt="User upload" className="rounded-md max-h-48 mb-2" />
+                    {message.imagePreviewUrls && message.imagePreviewUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {message.imagePreviewUrls.map((url, i) => (
+                                <img key={i} src={url} alt={`User upload ${i + 1}`} className="rounded-md max-h-32 object-cover" />
+                            ))}
+                        </div>
                     )}
                     {message.content && <p>{message.content}</p>}
                 </div>

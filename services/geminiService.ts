@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
@@ -131,7 +132,7 @@ export async function generateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
-    image?: UploadedImage | null
+    images?: UploadedImage[] | null
 ): Promise<GeminiResponse> {
   try {
     const apiKey = getApiKey();
@@ -143,12 +144,12 @@ export async function generateOrUpdateAppCode(
     const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
 
     let contents: any;
-    if (image) {
-        const imagePart = {
+    const textPart = { text: fullPrompt };
+    if (images && images.length > 0) {
+        const imageParts = images.map(image => ({
             inlineData: { mimeType: image.mimeType, data: image.data },
-        };
-        const textPart = { text: fullPrompt };
-        contents = { parts: [textPart, imagePart] };
+        }));
+        contents = { parts: [textPart, ...imageParts] };
     } else {
         contents = fullPrompt;
     }
@@ -193,7 +194,7 @@ export async function* streamGenerateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
-    image?: UploadedImage | null
+    images?: UploadedImage[] | null
 ): AsyncGenerator<{ previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
     const apiKey = getApiKey();
@@ -204,12 +205,12 @@ export async function* streamGenerateOrUpdateAppCode(
     const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
 
     let contents: any;
-    if (image) {
-        const imagePart = {
+    const textPart = { text: fullPrompt };
+    if (images && images.length > 0) {
+        const imageParts = images.map(image => ({
             inlineData: { mimeType: image.mimeType, data: image.data },
-        };
-        const textPart = { text: fullPrompt };
-        contents = { parts: [textPart, imagePart] };
+        }));
+        contents = { parts: [textPart, ...imageParts] };
     } else {
         contents = fullPrompt;
     }

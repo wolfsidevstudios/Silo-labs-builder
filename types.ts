@@ -1,3 +1,4 @@
+
 // FIX: Add React import for CSSProperties type.
 import React from 'react';
 
@@ -28,7 +29,7 @@ export interface SavedProject {
 export interface UserMessage {
   role: 'user';
   content: string;
-  imagePreviewUrl?: string;
+  imagePreviewUrls?: string[];
 }
 
 export interface AssistantMessage {
