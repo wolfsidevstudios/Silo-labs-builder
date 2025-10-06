@@ -3,6 +3,7 @@ import EyeIcon from './icons/EyeIcon';
 
 interface PreviewProps {
   htmlContent: string;
+  streamingPreviewHtml: string | null;
   hasFiles: boolean;
   isLoading: boolean;
   isVisualEditMode: boolean;
@@ -76,10 +77,13 @@ const visualEditScript = `
 }, true);
 `;
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading, isVisualEditMode }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode }) => {
+  const displayHtml = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
   const enhancedHtmlContent = isVisualEditMode
-    ? htmlContent.replace('</body>', `<script>${visualEditScript}</script></body>`)
-    : htmlContent;
+    ? displayHtml.replace('</body>', `<script>${visualEditScript}</script></body>`)
+    : displayHtml;
+  
+  const hasContentToDisplay = (isLoading && streamingPreviewHtml !== null) || hasFiles;
 
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
@@ -94,7 +98,7 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading, isV
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {hasFiles ? (
+                {hasContentToDisplay ? (
                     <iframe
                         srcDoc={enhancedHtmlContent}
                         title="App Preview"

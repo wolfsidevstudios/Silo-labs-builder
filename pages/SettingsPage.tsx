@@ -46,6 +46,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [netlifyError, setNetlifyError] = useState<string | null>(null);
   const [isNetlifyConnecting, setIsNetlifyConnecting] = useState(false);
 
+  // Experimental Features
+  const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
+
 
   useEffect(() => {
     // Load Gemini Key
@@ -60,6 +63,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     setSelectedModel(storedModel as GeminiModel);
 
     setSecrets(getSecrets());
+
+    // Load Experimental settings
+    const livePreview = localStorage.getItem('experimental_live_preview') === 'true';
+    setIsLivePreviewEnabled(livePreview);
 
     // Load and verify GitHub connection
     const ghPat = getGitHubPat();
@@ -171,6 +178,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     setNetlifyError(null);
   };
 
+  const handleToggleLivePreview = () => {
+    const newValue = !isLivePreviewEnabled;
+    setIsLivePreviewEnabled(newValue);
+    localStorage.setItem('experimental_live_preview', String(newValue));
+  };
+
+
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
       <main className="w-full max-w-5xl px-4 py-12">
@@ -254,8 +268,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             <div className="mt-6 text-right"><button onClick={handleAddSecret} className="px-5 py-2 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">Add Secret</button></div>
             {secrets.length > 0 && <div className="mt-8 border-t border-slate-700 pt-6"><h3 className="font-semibold text-slate-300 mb-4">Saved Secrets</h3><div className="space-y-3">{secrets.map(secret => { const tool = identifyTool(secret); const IconComponent = tool.icon; return (<div key={secret.name} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg"><div className="flex items-center gap-3"><IconComponent className="w-6 h-6 text-slate-400" /><div><p className="font-mono text-sm text-slate-200">{secret.name}</p><p className="text-xs text-slate-500">{tool.name}</p></div></div><button onClick={() => handleRemoveSecret(secret.name)} className="p-2 text-slate-500 hover:text-red-400" aria-label={`Remove ${secret.name}`}><TrashIcon className="w-5 h-5" /></button></div>);})}</div></div>}
         </div>
+
+        <div className="mt-16 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-[0_0_120px_rgba(255,255,255,0.1)] animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">🧪 Experimental Tools</h2>
+          <p className="text-sm text-slate-500 mb-6">Enable cutting-edge features. These are in beta and may be unstable.</p>
+          <div
+            onClick={handleToggleLivePreview}
+            className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg cursor-pointer hover:bg-slate-800"
+          >
+            <div>
+              <h3 className="font-semibold text-slate-200">Live AI Coding Preview</h3>
+              <p className="text-sm text-slate-400">See code changes reflected in the preview in real-time as the AI generates them.</p>
+            </div>
+            <div className={`relative w-12 h-6 rounded-full transition-colors ${isLivePreviewEnabled ? 'bg-indigo-600' : 'bg-slate-700'}`}>
+              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isLivePreviewEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </div>
+          </div>
+        </div>
         
-        <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <div className="text-center"><h2 className="text-3xl font-bold text-slate-100 mb-2">UI Theme Templates</h2><p className="text-base text-slate-400 mb-8 max-w-2xl mx-auto">Choose a theme to guide the AI's design.</p></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div onClick={() => handleSelectTheme('none')} className={`relative bg-slate-800/50 border rounded-lg p-4 flex flex-col justify-center items-center text-center h-full min-h-[250px] ${selectedTheme === 'none' ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-700'} cursor-pointer hover:-translate-y-1`}><h3 className="font-bold text-lg text-white">No Theme</h3><p className="text-sm text-slate-400">Let the AI decide the design.</p></div>

@@ -86,6 +86,42 @@ ${secretNames}
 `;
 }
 
+function constructFullPrompt(
+    prompt: string,
+    existingFiles: AppFile[] | null,
+    visualEditTarget?: { selector: string } | null
+): string {
+    const themeInstruction = getThemeInstruction();
+    const secretsInstruction = getSecretsInstruction();
+    const filesString = existingFiles
+        ? existingFiles
+            .map(f => `// File: ${f.path}\n\n${f.content}`)
+            .join('\n\n---\n\n')
+        : '';
+
+    if (visualEditTarget && existingFiles) {
+        return `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
+    } else if (existingFiles && existingFiles.length > 0) {
+      return `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+    } else {
+        return `${themeInstruction}${secretsInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
+    }
+}
+
+function injectSecrets(html: string): string {
+    const secrets = getSecrets();
+    if (secrets.length > 0) {
+        const secretsObject = secrets.reduce((obj, secret) => {
+            obj[secret.name] = secret.value;
+            return obj;
+        }, {} as Record<string, string>);
+
+        const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`;
+        return html.replace('</head>', `${secretScript}</head>`);
+    }
+    return html;
+}
+
 export async function generateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
@@ -97,24 +133,8 @@ export async function generateOrUpdateAppCode(
         throw new Error("Gemini API key is missing. Please add it in the Settings page.");
     }
     const ai = new GoogleGenAI({ apiKey });
-    const themeInstruction = getThemeInstruction();
-    const secretsInstruction = getSecretsInstruction();
     const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
-
-    let fullPrompt = '';
-    const filesString = existingFiles
-        ? existingFiles
-            .map(f => `// File: ${f.path}\n\n${f.content}`)
-            .join('\n\n---\n\n')
-        : '';
-
-    if (visualEditTarget && existingFiles) {
-        fullPrompt = `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
-    } else if (existingFiles && existingFiles.length > 0) {
-      fullPrompt = `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
-    } else {
-        fullPrompt = `${themeInstruction}${secretsInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
-    }
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
 
     const response = await ai.models.generateContent({
       model: model,
@@ -139,18 +159,7 @@ export async function generateOrUpdateAppCode(
       throw new Error("AI response is not in the expected format or is empty.");
     }
 
-    // Inject secrets into the preview HTML
-    const secrets = getSecrets();
-    if (secrets.length > 0) {
-        const secretsObject = secrets.reduce((obj, secret) => {
-            obj[secret.name] = secret.value;
-            return obj;
-        }, {} as Record<string, string>);
-
-        const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`;
-        generatedApp.previewHtml = generatedApp.previewHtml.replace('</head>', `${secretScript}</head>`);
-    }
-
+    generatedApp.previewHtml = injectSecrets(generatedApp.previewHtml);
     return generatedApp;
 
   } catch (error) {
@@ -159,5 +168,60 @@ export async function generateOrUpdateAppCode(
         throw new Error(`Failed to generate app code: ${error.message}`);
     }
     throw new Error("An unknown error occurred while generating app code.");
+  }
+}
+
+
+export async function* streamGenerateOrUpdateAppCode(
+    prompt: string, 
+    existingFiles: AppFile[] | null,
+    visualEditTarget?: { selector: string } | null
+): AsyncGenerator<{ previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
+  try {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("Gemini API key is missing. Please add it in the Settings page.");
+    
+    const ai = new GoogleGenAI({ apiKey });
+    const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
+
+    const responseStream = await ai.models.generateContentStream({
+      model: model,
+      contents: fullPrompt,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      },
+    });
+
+    let buffer = '';
+    for await (const chunk of responseStream) {
+        buffer += chunk.text;
+        
+        const startMarker = '"previewHtml": "';
+        const startIndex = buffer.indexOf(startMarker);
+        
+        if (startIndex !== -1) {
+            // Extract the content of the previewHtml string as it streams in.
+            // This is a simplified approach; it doesn't handle escaped quotes inside the HTML string,
+            // but for a live preview, it's generally effective.
+            const htmlFragment = buffer.substring(startIndex + startMarker.length);
+            yield { previewHtml: htmlFragment };
+        }
+    }
+
+    const generatedApp = JSON.parse(buffer) as GeminiResponse;
+    if (!generatedApp || !generatedApp.previewHtml || !generatedApp.files || !generatedApp.summary) {
+        throw new Error("Stream finished but AI response is not in the expected format or is empty.");
+    }
+
+    generatedApp.previewHtml = injectSecrets(generatedApp.previewHtml);
+    yield { finalResponse: generatedApp };
+
+  } catch (error) {
+    console.error("Error streaming app code:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    yield { error: `Failed to generate app code: ${errorMessage}` };
   }
 }

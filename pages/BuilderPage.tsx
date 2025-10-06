@@ -7,8 +7,8 @@ import ViewSwitcher from '../components/ViewSwitcher';
 import GitHubSaveModal from '../components/GitHubSaveModal';
 import DeployModal from '../components/DeployModal';
 import VisualEditBar from '../components/VisualEditBar';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser } from '../types';
-import { generateOrUpdateAppCode } from '../services/geminiService';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse } from '../types';
+import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
@@ -24,6 +24,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+  
+  // Experimental Features State
+  const [streamingPreviewHtml, setStreamingPreviewHtml] = useState<string | null>(null);
   
   // Visual Edit Mode State
   const [isVisualEditMode, setIsVisualEditMode] = useState(false);
@@ -48,100 +51,92 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant') as AssistantMessage | undefined;
   const files = latestAssistantMessage?.content.files || [];
   const previewHtml = latestAssistantMessage?.content.previewHtml || '';
+  
+  const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
+      if (!promptToSubmit || isLoading) return;
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const userPrompt = prompt.trim();
-    if (!userPrompt || isLoading) return;
+      setError(null);
+      setIsLoading(true);
+      setRightPaneView('preview');
 
-    setError(null);
-    setIsLoading(true);
-
-    const newUserMessage: UserMessage = { role: 'user', content: userPrompt };
-    setChatHistory(prev => [...prev, newUserMessage]);
-    setPrompt('');
-    
-    setRightPaneView('preview');
-
-    try {
-      const currentFiles = files.length > 0 ? files : null;
-      const result = await generateOrUpdateAppCode(userPrompt, currentFiles);
+      let userMessageContent = promptToSubmit;
+      if (options.isBoost) userMessageContent = "✨ Boost UI";
+      if (options.visualEditTarget) userMessageContent = `Edited element ("${options.visualEditTarget.selector}"): "${promptToSubmit}"`;
       
-      const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
-      setChatHistory(prev => [...prev, newAssistantMessage]);
-      
-      const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
-      const projectPrompt = firstUserMessage ? firstUserMessage.content : userPrompt;
-      const saved = saveProject({ prompt: projectPrompt, ...result });
-      setLastSavedProjectId(saved.id);
-
-      // Preserve deployment info across AI updates
-      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
-      if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
-
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred.");
+      const newUserMessage: UserMessage = { role: 'user', content: userMessageContent };
+      setChatHistory(prev => [...prev, newUserMessage]);
+      setPrompt('');
+      if (options.visualEditTarget) {
+        setSelectedElementSelector(null);
+        setIsVisualEditMode(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
+
+      const currentFiles = files.length > 0 ? files : null;
+      const useLivePreview = localStorage.getItem('experimental_live_preview') === 'true';
+
+      try {
+          let result: GeminiResponse;
+
+          if (useLivePreview) {
+              setStreamingPreviewHtml(''); // Start with a blank slate for the stream
+              const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget);
+              let finalResponse: GeminiResponse | null = null;
+              for await (const update of stream) {
+                  if (update.previewHtml) setStreamingPreviewHtml(update.previewHtml);
+                  if (update.finalResponse) finalResponse = update.finalResponse;
+                  if (update.error) throw new Error(update.error);
+              }
+              if (!finalResponse) throw new Error("Stream finished without a valid result.");
+              result = finalResponse;
+          } else {
+              result = await generateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget);
+          }
+
+          // Process the final result
+          const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
+          setChatHistory(prev => [...prev, newAssistantMessage]);
+
+          if (lastSavedProjectId) {
+              updateProject(lastSavedProjectId, { ...result });
+          } else {
+              const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
+              const projectPrompt = firstUserMessage ? firstUserMessage.content : userMessageContent;
+              const saved = saveProject({ prompt: projectPrompt, ...result });
+              setLastSavedProjectId(saved.id);
+          }
+          // Preserve deployment/repo info
+          if (lastSavedProjectId) {
+            if (currentNetlifySiteId) updateProject(lastSavedProjectId, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
+            if (currentProjectRepo) updateProject(lastSavedProjectId, { githubUrl: `https://github.com/${currentProjectRepo}`});
+          }
+
+      } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+          setError(errorMessage);
+          setChatHistory(prev => prev.slice(0, -1)); // Remove the user message on failure
+      } finally {
+          setIsLoading(false);
+          setStreamingPreviewHtml(null); // Clear streaming preview on completion
+      }
   };
 
-  const handleVisualEditSubmit = async (editPrompt: string) => {
-    if (!selectedElementSelector || !editPrompt.trim() || isLoading) return;
 
-    setError(null);
-    setIsLoading(true);
+  const handlePromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit(prompt.trim());
+  };
 
-    const userMessageContent = `Edited element ("${selectedElementSelector}"): "${editPrompt}"`;
-    const newUserMessage: UserMessage = { role: 'user', content: userMessageContent };
-    setChatHistory(prev => [...prev, newUserMessage]);
-
-    const target = { selector: selectedElementSelector };
-    setSelectedElementSelector(null);
-    setIsVisualEditMode(false);
-    
-    try {
-        const result = await generateOrUpdateAppCode(editPrompt, files, target);
-        const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
-        setChatHistory(prev => [...prev, newAssistantMessage]);
-        
-        if (lastSavedProjectId) {
-            updateProject(lastSavedProjectId, { files: result.files, previewHtml: result.previewHtml, summary: result.summary });
-        }
-    } catch (err) {
-        if (err instanceof Error) setError(err.message); else setError("An unexpected error occurred.");
-    } finally {
-        setIsLoading(false);
+  const handleVisualEditSubmit = (editPrompt: string) => {
+    if (selectedElementSelector) {
+        handleSubmit(editPrompt, { visualEditTarget: { selector: selectedElementSelector } });
     }
   };
   
-  const handleBoostUi = async () => {
-    if (isLoading || files.length === 0) return;
-    const boostPrompt = "Dramatically improve the UI/UX of the current application. Make it look modern, professional, and visually stunning. Focus on layout, color scheme, typography, and interactivity.";
-    setError(null);
-    setIsLoading(true);
-    const newUserMessage: UserMessage = { role: 'user', content: "✨ Boost UI" };
-    setChatHistory(prev => [...prev, newUserMessage]);
-    setPrompt('');
-    setRightPaneView('preview');
-
-    try {
-      const result = await generateOrUpdateAppCode(boostPrompt, files);
-      const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
-      setChatHistory(prev => [...prev, newAssistantMessage]);
-      const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
-      const projectPrompt = firstUserMessage ? firstUserMessage.content : "AI Generated App";
-      const saved = saveProject({ prompt: projectPrompt, ...result });
-      setLastSavedProjectId(saved.id);
-      
-      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
-      if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
-    } catch (err) { if (err instanceof Error) setError(err.message); else setError("An unexpected error occurred."); }
-    finally { setIsLoading(false); }
+  const handleBoostUi = () => {
+    if (files.length > 0) {
+        const boostPrompt = "Dramatically improve the UI/UX of the current application. Make it look modern, professional, and visually stunning. Focus on layout, color scheme, typography, and interactivity.";
+        handleSubmit(boostPrompt, { isBoost: true });
+    }
   };
   
   const handleGitHubSave = async (details: { repoName?: string, description?: string, commitMessage: string }) => {
@@ -261,10 +256,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
   useEffect(() => {
     if (prompt && !isInitialGenerationDone.current && chatHistory.length === 0) {
-        handleSendMessage();
+        handleSubmit(prompt);
         isInitialGenerationDone.current = true;
     }
-  }, [prompt, chatHistory.length]);
+  }, [prompt]);
 
   return (
     <div className="h-screen w-screen bg-black text-white flex pl-20">
@@ -278,7 +273,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             <PromptInput 
                 prompt={prompt} 
                 setPrompt={setPrompt} 
-                onSubmit={handleSendMessage} 
+                onSubmit={handlePromptSubmit} 
                 onBoostUi={handleBoostUi} 
                 isLoading={isLoading}
                 isVisualEditMode={isVisualEditMode}
@@ -303,6 +298,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             ) : (
                 <Preview 
                     htmlContent={previewHtml} 
+                    streamingPreviewHtml={streamingPreviewHtml}
                     hasFiles={files.length > 0} 
                     isLoading={isLoading}
                     isVisualEditMode={isVisualEditMode && !selectedElementSelector}
