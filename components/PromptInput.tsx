@@ -4,6 +4,7 @@ import SparklesIcon from './icons/SparklesIcon';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
 import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
+import GiphyIcon from './icons/GiphyIcon';
 
 interface PromptInputProps {
   prompt: string;
@@ -17,9 +18,11 @@ interface PromptInputProps {
   onImagesUpload: (files: FileList) => void;
   onImageRemove: (index: number) => void;
   onOpenImageLibrary: () => void;
+  isGiphyConnected: boolean;
+  onAddGifClick: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
@@ -99,6 +102,16 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             >
                 <MousePointerClickIcon className="w-4 h-4" />
                 <span>Edit</span>
+            </button>
+            <button
+                type="button"
+                onClick={onAddGifClick}
+                disabled={isLoading || !isGiphyConnected}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+                title={isGiphyConnected ? "Add GIF from Giphy" : "Connect to Giphy in Settings"}
+            >
+                <GiphyIcon className="w-4 h-4" />
+                <span>Add GIF</span>
             </button>
         </div>
       {uploadedImages.length > 0 && (

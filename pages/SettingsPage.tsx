@@ -5,12 +5,14 @@ import TrashIcon from '../components/icons/TrashIcon';
 import KeyIcon from '../components/icons/KeyIcon';
 import GitHubIcon from '../components/icons/GitHubIcon';
 import NetlifyIcon from '../components/icons/NetlifyIcon';
+import GiphyIcon from '../components/icons/GiphyIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
 import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
 import { savePat as saveGitHubPat, getPat as getGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo, getRepositories } from '../services/githubService';
 import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo, getSites as getNetlifySites } from '../services/netlifyService';
+import { saveApiKey as saveGiphyKey, getApiKey as getGiphyKey, removeApiKey as removeGiphyKey, searchGifs } from '../services/giphyService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -46,6 +48,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [netlifySites, setNetlifySites] = useState<NetlifySite[]>([]);
   const [netlifyError, setNetlifyError] = useState<string | null>(null);
   const [isNetlifyConnecting, setIsNetlifyConnecting] = useState(false);
+
+  // Giphy State
+  const [giphyApiKey, setGiphyApiKey] = useState('');
+  const [isGiphyConnected, setIsGiphyConnected] = useState(false);
+  const [giphyError, setGiphyError] = useState<string | null>(null);
+  const [isGiphyConnecting, setIsGiphyConnecting] = useState(false);
 
   // Experimental Features
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
@@ -92,6 +100,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
         .then(sites => setNetlifySites(sites))
         .catch(() => { setNetlifyError("Your PAT seems to be invalid or expired."); removeNetlifyPat(); })
         .finally(() => setIsNetlifyConnecting(false));
+    }
+
+    // Load and verify Giphy connection
+    const gphKey = getGiphyKey();
+    if (gphKey) {
+      setIsGiphyConnected(true);
     }
 
   }, []);
@@ -191,6 +205,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     setNetlifyError(null);
   };
 
+  const handleConnectGiphy = async () => {
+    if (!giphyApiKey.trim()) { setGiphyError("Please enter a Giphy API Key."); return; }
+    setIsGiphyConnecting(true);
+    setGiphyError(null);
+    try {
+        await searchGifs(giphyApiKey, 'test');
+        saveGiphyKey(giphyApiKey);
+        setIsGiphyConnected(true);
+        setGiphyApiKey('');
+    } catch (err) { setGiphyError("Connection failed. Please check your API key."); }
+    finally { setIsGiphyConnecting(false); }
+  };
+
+  const handleDisconnectGiphy = () => {
+    removeGiphyKey();
+    setIsGiphyConnected(false);
+    setGiphyError(null);
+  };
+
   const handleToggleLivePreview = () => {
     const newValue = !isLivePreviewEnabled;
     setIsLivePreviewEnabled(newValue);
@@ -251,7 +284,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             )}
           </div>
           {/* Netlify Section */}
-           <div>
+           <div className="mb-8 pb-8 border-b border-slate-800">
             {netlifyUser ? (
                 <div>
                   <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
@@ -275,6 +308,32 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                 <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Personal Access Token</a> to deploy projects directly to Netlify.</p>
                 <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={netlifyPat} onChange={e => setNetlifyPat(e.target.value)} placeholder="nfp_..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectNetlify} disabled={isNetlifyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isNetlifyConnecting ? 'Connecting...' : 'Connect'}</button></div>
                 {netlifyError && <p className="text-red-400 text-sm mt-3">{netlifyError}</p>}
+              </div>
+            )}
+          </div>
+          {/* Giphy Section */}
+          <div>
+            {isGiphyConnected ? (
+                <div>
+                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
+                         <GiphyIcon className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg text-white">Giphy Connected</p>
+                        <p className="text-sm text-slate-400">Ready to add GIFs to your apps.</p>
+                      </div>
+                    </div>
+                    <button onClick={handleDisconnectGiphy} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
+                  </div>
+                </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3 mb-2"><GiphyIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Giphy</h3></div>
+                <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Giphy API Key</a> to search and add GIFs to your projects.</p>
+                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={giphyApiKey} onChange={e => setGiphyApiKey(e.target.value)} placeholder="Your Giphy API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGiphy} disabled={isGiphyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGiphyConnecting ? 'Connecting...' : 'Connect'}</button></div>
+                {giphyError && <p className="text-red-400 text-sm mt-3">{giphyError}</p>}
               </div>
             )}
           </div>

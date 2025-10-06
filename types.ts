@@ -122,3 +122,24 @@ export interface NetlifyDeploy {
     state: string;
     required?: string[];
 }
+
+// Giphy Integration types
+export interface GiphyGif {
+  id: string;
+  url: string;
+  title: string;
+  images: {
+    fixed_width: {
+      url: string;
+      webp: string;
+      width: string;
+      height: string;
+    };
+    original: {
+      url: string;
+      webp: string;
+      width: string;
+      height: string;
+    }
+  };
+}

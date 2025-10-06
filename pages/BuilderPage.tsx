@@ -8,11 +8,13 @@ import GitHubSaveModal from '../components/GitHubSaveModal';
 import DeployModal from '../components/DeployModal';
 import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage } from '../types';
+import GiphySearchModal from '../components/GiphySearchModal';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
+import { getApiKey as getGiphyKey } from '../services/giphyService';
 import { saveImage } from '../services/imageService';
 
 interface BuilderPageProps {
@@ -55,6 +57,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [currentNetlifySiteId, setCurrentNetlifySiteId] = useState<string | null>(null);
   const [currentNetlifyUrl, setCurrentNetlifyUrl] = useState<string | null>(null);
+
+  // Giphy State
+  const [isGiphyConnected, setIsGiphyConnected] = useState(false);
+  const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
 
   const [lastSavedProjectId, setLastSavedProjectId] = useState<string | null>(null);
   
@@ -100,6 +106,34 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setUploadedImages(prev => prev.filter((_, index) => index !== indexToRemove));
   };
   
+  const handleSelectGif = async (gif: GiphyGif) => {
+    setIsGiphyModalOpen(false);
+    setError(null);
+    try {
+        const response = await fetch(gif.images.original.url);
+        if (!response.ok) throw new Error("Failed to fetch GIF data.");
+
+        const blob = await response.blob();
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUrl = reader.result as string;
+            const [header, base64Data] = dataUrl.split(',');
+            
+            setUploadedImages(prev => [...prev, {
+                data: base64Data,
+                mimeType: 'image/gif',
+                previewUrl: dataUrl
+            }]);
+        };
+        reader.onerror = () => { throw new Error("Failed to read GIF data."); };
+        reader.readAsDataURL(blob);
+
+    } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred while adding the GIF.");
+    }
+  };
+
   const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
       if ((!promptToSubmit && uploadedImages.length === 0) || isLoading) return;
 
@@ -292,6 +326,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const ntToken = getNetlifyPat();
     if (ntToken) setIsNetlifyConnected(true);
 
+    const gphKey = getGiphyKey();
+    if (gphKey) setIsGiphyConnected(true);
+
     if (initialProject) {
       const initialUserMessage: UserMessage = { role: 'user', content: initialProject.prompt };
       const initialAssistantMessage: AssistantMessage = { role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
@@ -318,6 +355,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!currentProjectRepo} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={currentNetlifyUrl} isNewDeploy={!currentNetlifySiteId} />
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
+      <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
@@ -335,6 +373,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 onImagesUpload={handleImagesUpload}
                 onImageRemove={handleImageRemove}
                 onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
+                isGiphyConnected={isGiphyConnected}
+                onAddGifClick={() => setIsGiphyModalOpen(true)}
             />
         </div>
       </div>
