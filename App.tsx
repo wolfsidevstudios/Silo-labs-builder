@@ -7,6 +7,8 @@ import ProjectsPage from './pages/ProjectsPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
+import OnboardingModal from './components/OnboardingModal';
+import UserGreeting from './components/UserGreeting';
 import { SavedProject } from './types';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans';
@@ -20,7 +22,22 @@ const App: React.FC = () => {
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
 
+  // State for new onboarding flow
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+
   useEffect(() => {
+    // Onboarding check
+    const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    } else {
+      const storedName = localStorage.getItem('userName');
+      if (storedName) {
+        setUserName(storedName);
+      }
+    }
+
     // Check for permanent Pro status from payment
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
     if (permanentProStatus) {
@@ -64,6 +81,18 @@ const App: React.FC = () => {
     }
   }, []);
   
+  const handleOnboardingFinish = (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => {
+    localStorage.setItem('onboardingCompleted', 'true');
+    localStorage.setItem('userName', data.name);
+    
+    if (data.accountType === 'business' && data.businessProfile) {
+      localStorage.setItem('businessProfile', JSON.stringify(data.businessProfile));
+    }
+    
+    setUserName(data.name);
+    setShowOnboarding(false);
+  };
+
   const handleStartTrial = () => {
     const oneDayInMs = 24 * 60 * 60 * 1000;
     const endTime = Date.now() + oneDayInMs;
@@ -120,6 +149,8 @@ const App: React.FC = () => {
 
   return (
     <>
+      <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} />
+      {userName && <UserGreeting name={userName} />}
       <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />
        <ReferralModal
         isOpen={isReferralModalOpen}
