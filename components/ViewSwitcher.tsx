@@ -10,26 +10,35 @@ interface ViewSwitcherProps {
 }
 
 const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ activeView, setActiveView }) => {
+  const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
+
   return (
     <div className="flex-shrink-0 flex items-center justify-center p-2">
-      <div className="bg-slate-800 p-1 rounded-lg flex gap-1">
+      <div className="relative bg-slate-900/50 backdrop-blur-sm p-1 rounded-full flex items-center border border-slate-700/50">
+        {/* Glossy sliding indicator */}
+        <div
+          className="absolute top-1 left-1 h-9 w-9 bg-indigo-600 rounded-full transition-transform duration-300 ease-in-out shadow-lg"
+          style={{ transform: `translateX(${activeView === 'preview' ? 0 : buttonSize}px)` }}
+        />
+        
+        {/* Buttons */}
         <button
           onClick={() => setActiveView('preview')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-            activeView === 'preview' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-700'
-          }`}
+          className="relative z-10 flex items-center justify-center h-9 w-9 rounded-full transition-colors"
+          aria-pressed={activeView === 'preview'}
+          title="Switch to Preview"
+          aria-label="Switch to preview view"
         >
-          <EyeIcon className="w-4 h-4" />
-          Preview
+          <EyeIcon className={`w-5 h-5 transition-colors ${activeView === 'preview' ? 'text-white' : 'text-slate-400 hover:text-white'}`} />
         </button>
         <button
           onClick={() => setActiveView('code')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-            activeView === 'code' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-700'
-          }`}
+          className="relative z-10 flex items-center justify-center h-9 w-9 rounded-full transition-colors"
+          aria-pressed={activeView === 'code'}
+          title="Switch to Code"
+          aria-label="Switch to code view"
         >
-          <CodeIcon className="w-4 h-4" />
-          Code
+          <CodeIcon className={`w-5 h-5 transition-colors ${activeView === 'code' ? 'text-white' : 'text-slate-400 hover:text-white'}`} />
         </button>
       </div>
     </div>

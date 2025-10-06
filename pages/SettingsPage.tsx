@@ -64,11 +64,11 @@ const SettingsPage: React.FC = () => {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your API key here"
-                className="w-full p-3 pr-12 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                className="w-full p-3 pr-12 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-full shadow-inner shadow-black/20 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
               />
               <button
                 onClick={() => setIsKeyVisible(!isKeyVisible)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
                 aria-label={isKeyVisible ? 'Hide API key' : 'Show API key'}
               >
                 {isKeyVisible ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}

@@ -105,17 +105,20 @@ const PlansPage: React.FC = () => {
                     <p className="text-slate-400 mt-2 max-w-lg">Share your unique tracking URL to get <strong>1 free generation</strong> per sign-up. Soon, you'll also earn <strong>10% cash back</strong> every time a referred user buys premium!</p>
                 </div>
             </div>
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-2 w-full md:w-auto">
-                <span className="text-indigo-300 font-mono text-sm px-2 truncate" title={affiliateUrl}>
+            <div className="relative w-full md:w-auto md:min-w-[420px]">
+              <div 
+                title={affiliateUrl}
+                className="w-full p-3 pr-28 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-full shadow-inner shadow-black/20 text-indigo-300 font-mono text-sm truncate pl-5"
+              >
                   {affiliateUrl || 'Generating...'}
-                </span>
-                <button 
-                    onClick={handleCopy}
-                    disabled={!affiliateUrl}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md transition-colors w-28 flex-shrink-0 disabled:bg-slate-600 disabled:cursor-not-allowed"
-                >
-                    {copyText}
-                </button>
+              </div>
+              <button
+                  onClick={handleCopy}
+                  disabled={!affiliateUrl}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-colors text-sm disabled:bg-slate-600 disabled:cursor-not-allowed"
+              >
+                  {copyText}
+              </button>
             </div>
         </div>
       </main>
