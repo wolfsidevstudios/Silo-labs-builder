@@ -8,6 +8,10 @@ import NetlifyIcon from '../components/icons/NetlifyIcon';
 import GiphyIcon from '../components/icons/GiphyIcon';
 import UnsplashIcon from '../components/icons/UnsplashIcon';
 import OpenAiIcon from '../components/icons/OpenAiIcon';
+import PexelsIcon from '../components/icons/PexelsIcon';
+import FreeSoundIcon from '../components/icons/FreeSoundIcon';
+import SpotifyIcon from '../components/icons/SpotifyIcon';
+import StableDiffusionIcon from '../components/icons/StableDiffusionIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
@@ -17,6 +21,10 @@ import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as remove
 import { saveApiKey as saveGiphyKey, getApiKey as getGiphyKey, removeApiKey as removeGiphyKey, searchGifs } from '../services/giphyService';
 import { saveAccessKey as saveUnsplashKey, getAccessKey as getUnsplashKey, removeAccessKey as removeUnsplashKey, searchPhotos as testUnsplash } from '../services/unsplashService';
 import { saveApiKey as saveOpenAiKey, getApiKey as getOpenAiKey, removeApiKey as removeOpenAiKey, verifyApiKey as testOpenAi } from '../services/openaiService';
+import { saveApiKey as savePexelsKey, getApiKey as getPexelsKey, removeApiKey as removePexelsKey, searchPexels } from '../services/pexelsService';
+import { saveApiKey as saveFreeSoundKey, getApiKey as getFreeSoundKey, removeApiKey as removeFreeSoundKey, searchFreeSound } from '../services/freesoundService';
+import { saveClientCredentials as saveSpotifyCreds, getClientCredentials as getSpotifyCreds, removeClientCredentials as removeSpotifyCreds, testSpotifyCredentials } from '../services/spotifyService';
+import { saveApiKey as saveStabilityKey, getApiKey as getStabilityKey, removeApiKey as removeStabilityKey, testStabilityApiKey } from '../services/stabilityService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -39,37 +47,54 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [isSecretValueVisible, setIsSecretValueVisible] = useState(false);
   const [secretError, setSecretError] = useState<string | null>(null);
 
-  // GitHub State
+  // Connection States
   const [githubPat, setGithubPat] = useState('');
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
   const [githubError, setGithubError] = useState<string | null>(null);
   const [isGitHubConnecting, setIsGitHubConnecting] = useState(false);
 
-  // Netlify State
   const [netlifyPat, setNetlifyPat] = useState('');
   const [netlifyUser, setNetlifyUser] = useState<NetlifyUser | null>(null);
   const [netlifySites, setNetlifySites] = useState<NetlifySite[]>([]);
   const [netlifyError, setNetlifyError] = useState<string | null>(null);
   const [isNetlifyConnecting, setIsNetlifyConnecting] = useState(false);
 
-  // Giphy State
   const [giphyApiKey, setGiphyApiKey] = useState('');
   const [isGiphyConnected, setIsGiphyConnected] = useState(false);
   const [giphyError, setGiphyError] = useState<string | null>(null);
   const [isGiphyConnecting, setIsGiphyConnecting] = useState(false);
 
-  // Unsplash State
   const [unsplashKey, setUnsplashKey] = useState('');
   const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
   const [unsplashError, setUnsplashError] = useState<string | null>(null);
   const [isUnsplashConnecting, setIsUnsplashConnecting] = useState(false);
 
-  // OpenAI State
   const [openAiKey, setOpenAiKey] = useState('');
   const [isOpenAiConnected, setIsOpenAiConnected] = useState(false);
   const [openAiError, setOpenAiError] = useState<string | null>(null);
   const [isOpenAiConnecting, setIsOpenAiConnecting] = useState(false);
+  
+  const [pexelsKey, setPexelsKey] = useState('');
+  const [isPexelsConnected, setIsPexelsConnected] = useState(false);
+  const [pexelsError, setPexelsError] = useState<string | null>(null);
+  const [isPexelsConnecting, setIsPexelsConnecting] = useState(false);
+
+  const [freeSoundKey, setFreeSoundKey] = useState('');
+  const [isFreeSoundConnected, setIsFreeSoundConnected] = useState(false);
+  const [freeSoundError, setFreeSoundError] = useState<string | null>(null);
+  const [isFreeSoundConnecting, setIsFreeSoundConnecting] = useState(false);
+  
+  const [spotifyClientId, setSpotifyClientId] = useState('');
+  const [spotifyClientSecret, setSpotifyClientSecret] = useState('');
+  const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
+  const [isSpotifyConnecting, setIsSpotifyConnecting] = useState(false);
+  
+  const [stabilityKey, setStabilityKey] = useState('');
+  const [isStabilityConnected, setIsStabilityConnected] = useState(false);
+  const [stabilityError, setStabilityError] = useState<string | null>(null);
+  const [isStabilityConnecting, setIsStabilityConnecting] = useState(false);
 
   // Experimental Features
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
@@ -93,48 +118,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     const livePreview = localStorage.getItem('experimental_live_preview') === 'true';
     setIsLivePreviewEnabled(livePreview);
 
-    // Load and verify GitHub connection
-    const ghPat = getGitHubPat();
-    if (ghPat) {
-        setIsGitHubConnecting(true);
-        getGitHubUserInfo(ghPat)
-            .then(user => { setGithubUser(user); return getRepositories(ghPat); })
-            .then(repos => setGithubRepos(repos))
-            .catch(() => { setGithubError("Your PAT seems to be invalid or expired."); removeGitHubPat(); })
-            .finally(() => setIsGitHubConnecting(false));
-    }
-
-    // Load and verify Netlify connection
-    const ntPat = getNetlifyPat();
-    if (ntPat) {
-      setIsNetlifyConnecting(true);
-      getNetlifyUserInfo(ntPat)
-        .then(user => {
-            setNetlifyUser(user);
-            return getNetlifySites(ntPat);
-        })
-        .then(sites => setNetlifySites(sites))
-        .catch(() => { setNetlifyError("Your PAT seems to be invalid or expired."); removeNetlifyPat(); })
-        .finally(() => setIsNetlifyConnecting(false));
-    }
-
-    // Load and verify Giphy connection
-    const gphKey = getGiphyKey();
-    if (gphKey) {
-      setIsGiphyConnected(true);
-    }
-
-    // Load and verify Unsplash connection
-    const uspKey = getUnsplashKey();
-    if (uspKey) {
-      setIsUnsplashConnected(true);
-    }
-
-    // Load and verify OpenAI connection
-    const oaiKey = getOpenAiKey();
-    if (oaiKey) {
-      setIsOpenAiConnected(true);
-    }
+    // --- Load and verify all connections ---
+    if (getGitHubPat()) { setIsGitHubConnecting(true); getGitHubUserInfo(getGitHubPat()!).then(setGithubUser).catch(() => removeGitHubPat()).finally(() => setIsGitHubConnecting(false)); }
+    if (getNetlifyPat()) { setIsNetlifyConnecting(true); getNetlifyUserInfo(getNetlifyPat()!).then(setNetlifyUser).catch(() => removeNetlifyPat()).finally(() => setIsNetlifyConnecting(false)); }
+    if (getGiphyKey()) setIsGiphyConnected(true);
+    if (getUnsplashKey()) setIsUnsplashConnected(true);
+    if (getOpenAiKey()) setIsOpenAiConnected(true);
+    if (getPexelsKey()) setIsPexelsConnected(true);
+    if (getFreeSoundKey()) setIsFreeSoundConnected(true);
+    if (getSpotifyCreds()) setIsSpotifyConnected(true);
+    if (getStabilityKey()) setIsStabilityConnected(true);
 
   }, []);
 
@@ -149,154 +142,48 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   };
   
   const handleAddSecret = () => {
-    if (!isPro) {
-      onUpgradeClick();
-      return;
-    }
-
+    if (!isPro) { onUpgradeClick(); return; }
     setSecretError(null);
-    if (!newSecretName.trim() || !newSecretValue.trim()) {
-        setSecretError("Both name and value are required."); return;
-    }
-    if (!/^[A-Z_][A-Z0-9_]*$/.test(newSecretName)) {
-        setSecretError("Name must be uppercase letters, numbers, and underscores, and cannot start with a number."); return;
-    }
+    if (!newSecretName.trim() || !newSecretValue.trim()) { setSecretError("Both name and value are required."); return; }
+    if (!/^[A-Z_][A-Z0-9_]*$/.test(newSecretName)) { setSecretError("Name must be uppercase letters, numbers, and underscores, and cannot start with a number."); return; }
     try {
         addSecret({ name: newSecretName.trim(), value: newSecretValue.trim() });
         setSecrets(getSecrets());
-        setNewSecretName('');
-        setNewSecretValue('');
+        setNewSecretName(''); setNewSecretValue('');
     } catch (error) { if (error instanceof Error) setSecretError(error.message); }
   };
   
-  const handleRemoveSecret = (name: string) => {
-      removeSecret(name);
-      setSecrets(getSecrets());
-  };
-
+  const handleRemoveSecret = (name: string) => { removeSecret(name); setSecrets(getSecrets()); };
   const handleSelectTheme = (themeId: string) => {
     const theme = THEMES.find(t => t.id === themeId);
     if (themeId !== 'none' && !theme) return;
-    if (theme?.isPro && !isPro) {
-      onUpgradeClick(); return;
-    }
+    if (theme?.isPro && !isPro) { onUpgradeClick(); return; }
     setSelectedTheme(themeId);
     localStorage.setItem('ui_theme_template', themeId);
   };
 
-  const handleSelectModel = (model: GeminiModel) => {
-    setSelectedModel(model);
-    localStorage.setItem('gemini_model', model);
-  };
+  const handleSelectModel = (model: GeminiModel) => { setSelectedModel(model); localStorage.setItem('gemini_model', model); };
+  const handleToggleLivePreview = () => { const newValue = !isLivePreviewEnabled; setIsLivePreviewEnabled(newValue); localStorage.setItem('experimental_live_preview', String(newValue)); };
 
-  const handleConnectGitHub = async () => {
-    if (!githubPat.trim()) { setGithubError("Please enter a Personal Access Token."); return; }
-    setIsGitHubConnecting(true);
-    setGithubError(null);
-    try {
-        const user = await getGitHubUserInfo(githubPat);
-        const repos = await getRepositories(githubPat);
-        saveGitHubPat(githubPat);
-        setGithubUser(user);
-        setGithubRepos(repos);
-        setGithubPat('');
-    } catch (err) { setGithubError("Connection failed. Please check your token and permissions."); }
-    finally { setIsGitHubConnecting(false); }
-  };
-
-  const handleDisconnectGitHub = () => {
-    removeGitHubPat();
-    setGithubUser(null);
-    setGithubRepos([]);
-    setGithubError(null);
-  };
-
-  const handleConnectNetlify = async () => {
-    if (!netlifyPat.trim()) { setNetlifyError("Please enter a Personal Access Token."); return; }
-    setIsNetlifyConnecting(true);
-    setNetlifyError(null);
-    try {
-      const user = await getNetlifyUserInfo(netlifyPat);
-      const sites = await getNetlifySites(netlifyPat);
-      saveNetlifyPat(netlifyPat);
-      setNetlifyUser(user);
-      setNetlifySites(sites);
-      setNetlifyPat('');
-    } catch (err) { setNetlifyError("Connection failed. Please check your token and permissions."); }
-    finally { setIsNetlifyConnecting(false); }
-  };
-
-  const handleDisconnectNetlify = () => {
-    removeNetlifyPat();
-    setNetlifyUser(null);
-    setNetlifySites([]);
-    setNetlifyError(null);
-  };
-
-  const handleConnectGiphy = async () => {
-    if (!giphyApiKey.trim()) { setGiphyError("Please enter a Giphy API Key."); return; }
-    setIsGiphyConnecting(true);
-    setGiphyError(null);
-    try {
-        await searchGifs(giphyApiKey, 'test');
-        saveGiphyKey(giphyApiKey);
-        setIsGiphyConnected(true);
-        setGiphyApiKey('');
-    } catch (err) { setGiphyError("Connection failed. Please check your API key."); }
-    finally { setIsGiphyConnecting(false); }
-  };
-
-  const handleDisconnectGiphy = () => {
-    removeGiphyKey();
-    setIsGiphyConnected(false);
-    setGiphyError(null);
-  };
-
-  const handleConnectUnsplash = async () => {
-    if (!unsplashKey.trim()) { setUnsplashError("Please enter an Unsplash Access Key."); return; }
-    setIsUnsplashConnecting(true);
-    setUnsplashError(null);
-    try {
-        await testUnsplash(unsplashKey, 'test'); // Test the key with a simple search
-        saveUnsplashKey(unsplashKey);
-        setIsUnsplashConnected(true);
-        setUnsplashKey('');
-    } catch (err) { setUnsplashError("Connection failed. Please check your Access Key."); }
-    finally { setIsUnsplashConnecting(false); }
-  };
-
-  const handleDisconnectUnsplash = () => {
-    removeUnsplashKey();
-    setIsUnsplashConnected(false);
-    setUnsplashError(null);
-  };
-
-  const handleConnectOpenAI = async () => {
-    if (!openAiKey.trim()) { setOpenAiError("Please enter an OpenAI API Key."); return; }
-    setIsOpenAiConnecting(true);
-    setOpenAiError(null);
-    try {
-        const isValid = await testOpenAi(openAiKey);
-        if (!isValid) throw new Error("Invalid key or API error.");
-        saveOpenAiKey(openAiKey);
-        setIsOpenAiConnected(true);
-        setOpenAiKey('');
-    } catch (err) { setOpenAiError("Connection failed. Please check your API Key."); }
-    finally { setIsOpenAiConnecting(false); }
-  };
-
-  const handleDisconnectOpenAI = () => {
-    removeOpenAiKey();
-    setIsOpenAiConnected(false);
-    setOpenAiError(null);
-  };
-
-  const handleToggleLivePreview = () => {
-    const newValue = !isLivePreviewEnabled;
-    setIsLivePreviewEnabled(newValue);
-    localStorage.setItem('experimental_live_preview', String(newValue));
-  };
-
+  // --- Connection Handlers ---
+  const handleConnectGitHub = async () => { if (!githubPat.trim()) { setGithubError("Please enter a Personal Access Token."); return; } setIsGitHubConnecting(true); setGithubError(null); try { const user = await getGitHubUserInfo(githubPat); await getRepositories(githubPat); saveGitHubPat(githubPat); setGithubUser(user); setGithubPat(''); } catch (err) { setGithubError("Connection failed. Please check your token and permissions."); } finally { setIsGitHubConnecting(false); } };
+  const handleDisconnectGitHub = () => { removeGitHubPat(); setGithubUser(null); setGithubRepos([]); setGithubError(null); };
+  const handleConnectNetlify = async () => { if (!netlifyPat.trim()) { setNetlifyError("Please enter a Personal Access Token."); return; } setIsNetlifyConnecting(true); setNetlifyError(null); try { const user = await getNetlifyUserInfo(netlifyPat); await getNetlifySites(netlifyPat); saveNetlifyPat(netlifyPat); setNetlifyUser(user); setNetlifyPat(''); } catch (err) { setNetlifyError("Connection failed. Please check your token and permissions."); } finally { setIsNetlifyConnecting(false); } };
+  const handleDisconnectNetlify = () => { removeNetlifyPat(); setNetlifyUser(null); setNetlifySites([]); setNetlifyError(null); };
+  const handleConnectGiphy = async () => { if (!giphyApiKey.trim()) { setGiphyError("Please enter a Giphy API Key."); return; } setIsGiphyConnecting(true); setGiphyError(null); try { await searchGifs(giphyApiKey, 'test'); saveGiphyKey(giphyApiKey); setIsGiphyConnected(true); setGiphyApiKey(''); } catch (err) { setGiphyError("Connection failed. Please check your API key."); } finally { setIsGiphyConnecting(false); } };
+  const handleDisconnectGiphy = () => { removeGiphyKey(); setIsGiphyConnected(false); setGiphyError(null); };
+  const handleConnectUnsplash = async () => { if (!unsplashKey.trim()) { setUnsplashError("Please enter an Unsplash Access Key."); return; } setIsUnsplashConnecting(true); setUnsplashError(null); try { await testUnsplash(unsplashKey, 'test'); saveUnsplashKey(unsplashKey); setIsUnsplashConnected(true); setUnsplashKey(''); } catch (err) { setUnsplashError("Connection failed. Please check your Access Key."); } finally { setIsUnsplashConnecting(false); } };
+  const handleDisconnectUnsplash = () => { removeUnsplashKey(); setIsUnsplashConnected(false); setUnsplashError(null); };
+  const handleConnectOpenAI = async () => { if (!openAiKey.trim()) { setOpenAiError("Please enter an OpenAI API Key."); return; } setIsOpenAiConnecting(true); setOpenAiError(null); try { const isValid = await testOpenAi(openAiKey); if (!isValid) throw new Error("Invalid key or API error."); saveOpenAiKey(openAiKey); setIsOpenAiConnected(true); setOpenAiKey(''); } catch (err) { setOpenAiError("Connection failed. Please check your API Key."); } finally { setIsOpenAiConnecting(false); } };
+  const handleDisconnectOpenAI = () => { removeOpenAiKey(); setIsOpenAiConnected(false); setOpenAiError(null); };
+  const handleConnectPexels = async () => { if (!pexelsKey.trim()) { setPexelsError("Please enter a Pexels API Key."); return; } setIsPexelsConnecting(true); setPexelsError(null); try { await searchPexels(pexelsKey, 'test'); savePexelsKey(pexelsKey); setIsPexelsConnected(true); setPexelsKey(''); } catch (err) { setPexelsError("Connection failed. Please check your API key."); } finally { setIsPexelsConnecting(false); } };
+  const handleDisconnectPexels = () => { removePexelsKey(); setIsPexelsConnected(false); setPexelsError(null); };
+  const handleConnectFreeSound = async () => { if (!freeSoundKey.trim()) { setFreeSoundError("Please enter a FreeSound API Key."); return; } setIsFreeSoundConnecting(true); setFreeSoundError(null); try { await searchFreeSound(freeSoundKey, 'test'); saveFreeSoundKey(freeSoundKey); setIsFreeSoundConnected(true); setFreeSoundKey(''); } catch (err) { setFreeSoundError("Connection failed. Please check your API key."); } finally { setIsFreeSoundConnecting(false); } };
+  const handleDisconnectFreeSound = () => { removeFreeSoundKey(); setIsFreeSoundConnected(false); setFreeSoundError(null); };
+  const handleConnectSpotify = async () => { if (!spotifyClientId.trim() || !spotifyClientSecret.trim()) { setSpotifyError("Please enter both Client ID and Secret."); return; } setIsSpotifyConnecting(true); setSpotifyError(null); try { await testSpotifyCredentials(spotifyClientId, spotifyClientSecret); saveSpotifyCreds(spotifyClientId, spotifyClientSecret); setIsSpotifyConnected(true); setSpotifyClientId(''); setSpotifyClientSecret(''); } catch (err) { setSpotifyError("Connection failed. Please check your credentials."); } finally { setIsSpotifyConnecting(false); } };
+  const handleDisconnectSpotify = () => { removeSpotifyCreds(); setIsSpotifyConnected(false); setSpotifyError(null); };
+  const handleConnectStability = async () => { if (!stabilityKey.trim()) { setStabilityError("Please enter a Stability AI API Key."); return; } setIsStabilityConnecting(true); setStabilityError(null); try { await testStabilityApiKey(stabilityKey); saveStabilityKey(stabilityKey); setIsStabilityConnected(true); setStabilityKey(''); } catch (err) { setStabilityError("Connection failed. Please check your API key."); } finally { setIsStabilityConnecting(false); } };
+  const handleDisconnectStability = () => { removeStabilityKey(); setIsStabilityConnected(false); setStabilityError(null); };
 
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
@@ -333,128 +220,39 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
           <h2 className="text-2xl font-bold text-slate-100 mb-6">Connected Apps</h2>
           {/* GitHub Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">
-            {githubUser ? (
-              <div>
-                <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
-                  <div className="flex items-center gap-4"><img src={githubUser.avatar_url} alt="GitHub avatar" className="w-12 h-12 rounded-full border-2 border-slate-600" /><div><p className="font-bold text-lg text-white">{githubUser.name}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-indigo-400">@{githubUser.login}</a></div></div>
-                  <button onClick={handleDisconnectGitHub} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
-                </div>
-                <div className="mt-6"><h3 className="font-semibold text-slate-300 mb-3">Your Repositories</h3><div className="max-h-40 overflow-y-auto space-y-2 pr-2">{githubRepos.map(repo => (<a href={repo.html_url} target="_blank" rel="noopener noreferrer" key={repo.id} className="block bg-slate-900/50 hover:bg-slate-800 p-3 rounded-md transition-colors"><p className="font-mono text-sm text-slate-200 truncate">{repo.name} {repo.private && <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-sm ml-2">Private</span>}</p></a>))}</div></div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2"><GitHubIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to GitHub</h3></div>
-                <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://github.com/settings/tokens/new?scopes=repo,user" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Personal Access Token</a> with `repo` and `user` scopes to save projects to GitHub.</p>
-                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="ghp_..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGitHub} disabled={isGitHubConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGitHubConnecting ? 'Connecting...' : 'Connect'}</button></div>
-                {githubError && <p className="text-red-400 text-sm mt-3">{githubError}</p>}
-              </div>
-            )}
+            {githubUser ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"><img src={githubUser.avatar_url} alt="GitHub avatar" className="w-12 h-12 rounded-full border-2 border-slate-600" /><div><p className="font-bold text-lg text-white">{githubUser.name}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-indigo-400">@{githubUser.login}</a></div></div> <button onClick={handleDisconnectGitHub} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><GitHubIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to GitHub</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://github.com/settings/tokens/new?scopes=repo,user" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Personal Access Token</a> with `repo` and `user` scopes to save projects to GitHub.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="ghp_..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGitHub} disabled={isGitHubConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGitHubConnecting ? 'Connecting...' : 'Connect'}</button></div> {githubError && <p className="text-red-400 text-sm mt-3">{githubError}</p>} </div> )}
           </div>
           {/* Netlify Section */}
            <div className="mb-8 pb-8 border-b border-slate-800">
-            {netlifyUser ? (
-                <div>
-                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
-                    <div className="flex items-center gap-4"><img src={netlifyUser.avatar_url} alt="Netlify avatar" className="w-12 h-12 rounded-full border-2 border-slate-600" /><div><p className="font-bold text-lg text-white">{netlifyUser.full_name}</p><p className="text-sm text-slate-400">{netlifyUser.email}</p></div></div>
-                    <button onClick={handleDisconnectNetlify} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
-                  </div>
-                   <div className="mt-6">
-                    <h3 className="font-semibold text-slate-300 mb-3">Your Sites</h3>
-                    <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                        {netlifySites.map(site => (
-                            <a href={site.ssl_url} target="_blank" rel="noopener noreferrer" key={site.id} className="block bg-slate-900/50 hover:bg-slate-800 p-3 rounded-md transition-colors">
-                                <p className="font-mono text-sm text-slate-200 truncate">{site.name}</p>
-                            </a>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2"><NetlifyIcon className="w-6 h-6"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Netlify</h3></div>
-                <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Personal Access Token</a> to deploy projects directly to Netlify.</p>
-                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={netlifyPat} onChange={e => setNetlifyPat(e.target.value)} placeholder="nfp_..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectNetlify} disabled={isNetlifyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isNetlifyConnecting ? 'Connecting...' : 'Connect'}</button></div>
-                {netlifyError && <p className="text-red-400 text-sm mt-3">{netlifyError}</p>}
-              </div>
-            )}
+            {netlifyUser ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"><img src={netlifyUser.avatar_url} alt="Netlify avatar" className="w-12 h-12 rounded-full border-2 border-slate-600" /><div><p className="font-bold text-lg text-white">{netlifyUser.full_name}</p><p className="text-sm text-slate-400">{netlifyUser.email}</p></div></div> <button onClick={handleDisconnectNetlify} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><NetlifyIcon className="w-6 h-6"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Netlify</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Personal Access Token</a> to deploy projects directly to Netlify.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={netlifyPat} onChange={e => setNetlifyPat(e.target.value)} placeholder="nfp_..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectNetlify} disabled={isNetlifyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isNetlifyConnecting ? 'Connecting...' : 'Connect'}</button></div> {netlifyError && <p className="text-red-400 text-sm mt-3">{netlifyError}</p>} </div> )}
           </div>
           {/* Giphy Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">
-            {isGiphyConnected ? (
-                <div>
-                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
-                         <GiphyIcon className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg text-white">Giphy Connected</p>
-                        <p className="text-sm text-slate-400">Ready to add GIFs to your apps.</p>
-                      </div>
-                    </div>
-                    <button onClick={handleDisconnectGiphy} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
-                  </div>
-                </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2"><GiphyIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Giphy</h3></div>
-                <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Giphy API Key</a> to search and add GIFs to your projects.</p>
-                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={giphyApiKey} onChange={e => setGiphyApiKey(e.target.value)} placeholder="Your Giphy API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGiphy} disabled={isGiphyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGiphyConnecting ? 'Connecting...' : 'Connect'}</button></div>
-                {giphyError && <p className="text-red-400 text-sm mt-3">{giphyError}</p>}
-              </div>
-            )}
+            {isGiphyConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <GiphyIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Giphy Connected</p> <p className="text-sm text-slate-400">Ready to add GIFs to your apps.</p> </div> </div> <button onClick={handleDisconnectGiphy} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><GiphyIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Giphy</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Giphy API Key</a> to search and add GIFs to your projects.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={giphyApiKey} onChange={e => setGiphyApiKey(e.target.value)} placeholder="Your Giphy API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectGiphy} disabled={isGiphyConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isGiphyConnecting ? 'Connecting...' : 'Connect'}</button></div> {giphyError && <p className="text-red-400 text-sm mt-3">{giphyError}</p>} </div> )}
           </div>
           {/* Unsplash Section */}
           <div className="mb-8 pb-8 border-b border-slate-800">
-            {isUnsplashConnected ? (
-                <div>
-                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
-                         <UnsplashIcon className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg text-white">Unsplash Connected</p>
-                        <p className="text-sm text-slate-400">Ready to add stock photos.</p>
-                      </div>
-                    </div>
-                    <button onClick={handleDisconnectUnsplash} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
-                  </div>
-                </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2"><UnsplashIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Unsplash</h3></div>
-                <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://unsplash.com/oauth/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Unsplash Access Key</a> to search and add high-quality photos.</p>
-                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={unsplashKey} onChange={e => setUnsplashKey(e.target.value)} placeholder="Your Unsplash Access Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectUnsplash} disabled={isUnsplashConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isUnsplashConnecting ? 'Connecting...' : 'Connect'}</button></div>
-                {unsplashError && <p className="text-red-400 text-sm mt-3">{unsplashError}</p>}
-              </div>
-            )}
+            {isUnsplashConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <UnsplashIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Unsplash Connected</p> <p className="text-sm text-slate-400">Ready to add stock photos.</p> </div> </div> <button onClick={handleDisconnectUnsplash} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><UnsplashIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Unsplash</h3></div> <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://unsplash.com/oauth/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Unsplash Access Key</a> to search and add high-quality photos.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={unsplashKey} onChange={e => setUnsplashKey(e.target.value)} placeholder="Your Unsplash Access Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectUnsplash} disabled={isUnsplashConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isUnsplashConnecting ? 'Connecting...' : 'Connect'}</button></div> {unsplashError && <p className="text-red-400 text-sm mt-3">{unsplashError}</p>} </div> )}
+          </div>
+           {/* Pexels Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isPexelsConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <PexelsIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Pexels Connected</p> <p className="text-sm text-slate-400">Ready to add stock photos & videos.</p> </div> </div> <button onClick={handleDisconnectPexels} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><PexelsIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Pexels</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://www.pexels.com/api/new/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Pexels API Key</a> to add free stock photos and videos.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={pexelsKey} onChange={e => setPexelsKey(e.target.value)} placeholder="Your Pexels API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectPexels} disabled={isPexelsConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isPexelsConnecting ? 'Connecting...' : 'Connect'}</button></div> {pexelsError && <p className="text-red-400 text-sm mt-3">{pexelsError}</p>} </div> )}
+          </div>
+          {/* FreeSound Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isFreeSoundConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <FreeSoundIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">FreeSound Connected</p> <p className="text-sm text-slate-400">Ready to add sound effects.</p> </div> </div> <button onClick={handleDisconnectFreeSound} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><FreeSoundIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to FreeSound</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://freesound.org/docs/api/authentication.html" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">FreeSound API Key</a> to add sound effects to your apps.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={freeSoundKey} onChange={e => setFreeSoundKey(e.target.value)} placeholder="Your FreeSound API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectFreeSound} disabled={isFreeSoundConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isFreeSoundConnecting ? 'Connecting...' : 'Connect'}</button></div> {freeSoundError && <p className="text-red-400 text-sm mt-3">{freeSoundError}</p>} </div> )}
+          </div>
+           {/* Spotify Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isSpotifyConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <SpotifyIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Spotify Connected</p> <p className="text-sm text-slate-400">Ready to build music apps.</p> </div> </div> <button onClick={handleDisconnectSpotify} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><SpotifyIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Spotify</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Client ID and Secret</a> to build apps with Spotify data.</p> <div className="grid md:grid-cols-2 gap-4"><input type="password" value={spotifyClientId} onChange={e => setSpotifyClientId(e.target.value)} placeholder="Spotify Client ID" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg" /><input type="password" value={spotifyClientSecret} onChange={e => setSpotifyClientSecret(e.target.value)} placeholder="Spotify Client Secret" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg" /></div> <div className="mt-4 text-right"><button onClick={handleConnectSpotify} disabled={isSpotifyConnecting} className="px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isSpotifyConnecting ? 'Connecting...' : 'Connect'}</button></div> {spotifyError && <p className="text-red-400 text-sm mt-3">{spotifyError}</p>} </div> )}
           </div>
           {/* OpenAI Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isOpenAiConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <OpenAiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">OpenAI Connected</p> <p className="text-sm text-slate-400">Ready to generate images with DALL-E.</p> </div> </div> <button onClick={handleDisconnectOpenAI} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><OpenAiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to OpenAI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">OpenAI API Key</a> to generate images with DALL-E in your projects.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectOpenAI} disabled={isOpenAiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isOpenAiConnecting ? 'Connecting...' : 'Connect'}</button></div> {openAiError && <p className="text-red-400 text-sm mt-3">{openAiError}</p>} </div> )}
+          </div>
+          {/* Stability AI Section */}
           <div>
-            {isOpenAiConnected ? (
-                <div>
-                  <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black">
-                         <OpenAiIcon className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg text-white">OpenAI Connected</p>
-                        <p className="text-sm text-slate-400">Ready to generate images with DALL-E.</p>
-                      </div>
-                    </div>
-                    <button onClick={handleDisconnectOpenAI} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
-                  </div>
-                </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-2"><OpenAiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to OpenAI</h3></div>
-                <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">OpenAI API Key</a> to generate images with DALL-E in your projects.</p>
-                <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectOpenAI} disabled={isOpenAiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isOpenAiConnecting ? 'Connecting...' : 'Connect'}</button></div>
-                {openAiError && <p className="text-red-400 text-sm mt-3">{openAiError}</p>}
-              </div>
-            )}
+            {isStabilityConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <StableDiffusionIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Stability AI Connected</p> <p className="text-sm text-slate-400">Ready to generate images with Stable Diffusion.</p> </div> </div> <button onClick={handleDisconnectStability} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><StableDiffusionIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Stability AI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://platform.stability.ai/account/keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Stability AI API Key</a> to generate images with Stable Diffusion.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={stabilityKey} onChange={e => setStabilityKey(e.target.value)} placeholder="Your Stability AI API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectStability} disabled={isStabilityConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isStabilityConnecting ? 'Connecting...' : 'Connect'}</button></div> {stabilityError && <p className="text-red-400 text-sm mt-3">{stabilityError}</p>} </div> )}
           </div>
         </div>
         

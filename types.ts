@@ -184,3 +184,42 @@ export interface UnsplashPhoto {
     };
   };
 }
+
+// Pexels Integration types
+export interface PexelsMedia {
+  id: number;
+  type: 'Photo' | 'Video';
+  url: string; // page URL
+  photographer: string;
+  photographer_url: string;
+  src: {
+    original: string;
+    large2x: string;
+    large: string;
+    medium: string;
+    small: string;
+    portrait: string;
+    landscape: string;
+    tiny: string;
+  };
+  // For videos
+  video_files?: {
+    id: number;
+    quality: 'hd' | 'sd';
+    link: string;
+  }[];
+}
+
+// FreeSound Integration types
+export interface FreeSound {
+  id: number;
+  name: string;
+  tags: string[];
+  description: string;
+  previews: {
+    'preview-hq-mp3': string;
+    'preview-lq-mp3': string;
+  };
+  download: string; // The authenticated download link
+  username: string;
+}

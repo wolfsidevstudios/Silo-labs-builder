@@ -7,6 +7,11 @@ import { getSecrets } from './secretsService';
 import { getApiKey as getGiphyApiKey } from './giphyService';
 import { getAccessKey as getUnsplashAccessKey } from './unsplashService';
 import { getApiKey as getOpenAiApiKey } from './openaiService';
+import { getApiKey as getPexelsApiKey } from './pexelsService';
+import { getApiKey as getFreeSoundApiKey } from './freesoundService';
+import { getClientCredentials as getSpotifyCredentials } from './spotifyService';
+import { getApiKey as getStabilityApiKey } from './stabilityService';
+
 
 interface UploadedImage {
     data: string;
@@ -135,6 +140,58 @@ An Unsplash Access Key is available. If the user asks for a stock photo-related 
 `;
 }
 
+function getPexelsInstruction(): string {
+  const pexelsKey = getPexelsApiKey();
+  if (!pexelsKey) {
+    return '';
+  }
+  return `
+---
+**PEXELS API AVAILABLE:**
+A Pexels API Key is available. If the user asks for a stock photo or video application, follow the Pexels API integration rules in the system prompt.
+---
+`;
+}
+
+function getFreeSoundInstruction(): string {
+  const freeSoundKey = getFreeSoundApiKey();
+  if (!freeSoundKey) {
+    return '';
+  }
+  return `
+---
+**FREESOUND API AVAILABLE:**
+A FreeSound API Key is available. If the user asks for an application with sound effects, follow the FreeSound API integration rules in the system prompt.
+---
+`;
+}
+
+function getSpotifyInstruction(): string {
+  const creds = getSpotifyCredentials();
+  if (!creds) {
+    return '';
+  }
+  return `
+---
+**SPOTIFY API AVAILABLE:**
+Spotify API credentials are available. If the user asks for a music-related application, follow the Spotify API integration rules in the system prompt.
+---
+`;
+}
+
+function getStabilityInstruction(): string {
+  const key = getStabilityApiKey();
+  if (!key) {
+    return '';
+  }
+  return `
+---
+**STABILITY AI (STABLE DIFFUSION) API AVAILABLE:**
+A Stability AI API Key is available. If the user asks for an AI image generation application, prefer this over any other image generation API. Follow the Stability AI integration rules in the system prompt.
+---
+`;
+}
+
 function getOpenAiInstruction(): string {
   const openAiKey = getOpenAiApiKey();
   if (!openAiKey) {
@@ -148,25 +205,30 @@ An OpenAI API Key is available. If the user asks for an AI image generation appl
 `;
 }
 
+
 function constructFullPrompt(
     prompt: string,
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null
 ): string {
-    const themeInstruction = getThemeInstruction();
-    const secretsInstruction = getSecretsInstruction();
-    const giphyInstruction = getGiphyInstruction();
-    const geminiInstruction = getGeminiInstruction();
-    const unsplashInstruction = getUnsplashInstruction();
-    const openAiInstruction = getOpenAiInstruction();
+    const instructions = [
+        getThemeInstruction(),
+        getSecretsInstruction(),
+        getGiphyInstruction(),
+        getGeminiInstruction(),
+        getUnsplashInstruction(),
+        getPexelsInstruction(),
+        getFreeSoundInstruction(),
+        getSpotifyInstruction(),
+        getStabilityInstruction(), // Placed before OpenAI to encourage preference
+        getOpenAiInstruction(),
+    ].filter(Boolean).join('\n');
 
     const filesString = existingFiles
         ? existingFiles
             .map(f => `// File: ${f.path}\n\n${f.content}`)
             .join('\n\n---\n\n')
         : '';
-
-    const instructions = [themeInstruction, secretsInstruction, giphyInstruction, geminiInstruction, unsplashInstruction, openAiInstruction].filter(Boolean).join('\n');
 
     if (visualEditTarget && existingFiles) {
         return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`;
@@ -194,29 +256,42 @@ function injectSecrets(html: string): string {
 function injectApiKeys(code: string): string {
     let injectedCode = code;
     
-    // Inject Giphy Key
+    // Giphy
     const giphyKey = getGiphyApiKey();
-    if (giphyKey) {
-        injectedCode = injectedCode.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`);
-    }
+    if (giphyKey) injectedCode = injectedCode.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`);
 
-    // Inject Gemini Key
+    // Gemini
     try {
         const geminiKey = getGeminiApiKey();
         injectedCode = injectedCode.replace(/'YOUR_GEMINI_API_KEY'/g, `'${geminiKey}'`);
     } catch(e) { /* No Gemini key, do nothing */ }
 
-    // Inject Unsplash Key
+    // Unsplash
     const unsplashKey = getUnsplashAccessKey();
-    if (unsplashKey) {
-        injectedCode = injectedCode.replace(/'YOUR_UNSPLASH_ACCESS_KEY'/g, `'${unsplashKey}'`);
-    }
+    if (unsplashKey) injectedCode = injectedCode.replace(/'YOUR_UNSPLASH_ACCESS_KEY'/g, `'${unsplashKey}'`);
 
-    // Inject OpenAI Key
-    const openAiKey = getOpenAiApiKey();
-    if (openAiKey) {
-        injectedCode = injectedCode.replace(/'YOUR_OPENAI_API_KEY'/g, `'${openAiKey}'`);
+    // Pexels
+    const pexelsKey = getPexelsApiKey();
+    if (pexelsKey) injectedCode = injectedCode.replace(/'YOUR_PEXELS_API_KEY'/g, `'${pexelsKey}'`);
+    
+    // FreeSound
+    const freeSoundKey = getFreeSoundApiKey();
+    if (freeSoundKey) injectedCode = injectedCode.replace(/'YOUR_FREESOUND_API_KEY'/g, `'${freeSoundKey}'`);
+
+    // Spotify
+    const spotifyCreds = getSpotifyCredentials();
+    if (spotifyCreds) {
+        injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_ID'/g, `'${spotifyCreds.clientId}'`);
+        injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_SECRET'/g, `'${spotifyCreds.clientSecret}'`);
     }
+    
+    // OpenAI
+    const openAiKey = getOpenAiApiKey();
+    if (openAiKey) injectedCode = injectedCode.replace(/'YOUR_OPENAI_API_KEY'/g, `'${openAiKey}'`);
+
+    // Stability AI
+    const stabilityKey = getStabilityApiKey();
+    if (stabilityKey) injectedCode = injectedCode.replace(/'YOUR_STABILITY_API_KEY'/g, `'${stabilityKey}'`);
     
     return injectedCode;
 }

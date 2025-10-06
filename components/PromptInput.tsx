@@ -4,8 +4,12 @@ import SparklesIcon from './icons/SparklesIcon';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
 import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
+import FilmIcon from './icons/FilmIcon'; // A more generic icon for media
 import GiphyIcon from './icons/GiphyIcon';
-import ImageIcon from './icons/ImageIcon';
+import UnsplashIcon from './icons/UnsplashIcon';
+import PexelsIcon from './icons/PexelsIcon';
+import FreeSoundIcon from './icons/FreeSoundIcon';
+
 
 interface PromptInputProps {
   prompt: string;
@@ -23,12 +27,18 @@ interface PromptInputProps {
   onAddGifClick: () => void;
   isUnsplashConnected: boolean;
   onAddStockPhotoClick: () => void;
+  isPexelsConnected: boolean;
+  onAddPexelsClick: () => void;
+  isFreeSoundConnected: boolean;
+  onAddFreeSoundClick: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick, isPexelsConnected, onAddPexelsClick, isFreeSoundConnected, onAddFreeSoundClick }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
+  const [isMediaMenuOpen, setIsMediaMenuOpen] = useState(false);
+  const mediaMenuRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -45,10 +55,15 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
       if (uploadMenuRef.current && !uploadMenuRef.current.contains(event.target as Node)) {
         setIsUploadMenuOpen(false);
       }
+      if (mediaMenuRef.current && !mediaMenuRef.current.contains(event.target as Node)) {
+        setIsMediaMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
+  const anyMediaConnected = isGiphyConnected || isUnsplashConnected || isPexelsConnected || isFreeSoundConnected;
 
   return (
     <form onSubmit={onSubmit} className="p-4">
@@ -83,6 +98,26 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                     </div>
                 )}
             </div>
+             <div className="relative" ref={mediaMenuRef}>
+                <button
+                    type="button"
+                    onClick={() => setIsMediaMenuOpen(prev => !prev)}
+                    disabled={isLoading}
+                    className="flex items-center justify-center h-10 w-10 bg-white/5 border border-white/10 rounded-full text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+                    title="Add Media from Services"
+                >
+                    <FilmIcon className="w-5 h-5" />
+                </button>
+                {isMediaMenuOpen && (
+                    <div className="absolute bottom-12 -left-2 bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-56 animate-fade-in-up-sm">
+                        {isGiphyConnected && <button type="button" onClick={() => { onAddGifClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-t-lg"><GiphyIcon className="w-4 h-4" /> Add GIF from Giphy</button>}
+                        {isUnsplashConnected && <button type="button" onClick={() => { onAddStockPhotoClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50"><UnsplashIcon className="w-4 h-4" /> Add Photo from Unsplash</button>}
+                        {isPexelsConnected && <button type="button" onClick={() => { onAddPexelsClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50"><PexelsIcon className="w-4 h-4" /> Add Media from Pexels</button>}
+                        {isFreeSoundConnected && <button type="button" onClick={() => { onAddFreeSoundClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-b-lg"><FreeSoundIcon className="w-4 h-4" /> Add Sound from FreeSound</button>}
+                        {!anyMediaConnected && <p className="px-4 py-3 text-sm text-slate-500 text-center">Connect media apps in Settings to add stock photos, GIFs, and sounds.</p>}
+                    </div>
+                )}
+            </div>
             <button
                 type="button"
                 onClick={onBoostUi}
@@ -105,26 +140,6 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             >
                 <MousePointerClickIcon className="w-4 h-4" />
                 <span>Edit</span>
-            </button>
-            <button
-                type="button"
-                onClick={onAddGifClick}
-                disabled={isLoading || !isGiphyConnected}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
-                title={isGiphyConnected ? "Add GIF from Giphy" : "Connect to Giphy in Settings"}
-            >
-                <GiphyIcon className="w-4 h-4" />
-                <span>GIFs</span>
-            </button>
-             <button
-                type="button"
-                onClick={onAddStockPhotoClick}
-                disabled={isLoading || !isUnsplashConnected}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
-                title={isUnsplashConnected ? "Add stock photo from Unsplash" : "Connect to Unsplash in Settings"}
-            >
-                <ImageIcon className="w-4 h-4" />
-                <span>Photos</span>
             </button>
         </div>
       {uploadedImages.length > 0 && (

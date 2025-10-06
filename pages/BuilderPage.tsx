@@ -10,14 +10,19 @@ import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
 import UnsplashSearchModal from '../components/UnsplashSearchModal';
+import PexelsSearchModal from '../components/PexelsSearchModal';
+import FreeSoundSearchModal from '../components/FreeSoundSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
+import ProjectTabs from '../components/ProjectTabs';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, PexelsMedia, FreeSound } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
 import { getApiKey as getGiphyKey } from '../services/giphyService';
 import { getAccessKey as getUnsplashKey } from '../services/unsplashService';
+import { getApiKey as getPexelsKey } from '../services/pexelsService';
+import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
 
 interface BuilderPageProps {
@@ -33,53 +38,114 @@ interface UploadedImageState {
     previewUrl: string; // data URL for preview
 }
 
-const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isTrialActive, trialEndTime }) => {
-  const [prompt, setPrompt] = useState<string>('');
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
-  
-  // Experimental Features State
-  const [streamingPreviewHtml, setStreamingPreviewHtml] = useState<string | null>(null);
+interface ProjectTab {
+    id: string;
+    name: string;
+    chatHistory: ChatMessage[];
+    isLoading: boolean;
+    error: string | null;
+    lastSavedProjectId: string | null;
+    currentProjectRepo: string | null;
+    currentNetlifySiteId: string | null;
+    currentNetlifyUrl: string | null;
+    prompt: string;
+    uploadedImages: UploadedImageState[];
+    isVisualEditMode: boolean;
+    selectedElementSelector: string | null;
+    streamingPreviewHtml: string | null;
+}
 
-  // Image Upload State
-  const [uploadedImages, setUploadedImages] = useState<UploadedImageState[]>([]);
+const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null): ProjectTab => {
+    const id = `tab-${Date.now()}`;
+    let chatHistory: ChatMessage[] = [];
+    if (project) {
+        const initialUserMessage: UserMessage = { id: `user-${project.id}`, role: 'user', content: project.prompt };
+        const initialAssistantMessage: AssistantMessage = { id: `assistant-${project.id}`, role: 'assistant', content: { files: project.files, previewHtml: project.previewHtml, summary: project.summary } };
+        chatHistory = [initialUserMessage, initialAssistantMessage];
+    }
+
+    return {
+        id,
+        name,
+        chatHistory,
+        isLoading: false,
+        error: null,
+        lastSavedProjectId: project?.id || null,
+        currentProjectRepo: project?.githubUrl ? new URL(project.githubUrl).pathname.substring(1) : null,
+        currentNetlifySiteId: project?.netlifySiteId || null,
+        currentNetlifyUrl: project?.netlifyUrl || null,
+        prompt,
+        uploadedImages: [],
+        isVisualEditMode: false,
+        selectedElementSelector: null,
+        streamingPreviewHtml: null,
+    };
+};
+
+
+const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isTrialActive, trialEndTime }) => {
+  const [tabs, setTabs] = useState<ProjectTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  
+  // Modals can be global as they are temporary UI states
   const [isImageLibraryOpen, setIsImageLibraryOpen] = useState(false);
-  
-  // Visual Edit Mode State
-  const [isVisualEditMode, setIsVisualEditMode] = useState(false);
-  const [selectedElementSelector, setSelectedElementSelector] = useState<string | null>(null);
-  
-  // GitHub State
-  const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
-  const [currentProjectRepo, setCurrentProjectRepo] = useState<string | null>(null);
-  
-  // Netlify State
-  const [isNetlifyConnected, setIsNetlifyConnected] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
-  const [currentNetlifySiteId, setCurrentNetlifySiteId] = useState<string | null>(null);
-  const [currentNetlifyUrl, setCurrentNetlifyUrl] = useState<string | null>(null);
-
-  // Giphy State
-  const [isGiphyConnected, setIsGiphyConnected] = useState(false);
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
-
-  // Unsplash State
-  const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
+  const [isPexelsModalOpen, setIsPexelsModalOpen] = useState(false);
+  const [isFreeSoundModalOpen, setIsFreeSoundModalOpen] = useState(false);
 
-  const [lastSavedProjectId, setLastSavedProjectId] = useState<string | null>(null);
+  // Connections can be global
+  const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
+  const [isNetlifyConnected, setIsNetlifyConnected] = useState(false);
+  const [isGiphyConnected, setIsGiphyConnected] = useState(false);
+  const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
+  const [isPexelsConnected, setIsPexelsConnected] = useState(false);
+  const [isFreeSoundConnected, setIsFreeSoundConnected] = useState(false);
+
+  const initialGenerationDone = useRef<Set<string>>(new Set());
+
+  // --- Tab Management ---
+  const activeTab = tabs.find(t => t.id === activeTabId);
   
-  const isInitialGenerationDone = useRef(false);
+  const updateActiveTab = (updates: Partial<ProjectTab>) => {
+    if (!activeTabId) return;
+    setTabs(prevTabs => prevTabs.map(tab =>
+        tab.id === activeTabId ? { ...tab, ...updates } : tab
+    ));
+  };
+  
+  const handleAddNewTab = () => {
+    const newTab = createNewTab(`Project ${tabs.length + 1}`);
+    setTabs([...tabs, newTab]);
+    setActiveTabId(newTab.id);
+  };
 
-  const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating) as AssistantMessage | undefined;
-  const files = latestAssistantMessage?.content.files || [];
-  const previewHtml = latestAssistantMessage?.content.previewHtml || '';
+  const handleCloseTab = (tabId: string) => {
+    const tabIndex = tabs.findIndex(t => t.id === tabId);
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    
+    if (newTabs.length === 0) {
+        const newTab = createNewTab('Project 1');
+        setTabs([newTab]);
+        setActiveTabId(newTab.id);
+        return;
+    }
+
+    if (activeTabId === tabId) {
+        const newActiveIndex = Math.max(0, tabIndex - 1);
+        setActiveTabId(newTabs[newActiveIndex].id);
+    }
+    setTabs(newTabs);
+  };
+  
+  const files = activeTab?.chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating)?.content.files || [];
+  const previewHtml = activeTab?.chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating)?.content.previewHtml || '';
 
   const handleImagesUpload = (files: FileList) => {
+    if (!activeTab) return;
     const filesToProcess = Array.from(files);
     filesToProcess.forEach(file => {
       const reader = new FileReader();
@@ -88,14 +154,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           const [header, base64Data] = dataUrl.split(',');
           const mimeType = header.match(/:(.*?);/)?.[1] || file.type;
           
-          // Add to local UI state for prompt
-          setUploadedImages(prev => [...prev, {
-              data: base64Data,
-              mimeType: mimeType,
-              previewUrl: dataUrl
-          }]);
-          
-          // Also save to global image library for reuse
+          updateActiveTab({ uploadedImages: [...activeTab.uploadedImages, { data: base64Data, mimeType: mimeType, previewUrl: dataUrl }] });
           saveImage({ data: base64Data, mimeType });
       };
       reader.readAsDataURL(file);
@@ -103,117 +162,91 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
   
   const handleSelectFromLibrary = (images: SavedImage[]) => {
+    if (!activeTab) return;
     const newImages: UploadedImageState[] = images.map(img => ({
         data: img.data,
         mimeType: img.mimeType,
         previewUrl: `data:${img.mimeType};base64,${img.data}`
     }));
-    setUploadedImages(prev => [...prev, ...newImages]);
+    updateActiveTab({ uploadedImages: [...activeTab.uploadedImages, ...newImages] });
   };
 
   const handleImageRemove = (indexToRemove: number) => {
-      setUploadedImages(prev => prev.filter((_, index) => index !== indexToRemove));
+      if (!activeTab) return;
+      updateActiveTab({ uploadedImages: activeTab.uploadedImages.filter((_, index) => index !== indexToRemove) });
   };
   
-  const handleSelectGif = async (gif: GiphyGif) => {
-    setIsGiphyModalOpen(false);
-    setError(null);
-    try {
-        const response = await fetch(gif.images.original.url);
-        if (!response.ok) throw new Error("Failed to fetch GIF data.");
-
-        const blob = await response.blob();
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const dataUrl = reader.result as string;
-            const [header, base64Data] = dataUrl.split(',');
-            
-            setUploadedImages(prev => [...prev, {
-                data: base64Data,
-                mimeType: 'image/gif',
-                previewUrl: dataUrl
-            }]);
-        };
-        reader.onerror = () => { throw new Error("Failed to read GIF data."); };
-        reader.readAsDataURL(blob);
-
-    } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred while adding the GIF.");
-    }
+  const addMediaAsUploadedImage = async (url: string, mimeType: string) => {
+      updateActiveTab({ error: null });
+      try {
+          // Note: Fetching from external URLs might be blocked by CORS in a browser environment.
+          // A server-side proxy would be needed for a robust solution. We'll attempt a direct fetch.
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to fetch media from ${url}. Status: ${response.status}`);
+          const blob = await response.blob();
+          
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              const [, base64Data] = dataUrl.split(',');
+              updateActiveTab({ uploadedImages: [...(activeTab?.uploadedImages || []), {
+                  data: base64Data,
+                  mimeType: blob.type || mimeType,
+                  previewUrl: dataUrl
+              }]});
+          };
+          reader.onerror = () => { throw new Error("Failed to read media data."); };
+          reader.readAsDataURL(blob);
+      } catch (err) {
+          console.error("CORS or network error fetching media:", err);
+          const message = `Could not fetch media. This might be a CORS issue. Try downloading and uploading manually.`;
+          updateActiveTab({ error: err instanceof Error ? `${message} Details: ${err.message}` : message });
+      }
   };
 
-  const handleSelectStockPhoto = async (photo: UnsplashPhoto) => {
-    setIsUnsplashModalOpen(false);
-    setError(null);
-    try {
-        const response = await fetch(photo.urls.regular);
-        if (!response.ok) throw new Error("Failed to fetch photo data from Unsplash.");
+  const handleSelectGif = (gif: GiphyGif) => { setIsGiphyModalOpen(false); addMediaAsUploadedImage(gif.images.original.url, 'image/gif'); };
+  const handleSelectUnsplashPhoto = (photo: UnsplashPhoto) => { setIsUnsplashModalOpen(false); addMediaAsUploadedImage(photo.urls.regular, 'image/jpeg'); };
+  const handleSelectPexels = (media: PexelsMedia) => { setIsPexelsModalOpen(false); addMediaAsUploadedImage(media.src.original, media.type === 'Photo' ? 'image/jpeg' : 'video/mp4'); };
+  const handleSelectFreeSound = (sound: FreeSound) => { setIsFreeSoundModalOpen(false); addMediaAsUploadedImage(sound.previews['preview-hq-mp3'], 'audio/mpeg'); };
 
-        const blob = await response.blob();
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const dataUrl = reader.result as string;
-            const [header, base64Data] = dataUrl.split(',');
-            const mimeType = blob.type || 'image/jpeg';
-            
-            setUploadedImages(prev => [...prev, {
-                data: base64Data,
-                mimeType: mimeType,
-                previewUrl: dataUrl
-            }]);
-        };
-        reader.onerror = () => { throw new Error("Failed to read photo data."); };
-        reader.readAsDataURL(blob);
-
-    } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred while adding the photo.");
-    }
-  };
 
   const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
-      if ((!promptToSubmit && uploadedImages.length === 0) || isLoading) return;
+      if (!activeTab || (!promptToSubmit && activeTab.uploadedImages.length === 0) || activeTab.isLoading) return;
 
-      setError(null);
-      setIsLoading(true);
+      updateActiveTab({ error: null, isLoading: true, streamingPreviewHtml: '' });
       setRightPaneView('preview');
-      setStreamingPreviewHtml('');
 
       let userMessageContent = promptToSubmit;
       if (options.isBoost) userMessageContent = "✨ Boost UI";
       if (options.visualEditTarget) userMessageContent = `Edited element ("${options.visualEditTarget.selector}"): "${promptToSubmit}"`;
       
-      const imagesToSubmit = uploadedImages;
+      const imagesToSubmit = activeTab.uploadedImages;
       const newUserMessage: UserMessage = { 
         id: `user-${Date.now()}`,
         role: 'user', 
         content: userMessageContent,
         imagePreviewUrls: imagesToSubmit.map(img => img.previewUrl),
       };
-      setPrompt('');
-      setUploadedImages([]);
 
       if (options.visualEditTarget) {
-        setSelectedElementSelector(null);
-        setIsVisualEditMode(false);
+        updateActiveTab({ prompt: '', uploadedImages: [], selectedElementSelector: null, isVisualEditMode: false });
+      } else {
+        updateActiveTab({ prompt: '', uploadedImages: [] });
       }
 
       const tempAssistantId = `assistant-${Date.now()}`;
       const placeholderAssistantMessage: AssistantMessage = {
           id: tempAssistantId,
           role: 'assistant',
-          content: {
-              summary: ['Thinking...'],
-          },
+          content: { summary: ['Thinking...'] },
           isGenerating: true,
       };
 
-      setChatHistory(prev => [...prev, newUserMessage, placeholderAssistantMessage]);
-
+      const newChatHistory = [...activeTab.chatHistory, newUserMessage, placeholderAssistantMessage];
+      updateActiveTab({ chatHistory: newChatHistory });
+      
       const currentFiles = files.length > 0 ? files : null;
-      const useLivePreview = localStorage.getItem('experimental_live_preview') === 'true';
-
+      
       try {
           const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit);
           let finalResponse: GeminiResponse | null = null;
@@ -225,22 +258,18 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                   break;
               }
 
-              setChatHistory(prev => prev.map(msg => {
-                  if (msg.id === tempAssistantId && msg.role === 'assistant') {
-                      return {
-                          ...msg,
-                          content: {
-                              summary: update.summary || msg.content.summary,
-                              files: update.files || msg.content.files,
-                          }
-                      };
-                  }
-                  return msg;
+              setTabs(prevTabs => prevTabs.map(t => {
+                if (t.id === activeTabId) {
+                    const updatedChatHistory = t.chatHistory.map(msg => {
+                        if (msg.id === tempAssistantId && msg.role === 'assistant') {
+                            return { ...msg, content: { summary: update.summary || msg.content.summary, files: update.files || msg.content.files } };
+                        }
+                        return msg;
+                    });
+                    return { ...t, chatHistory: updatedChatHistory, streamingPreviewHtml: update.previewHtml || t.streamingPreviewHtml };
+                }
+                return t;
               }));
-
-              if (useLivePreview && update.previewHtml) {
-                  setStreamingPreviewHtml(update.previewHtml);
-              }
           }
           
           if (!finalResponse) throw new Error("Stream finished without a valid result.");
@@ -252,40 +281,43 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               isGenerating: false,
           };
 
-          setChatHistory(prev => prev.map(msg => msg.id === tempAssistantId ? finalAssistantMessage : msg));
-
-          if (lastSavedProjectId) {
-              updateProject(lastSavedProjectId, { ...finalResponse });
+          let finalProjectId = activeTab.lastSavedProjectId;
+          if (finalProjectId) {
+              updateProject(finalProjectId, { ...finalResponse });
           } else {
-              const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
+              const firstUserMessage = activeTab.chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
               const projectPrompt = firstUserMessage ? firstUserMessage.content : userMessageContent;
               const saved = saveProject({ prompt: projectPrompt, ...finalResponse });
-              setLastSavedProjectId(saved.id);
+              finalProjectId = saved.id;
           }
-          if (lastSavedProjectId) {
-            if (currentNetlifySiteId) updateProject(lastSavedProjectId, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
-            if (currentProjectRepo) updateProject(lastSavedProjectId, { githubUrl: `https://github.com/${currentProjectRepo}`});
-          }
+
+          setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
+              ...t,
+              chatHistory: t.chatHistory.map(msg => msg.id === tempAssistantId ? finalAssistantMessage : msg),
+              lastSavedProjectId: finalProjectId,
+          } : t));
 
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-          setError(errorMessage);
-          setChatHistory(prev => prev.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id));
+          setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
+              ...t,
+              error: errorMessage,
+              chatHistory: t.chatHistory.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id)
+          } : t));
       } finally {
-          setIsLoading(false);
-          setStreamingPreviewHtml(null);
+          updateActiveTab({ isLoading: false, streamingPreviewHtml: null });
       }
   };
 
 
   const handlePromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSubmit(prompt.trim());
+    if (activeTab) handleSubmit(activeTab.prompt.trim());
   };
 
   const handleVisualEditSubmit = (editPrompt: string) => {
-    if (selectedElementSelector) {
-        handleSubmit(editPrompt, { visualEditTarget: { selector: selectedElementSelector } });
+    if (activeTab?.selectedElementSelector) {
+        handleSubmit(editPrompt, { visualEditTarget: { selector: activeTab.selectedElementSelector } });
     }
   };
   
@@ -298,18 +330,18 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
   const handleGitHubSave = async (details: { repoName?: string, description?: string, commitMessage: string }) => {
     const token = getGitHubPat();
-    if (!token || !githubUser || files.length === 0) {
-        setError("Cannot save to GitHub. Ensure you are connected and have generated an app."); return;
+    if (!token || !githubUser || !activeTab || files.length === 0) {
+        updateActiveTab({ error: "Cannot save to GitHub. Ensure you are connected and have generated an app." }); return;
     }
-    setIsLoading(true);
-    let repoFullName = currentProjectRepo;
+    updateActiveTab({ isLoading: true });
+    let repoFullName = activeTab.currentProjectRepo;
     try {
         if (!repoFullName && details.repoName) {
             const newRepo = await createRepository(token, details.repoName, details.description);
             repoFullName = newRepo.full_name;
-            setCurrentProjectRepo(repoFullName);
-            if (lastSavedProjectId) {
-                updateProject(lastSavedProjectId, { githubUrl: newRepo.html_url });
+            updateActiveTab({ currentProjectRepo: repoFullName });
+            if (activeTab.lastSavedProjectId) {
+                updateProject(activeTab.lastSavedProjectId, { githubUrl: newRepo.html_url });
             }
         }
         if (!repoFullName) throw new Error("Repository not specified.");
@@ -322,175 +354,177 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             } catch (error) { console.log(`File ${file.path} not found in repo, creating it.`); }
             await createOrUpdateFile(token, owner, repo, file.path, file.content, details.commitMessage, sha);
         }
-    } catch (err) { if (err instanceof Error) setError(err.message); else setError("An unknown error occurred while saving to GitHub."); }
-    finally { setIsLoading(false); setIsGitHubModalOpen(false); }
+    } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "An unknown error occurred while saving to GitHub.";
+        updateActiveTab({ error: errorMsg });
+    } finally {
+        updateActiveTab({ isLoading: false });
+        setIsGitHubModalOpen(false);
+    }
   };
 
   const handleDeploy = async () => {
       const token = getNetlifyPat();
-      if (!token || files.length === 0) return;
+      if (!token || !activeTab || files.length === 0) return;
       
       setDeployStatus('deploying');
-      let siteId = currentNetlifySiteId;
-      let siteUrl = currentNetlifyUrl;
+      let siteId = activeTab.currentNetlifySiteId;
+      let siteUrl = activeTab.currentNetlifyUrl;
       
       try {
           if (!siteId) {
               const newSite = await createSite(token);
               siteId = newSite.id;
-              siteUrl = newSite.ssl_url; // Capture new URL
-              setCurrentNetlifySiteId(siteId);
-              setCurrentNetlifyUrl(siteUrl);
+              siteUrl = newSite.ssl_url;
+              updateActiveTab({ currentNetlifySiteId: siteId, currentNetlifyUrl: siteUrl });
           }
           if (!siteId) throw new Error("Could not create or find a site to deploy to.");
 
           const deploy = await deployToNetlify(token, siteId, files);
-          siteUrl = deploy.ssl_url; // This is the most up-to-date URL
-          setCurrentNetlifyUrl(siteUrl);
+          siteUrl = deploy.ssl_url;
+          updateActiveTab({ currentNetlifyUrl: siteUrl });
 
-          if(lastSavedProjectId) {
-              // Update project with both ID and URL after every deploy/redeploy
-              updateProject(lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: siteUrl });
+          if(activeTab.lastSavedProjectId) {
+              updateProject(activeTab.lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: siteUrl });
           }
           setDeployStatus('success');
 
       } catch (err) {
-          if (err instanceof Error) setError(err.message);
-          else setError("An unknown deployment error occurred.");
+          updateActiveTab({ error: err instanceof Error ? err.message : "An unknown deployment error occurred." });
           setDeployStatus('error');
       }
   };
   
   const handleDeployClick = () => {
-    setDeployStatus('idle'); // Reset status
-    setIsDeployModalOpen(true);
-    if (!currentNetlifySiteId) {
-        handleDeploy();
-    }
+    setDeployStatus('idle'); setIsDeployModalOpen(true);
+    if (!activeTab?.currentNetlifySiteId) handleDeploy();
   };
 
   const toggleVisualEditMode = () => {
-    const nextState = !isVisualEditMode;
-    setIsVisualEditMode(nextState);
-    if (!nextState) { // If turning off
-        setSelectedElementSelector(null);
-    }
+    const nextState = !activeTab?.isVisualEditMode;
+    updateActiveTab({ isVisualEditMode: nextState });
+    if (!nextState) updateActiveTab({ selectedElementSelector: null });
   };
+  
+  const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'VISUAL_EDIT_SELECT' && isVisualEditMode) {
-            setSelectedElementSelector(event.data.selector);
+        if (event.data.type === 'VISUAL_EDIT_SELECT' && activeTab?.isVisualEditMode) {
+            updateActiveTab({ selectedElementSelector: event.data.selector });
             setRightPaneView('preview');
         }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [isVisualEditMode]);
-
+  }, [activeTab?.isVisualEditMode, activeTabId]);
 
   useEffect(() => {
-    const ghToken = getGitHubPat();
-    if (ghToken) getGitHubUserInfo(ghToken).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
-    
-    const ntToken = getNetlifyPat();
-    if (ntToken) setIsNetlifyConnected(true);
-
-    const gphKey = getGiphyKey();
-    if (gphKey) setIsGiphyConnected(true);
-
-    const unsplashKey = getUnsplashKey();
-    if (unsplashKey) setIsUnsplashConnected(true);
-
-    if (initialProject) {
-      const initialUserMessage: UserMessage = { id: `user-${initialProject.id}`, role: 'user', content: initialProject.prompt };
-      const initialAssistantMessage: AssistantMessage = { id: `assistant-${initialProject.id}`, role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
-      setChatHistory([initialUserMessage, initialAssistantMessage]);
-      setLastSavedProjectId(initialProject.id);
-      if(initialProject.githubUrl) setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
-      if(initialProject.netlifySiteId) setCurrentNetlifySiteId(initialProject.netlifySiteId);
-      if(initialProject.netlifyUrl) setCurrentNetlifyUrl(initialProject.netlifyUrl);
-      isInitialGenerationDone.current = true;
-    } else if (initialPrompt) {
-      setPrompt(initialPrompt);
+    // Initialize tabs
+    if (tabs.length === 0) {
+        const firstTab = initialProject
+            ? createNewTab(initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject)
+            : createNewTab("Project 1", initialPrompt);
+        setTabs([firstTab]);
+        setActiveTabId(firstTab.id);
     }
+
+    // Connect to services
+    const ghToken = getGitHubPat(); if (ghToken) getGitHubUserInfo(ghToken).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
+    const ntToken = getNetlifyPat(); if (ntToken) setIsNetlifyConnected(true);
+    const gphKey = getGiphyKey(); if (gphKey) setIsGiphyConnected(true);
+    const uspKey = getUnsplashKey(); if (uspKey) setIsUnsplashConnected(true);
+    const pexKey = getPexelsKey(); if (pexKey) setIsPexelsConnected(true);
+    const fsKey = getFreeSoundKey(); if (fsKey) setIsFreeSoundConnected(true);
+
   }, [initialProject, initialPrompt]);
   
   useEffect(() => {
-    if (prompt && !isInitialGenerationDone.current && chatHistory.length === 0) {
-        handleSubmit(prompt);
-        isInitialGenerationDone.current = true;
+    if (activeTab?.prompt && !initialGenerationDone.current.has(activeTab.id) && activeTab.chatHistory.length === 0) {
+        handleSubmit(activeTab.prompt);
+        initialGenerationDone.current.add(activeTab.id);
     }
-  }, [prompt]);
+  }, [activeTab]);
 
   return (
-    <div className="h-screen w-screen bg-black text-white flex pl-20">
-      <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!currentProjectRepo} />
-      <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={currentNetlifyUrl} isNewDeploy={!currentNetlifySiteId} />
+    <div className="h-screen w-screen bg-black text-white flex flex-col pl-20">
+      <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!activeTab?.currentProjectRepo} />
+      <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={activeTab?.currentNetlifyUrl || null} isNewDeploy={!activeTab?.currentNetlifySiteId} />
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
-      <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectStockPhoto} />
-      <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
-        {isTrialActive && trialEndTime && (
-            <div className="p-4 border-b border-slate-800">
-                <TrialCountdownBar endTime={trialEndTime} isInline={true} />
-            </div>
-        )}
-        <div className="flex-grow flex flex-col overflow-hidden">
-            <ChatHistory messages={chatHistory} error={error} />
-        </div>
-        <div className="flex-shrink-0">
-            <PromptInput 
-                prompt={prompt} 
-                setPrompt={setPrompt} 
-                onSubmit={handlePromptSubmit} 
-                onBoostUi={handleBoostUi} 
-                isLoading={isLoading}
-                isVisualEditMode={isVisualEditMode}
-                onToggleVisualEditMode={toggleVisualEditMode}
-                uploadedImages={uploadedImages}
-                onImagesUpload={handleImagesUpload}
-                onImageRemove={handleImageRemove}
-                onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
-                isGiphyConnected={isGiphyConnected}
-                onAddGifClick={() => setIsGiphyModalOpen(true)}
-                isUnsplashConnected={isUnsplashConnected}
-                onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
-            />
-        </div>
+      <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
+      <PexelsSearchModal isOpen={isPexelsModalOpen} onClose={() => setIsPexelsModalOpen(false)} onSelectMedia={handleSelectPexels} />
+      <FreeSoundSearchModal isOpen={isFreeSoundModalOpen} onClose={() => setIsFreeSoundModalOpen(false)} onSelectSound={handleSelectFreeSound} />
+      
+      <div className="flex-shrink-0">
+          <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
       </div>
-      <div className="hidden lg:flex flex-col w-3/5 h-full relative">
-         <ViewSwitcher 
-            activeView={rightPaneView} 
-            setActiveView={setRightPaneView}
-            isGitHubConnected={!!githubUser}
-            onGitHubClick={() => setIsGitHubModalOpen(true)}
-            isNetlifyConnected={isNetlifyConnected}
-            onDeployClick={handleDeployClick}
-            isDeployed={!!currentNetlifySiteId}
-            hasFiles={files.length > 0}
-         />
-         <div className="flex-grow p-4 pt-0 overflow-hidden">
-            {rightPaneView === 'code' ? (
-                <CodeViewer files={files} />
-            ) : (
-                <Preview 
-                    htmlContent={previewHtml} 
-                    streamingPreviewHtml={streamingPreviewHtml}
-                    hasFiles={files.length > 0} 
-                    isLoading={isLoading}
-                    isVisualEditMode={isVisualEditMode && !selectedElementSelector}
+      
+      <div className="flex flex-grow overflow-hidden">
+        <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
+            {isTrialActive && trialEndTime && !activeTabId?.includes("tab-from-project") && (
+                <div className="p-4 border-b border-slate-800">
+                    <TrialCountdownBar endTime={trialEndTime} isInline={true} />
+                </div>
+            )}
+            <div className="flex-grow flex flex-col overflow-hidden">
+                <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} />
+            </div>
+            <div className="flex-shrink-0">
+                {activeTab && (
+                    <PromptInput 
+                        prompt={activeTab.prompt} 
+                        setPrompt={(p) => updateActiveTab({ prompt: p })} 
+                        onSubmit={handlePromptSubmit} 
+                        onBoostUi={handleBoostUi} 
+                        isLoading={activeTab.isLoading}
+                        isVisualEditMode={activeTab.isVisualEditMode}
+                        onToggleVisualEditMode={toggleVisualEditMode}
+                        uploadedImages={activeTab.uploadedImages}
+                        onImagesUpload={handleImagesUpload}
+                        onImageRemove={handleImageRemove}
+                        onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
+                        isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
+                        isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
+                        isPexelsConnected={isPexelsConnected} onAddPexelsClick={() => setIsPexelsModalOpen(true)}
+                        isFreeSoundConnected={isFreeSoundConnected} onAddFreeSoundClick={() => setIsFreeSoundModalOpen(true)}
+                    />
+                )}
+            </div>
+        </div>
+        <div className="hidden lg:flex flex-col w-3/5 h-full relative">
+            <ViewSwitcher 
+                activeView={rightPaneView} 
+                setActiveView={setRightPaneView}
+                isGitHubConnected={!!githubUser}
+                onGitHubClick={() => setIsGitHubModalOpen(true)}
+                isNetlifyConnected={isNetlifyConnected}
+                onDeployClick={handleDeployClick}
+                isDeployed={!!activeTab?.currentNetlifySiteId}
+                hasFiles={files.length > 0}
+            />
+            <div className="flex-grow p-4 pt-0 overflow-hidden">
+                {rightPaneView === 'code' ? (
+                    <CodeViewer files={files} />
+                ) : (
+                    <Preview 
+                        htmlContent={previewHtml} 
+                        streamingPreviewHtml={activeTab?.streamingPreviewHtml || null}
+                        hasFiles={files.length > 0} 
+                        isLoading={activeTab?.isLoading || false}
+                        isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
+                    />
+                )}
+            </div>
+            {activeTab?.selectedElementSelector && (
+                <VisualEditBar
+                    selector={activeTab.selectedElementSelector}
+                    onSubmit={handleVisualEditSubmit}
+                    onCancel={() => updateActiveTab({ selectedElementSelector: null })}
+                    isLoading={activeTab.isLoading}
                 />
             )}
-         </div>
-         {selectedElementSelector && (
-            <VisualEditBar
-                selector={selectedElementSelector}
-                onSubmit={handleVisualEditSubmit}
-                onCancel={() => setSelectedElementSelector(null)}
-                isLoading={isLoading}
-            />
-         )}
+        </div>
       </div>
     </div>
   );
