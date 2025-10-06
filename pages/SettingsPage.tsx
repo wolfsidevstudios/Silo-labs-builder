@@ -8,7 +8,7 @@ import NetlifyIcon from '../components/icons/NetlifyIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
-import { getSecrets, addSecret, removeSecret, identifyTool, Tool } from '../services/secretsService';
+import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
 import { savePat as saveGitHubPat, getPat as getGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo, getRepositories } from '../services/githubService';
 import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo, getSites as getNetlifySites } from '../services/netlifyService';
 
@@ -284,7 +284,26 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             </div>
             {secretError && <p className="text-red-400 text-sm mt-3">{secretError}</p>}
             <div className="mt-6 text-right"><button onClick={handleAddSecret} className="px-5 py-2 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">Add Secret</button></div>
-            {secrets.length > 0 && <div className="mt-8 border-t border-slate-700 pt-6"><h3 className="font-semibold text-slate-300 mb-4">Saved Secrets</h3><div className="space-y-3">{secrets.map(secret => { const tool = identifyTool(secret); const IconComponent = tool.icon; return (<div key={secret.name} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg"><div className="flex items-center gap-3"><IconComponent className="w-6 h-6 text-slate-400" /><div><p className="font-mono text-sm text-slate-200">{secret.name}</p><p className="text-xs text-slate-500">{tool.name}</p></div></div><button onClick={() => handleRemoveSecret(secret.name)} className="p-2 text-slate-500 hover:text-red-400" aria-label={`Remove ${secret.name}`}><TrashIcon className="w-5 h-5" /></button></div>);})}</div></div>}
+            {secrets.length > 0 && (
+              <div className="mt-8 border-t border-slate-700 pt-6">
+                <h3 className="font-semibold text-slate-300 mb-4">Saved Secrets</h3>
+                <div className="space-y-3">
+                  {secrets.map(secret => (
+                    <div key={secret.name} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <KeyIcon className="w-6 h-6 text-slate-400" />
+                        <div>
+                          <p className="font-mono text-sm text-slate-200">{secret.name}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleRemoveSecret(secret.name)} className="p-2 text-slate-500 hover:text-red-400" aria-label={`Remove ${secret.name}`}>
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
         </div>
 
         <div className="mt-16 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-[0_0_120px_rgba(255,255,255,0.1)] animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
