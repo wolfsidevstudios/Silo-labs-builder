@@ -21,6 +21,7 @@ export interface SavedProject {
   createdAt: string;
   githubUrl?: string;
   netlifySiteId?: string; // Add optional Netlify Site ID
+  netlifyUrl?: string;
 }
 
 // New types for chat history

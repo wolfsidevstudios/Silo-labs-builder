@@ -71,7 +71,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setLastSavedProjectId(saved.id);
 
       // Preserve deployment info across AI updates
-      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId });
+      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
       if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
 
     } catch (err) {
@@ -104,7 +104,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       const saved = saveProject({ prompt: projectPrompt, ...result });
       setLastSavedProjectId(saved.id);
       
-      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId });
+      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId, netlifyUrl: currentNetlifyUrl });
       if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
     } catch (err) { if (err instanceof Error) setError(err.message); else setError("An unexpected error occurred."); }
     finally { setIsLoading(false); }
@@ -146,21 +146,26 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       setDeployStatus('deploying');
       let siteId = currentNetlifySiteId;
+      let siteUrl = currentNetlifyUrl;
       
       try {
           if (!siteId) {
               const newSite = await createSite(token);
               siteId = newSite.id;
+              siteUrl = newSite.ssl_url; // Capture new URL
               setCurrentNetlifySiteId(siteId);
-              setCurrentNetlifyUrl(newSite.ssl_url);
-              if(lastSavedProjectId) {
-                  updateProject(lastSavedProjectId, { netlifySiteId: siteId });
-              }
+              setCurrentNetlifyUrl(siteUrl);
           }
           if (!siteId) throw new Error("Could not create or find a site to deploy to.");
 
           const deploy = await deployToNetlify(token, siteId, files);
-          setCurrentNetlifyUrl(deploy.ssl_url); // Update URL in case it changed (it shouldn't)
+          siteUrl = deploy.ssl_url; // This is the most up-to-date URL
+          setCurrentNetlifyUrl(siteUrl);
+
+          if(lastSavedProjectId) {
+              // Update project with both ID and URL after every deploy/redeploy
+              updateProject(lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: siteUrl });
+          }
           setDeployStatus('success');
 
       } catch (err) {
@@ -193,6 +198,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setLastSavedProjectId(initialProject.id);
       if(initialProject.githubUrl) setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
       if(initialProject.netlifySiteId) setCurrentNetlifySiteId(initialProject.netlifySiteId);
+      if(initialProject.netlifyUrl) setCurrentNetlifyUrl(initialProject.netlifyUrl);
       isInitialGenerationDone.current = true;
     } else if (initialPrompt) {
       setPrompt(initialPrompt);
