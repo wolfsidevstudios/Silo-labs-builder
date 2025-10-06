@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NEWS_ITEMS } from '../data/news';
 import KeyIcon from '../components/icons/KeyIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
+import ZapIcon from '../components/icons/ZapIcon';
 
 const NewsPage: React.FC = () => {
   const [view, setView] = useState<'timeline' | 'announcements'>('announcements');
@@ -44,7 +45,16 @@ const NewsPage: React.FC = () => {
           <div className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <h2 className="text-3xl font-bold text-slate-100 mb-6 text-center">What's New</h2>
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-indigo-500/30 rounded-2xl p-8 shadow-2xl shadow-indigo-500/10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div className="md:col-span-2 border-b border-slate-700 pb-8">
+                   <div className="flex items-center gap-3 mb-3">
+                      <ZapIcon className="w-7 h-7 text-indigo-400" />
+                      <h3 className="text-2xl font-bold text-white">Intelligent Integrations are Here!</h3>
+                  </div>
+                  <p className="text-slate-400">
+                      The builder just got a major upgrade! Now, when you connect your Giphy or Gemini API keys in Settings, the AI can automatically build fully functional applications that use them. Simply ask to 'build a GIF search app' or 'create an AI chatbot', and the AI will securely use your keys to bring your idea to life.
+                  </p>
+                </div>
                 <div>
                    <div className="flex items-center gap-3 mb-3">
                       <SparklesIcon className="w-7 h-7 text-indigo-400" />
