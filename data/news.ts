@@ -8,6 +8,14 @@ import NetlifyIcon from '../components/icons/NetlifyIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
   {
+    id: '8',
+    date: 'October 7, 2025',
+    title: 'Intelligent Integrations: Build GIF and AI Apps Instantly',
+    icon: ZapIcon,
+    content:
+      "The builder just got a major upgrade! Now, when you connect your Giphy or Gemini API keys in Settings, the AI can automatically build fully functional applications that use them. Simply ask to 'build a GIF search app' or 'create an AI chatbot', and the AI will securely use your keys to bring your idea to life. More connected apps are coming soon!",
+  },
+  {
     id: '7',
     date: 'October 6, 2025',
     title: 'Visual Editor & Silo AI Sneak Peek',
