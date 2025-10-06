@@ -3,8 +3,17 @@ import RocketIcon from '../components/icons/RocketIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import KeyIcon from '../components/icons/KeyIcon';
 import ZapIcon from '../components/icons/ZapIcon';
+import DiamondIcon from '../components/icons/DiamondIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
+  {
+    id: '4',
+    date: 'October 30, 2023',
+    title: 'Power Up: Gemini 2.5 Pro Now Available!',
+    icon: DiamondIcon,
+    content:
+      "We're excited to announce the integration of Gemini 2.5 Pro! This advanced model is designed for more complex application logic, intricate UI, and larger-scale projects. You can now switch between Flash and Pro models in the Settings page to get the right balance of speed and power for your needs.",
+  },
   {
     id: '3',
     date: 'October 28, 2023',

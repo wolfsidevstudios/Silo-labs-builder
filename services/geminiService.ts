@@ -95,6 +95,7 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
     const ai = new GoogleGenAI({ apiKey });
     const themeInstruction = getThemeInstruction();
     const secretsInstruction = getSecretsInstruction();
+    const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
 
     let fullPrompt = '';
     if (existingFiles && existingFiles.length > 0) {
@@ -108,7 +109,7 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: model,
       contents: fullPrompt,
       config: {
         systemInstruction: SYSTEM_PROMPT,

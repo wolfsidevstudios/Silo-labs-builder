@@ -8,6 +8,8 @@ import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret } from '../types';
 import { getSecrets, addSecret, removeSecret, identifyTool, Tool } from '../services/secretsService';
 
+type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
+
 interface SettingsPageProps {
   isPro: boolean;
   onUpgradeClick: () => void;
@@ -18,6 +20,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isKeyVisible, setIsKeyVisible] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string>('none');
+  const [selectedModel, setSelectedModel] = useState<GeminiModel>('gemini-2.5-flash');
   
   // State for secrets
   const [secrets, setSecrets] = useState<Secret[]>([]);
@@ -37,6 +40,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     } else {
       localStorage.setItem('ui_theme_template', 'none'); // Default to none
     }
+    const storedModel = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+    setSelectedModel(storedModel as GeminiModel);
     setSecrets(getSecrets());
   }, []);
 
@@ -100,6 +105,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     localStorage.setItem('ui_theme_template', theme.id);
   };
 
+  const handleSelectModel = (model: GeminiModel) => {
+    setSelectedModel(model);
+    localStorage.setItem('gemini_model', model);
+  };
+
   const getButtonText = () => {
     switch (saveStatus) {
       case 'saving':
@@ -127,8 +137,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
           className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-[0_0_120px_rgba(255,255,255,0.1)] animate-fade-in-up"
           style={{ animationDelay: '0.2s' }}
         >
-          <h2 className="text-2xl font-bold text-slate-100 mb-4">API Keys</h2>
-          <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-4">API Settings</h2>
+          
+          {/* AI Model Selector */}
+          <div className="flex flex-col gap-2 mb-6">
+            <label className="font-semibold text-slate-300">AI Model</label>
+            <p className="text-sm text-slate-500 mb-2">
+              Choose the AI model for generation. Pro is more powerful for complex apps.
+            </p>
+            <div className="relative bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50 max-w-xs text-center">
+              <div
+                className="absolute top-1 left-1 h-8 w-[calc(50%-4px)] bg-indigo-600 rounded-full transition-transform duration-300 ease-in-out shadow-lg"
+                style={{ transform: `translateX(${selectedModel === 'gemini-2.5-flash' ? '0' : 'calc(100% + 4px)'})` }}
+              />
+              <button
+                onClick={() => handleSelectModel('gemini-2.5-flash')}
+                className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full transition-colors text-white"
+              >
+                2.5 Flash
+              </button>
+              <button
+                onClick={() => handleSelectModel('gemini-2.5-pro')}
+                className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full transition-colors text-white"
+              >
+                2.5 Pro
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2 border-t border-slate-800 pt-6">
             <label htmlFor="api-key-input" className="font-semibold text-slate-300">
               Gemini API Key
             </label>
