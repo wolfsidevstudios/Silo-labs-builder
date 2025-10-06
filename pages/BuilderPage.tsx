@@ -9,6 +9,7 @@ import DeployModal from '../components/DeployModal';
 import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
+import TrialCountdownBar from '../components/TrialCountdownBar';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
@@ -20,6 +21,8 @@ import { saveImage } from '../services/imageService';
 interface BuilderPageProps {
   initialPrompt?: string;
   initialProject?: SavedProject | null;
+  isTrialActive: boolean;
+  trialEndTime: number | null;
 }
 
 interface UploadedImageState {
@@ -28,7 +31,7 @@ interface UploadedImageState {
     previewUrl: string; // data URL for preview
 }
 
-const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null }) => {
+const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isTrialActive, trialEndTime }) => {
   const [prompt, setPrompt] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -389,6 +392,11 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
+        {isTrialActive && trialEndTime && (
+            <div className="p-4 border-b border-slate-800">
+                <TrialCountdownBar endTime={trialEndTime} isInline={true} />
+            </div>
+        )}
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory messages={chatHistory} error={error} />
         </div>

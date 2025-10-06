@@ -41,22 +41,34 @@ const App: React.FC = () => {
       }
     }
 
-    // Check for permanent Pro status from payment
+    // Check for permanent Pro status first. This is the highest priority.
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
     if (permanentProStatus) {
       setIsPro(true);
-      return; // Permanent pro doesn't need trial checks
-    }
-
-    // Check for trial status
-    const trialEndTimeStr = localStorage.getItem('proTrialEndTime');
-    if (trialEndTimeStr) {
-      const endTime = parseInt(trialEndTimeStr, 10);
-      if (Date.now() < endTime) {
-        setIsPro(true);
+    } else {
+      // Grant the one-time 7-day trial if it hasn't been granted before.
+      const freeWeekGranted = localStorage.getItem('proTrialFreeWeekGranted') === 'true';
+      if (!freeWeekGranted) {
+        const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+        const endTime = Date.now() + sevenDaysInMs;
+        localStorage.setItem('proTrialEndTime', String(endTime));
+        localStorage.setItem('proTrialFreeWeekGranted', 'true');
         setProTrialEndTime(endTime);
+        setIsPro(true);
       } else {
-        localStorage.removeItem('proTrialEndTime'); // Clean up expired trial
+        // If the free week was already granted, check if the trial is still active.
+        const trialEndTimeStr = localStorage.getItem('proTrialEndTime');
+        if (trialEndTimeStr) {
+          const endTime = parseInt(trialEndTimeStr, 10);
+          if (Date.now() < endTime) {
+            setIsPro(true);
+            setProTrialEndTime(endTime);
+          } else {
+            setIsPro(false);
+            setProTrialEndTime(null);
+            localStorage.removeItem('proTrialEndTime'); // Clean up expired trial
+          }
+        }
       }
     }
 
@@ -66,7 +78,7 @@ const App: React.FC = () => {
     const refCode = urlParams.get('ref');
     const referralSeen = localStorage.getItem('referralSeen') === 'true';
 
-    if (refCode && !referralSeen && !trialEndTimeStr && !permanentProStatus) {
+    if (refCode && !referralSeen && !permanentProStatus) {
       setReferrerId(refCode);
       setIsReferralModalOpen(true);
       localStorage.setItem('referralSeen', 'true');
@@ -76,6 +88,8 @@ const App: React.FC = () => {
     if (urlParams.has('upgraded')) {
       localStorage.setItem('isPro', 'true');
       setIsPro(true);
+      setProTrialEndTime(null);
+      localStorage.removeItem('proTrialEndTime');
       // Clean up URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('upgraded');
@@ -130,7 +144,7 @@ const App: React.FC = () => {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} />;
       case 'plans':

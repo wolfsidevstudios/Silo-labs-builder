@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NEWS_ITEMS } from '../data/news';
-import KeyIcon from '../components/icons/KeyIcon';
+import GiftIcon from '../components/icons/GiftIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import ZapIcon from '../components/icons/ZapIcon';
 
@@ -48,29 +48,29 @@ const NewsPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <div className="md:col-span-2 border-b border-slate-700 pb-8">
                    <div className="flex items-center gap-3 mb-3">
-                      <ZapIcon className="w-7 h-7 text-indigo-400" />
-                      <h3 className="text-2xl font-bold text-white">Intelligent Integrations are Here!</h3>
+                      <GiftIcon className="w-7 h-7 text-indigo-400" />
+                      <h3 className="text-2xl font-bold text-white">Free Pro Week For Everyone!</h3>
                   </div>
                   <p className="text-slate-400">
-                      The builder just got a major upgrade! Now, when you connect your Giphy or Gemini API keys in Settings, the AI can automatically build fully functional applications that use them. Simply ask to 'build a GIF search app' or 'create an AI chatbot', and the AI will securely use your keys to bring your idea to life.
+                      As a thank you to our amazing community, every user now gets a free 7-day trial of all Pro features! Explore saving projects, one-click deployments with Netlify, GitHub integration, custom themes, and more. Your free week starts now!
+                  </p>
+                </div>
+                <div>
+                   <div className="flex items-center gap-3 mb-3">
+                      <ZapIcon className="w-7 h-7 text-indigo-400" />
+                      <h3 className="text-2xl font-bold text-white">Intelligent Integrations</h3>
+                  </div>
+                  <p className="text-slate-400">
+                      Connect your Giphy or Gemini keys and the AI can build apps that use them automatically, no extra prompting required.
                   </p>
                 </div>
                 <div>
                    <div className="flex items-center gap-3 mb-3">
                       <SparklesIcon className="w-7 h-7 text-indigo-400" />
-                      <h3 className="text-2xl font-bold text-white">UI Theme Templates</h3>
+                      <h3 className="text-2xl font-bold text-white">UI Themes & Custom Secrets</h3>
                   </div>
                   <p className="text-slate-400">
-                      Guide the AI with pre-defined design systems. Choose from a variety of themes in the Settings page to ensure your apps have a consistent, professional look and feel.
-                  </p>
-                </div>
-                <div>
-                   <div className="flex items-center gap-3 mb-3">
-                      <KeyIcon className="w-7 h-7 text-indigo-400" />
-                      <h3 className="text-2xl font-bold text-white">Custom Secrets</h3>
-                  </div>
-                  <p className="text-slate-400">
-                      Securely use API keys and other secrets in your apps. Add them in Settings, and the AI will use them as environment variables, keeping your sensitive data safe.
+                      Guide the AI with pre-defined design systems and securely use your own API keys for third-party services in your generated apps.
                   </p>
                 </div>
               </div>

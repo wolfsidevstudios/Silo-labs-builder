@@ -5,8 +5,17 @@ import ZapIcon from '../components/icons/ZapIcon';
 import DiamondIcon from '../components/icons/DiamondIcon';
 import GitHubIcon from '../components/icons/GitHubIcon';
 import NetlifyIcon from '../components/icons/NetlifyIcon';
+import GiftIcon from '../components/icons/GiftIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
+  {
+    id: '9',
+    date: 'October 8, 2025',
+    title: 'A Gift For Our Users: One Week of Pro, For Free!',
+    icon: GiftIcon,
+    content:
+      "As a thank you to our amazing community, every user now gets a free 7-day trial of all Pro features! Explore saving projects, one-click deployments with Netlify, GitHub integration, custom themes, and more. Your free week starts now!",
+  },
   {
     id: '8',
     date: 'October 7, 2025',

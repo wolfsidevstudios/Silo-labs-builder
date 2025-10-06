@@ -3,10 +3,11 @@ import SparklesIcon from './icons/SparklesIcon';
 
 interface TrialCountdownBarProps {
   endTime: number;
+  isInline?: boolean;
 }
 
-const TrialCountdownBar: React.FC<TrialCountdownBarProps> = ({ endTime }) => {
-  const totalDuration = 24 * 60 * 60 * 1000; // 24 hours in ms
+const TrialCountdownBar: React.FC<TrialCountdownBarProps> = ({ endTime, isInline = false }) => {
+  const totalDuration = 7 * 24 * 60 * 60 * 1000; // 7 days in ms, assuming this is the new standard
   const [timeLeft, setTimeLeft] = useState(endTime - Date.now());
 
   useEffect(() => {
@@ -24,17 +25,18 @@ const TrialCountdownBar: React.FC<TrialCountdownBarProps> = ({ endTime }) => {
 
     return () => clearInterval(timer);
   }, [endTime]);
-
-  const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+  
+  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
   const minutes = Math.floor((timeLeft / 1000 / 60) % 60);
   const seconds = Math.floor((timeLeft / 1000) % 60);
 
-  const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const formattedTime = `${String(days)}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   
   const progressPercentage = (timeLeft / totalDuration) * 100;
 
   return (
-    <div className="w-full max-w-2xl bg-slate-800 rounded-full p-1 my-4 animate-fade-in-down relative overflow-hidden">
+    <div className={`w-full bg-slate-800 rounded-full p-1 relative overflow-hidden ${!isInline ? 'max-w-2xl my-4 animate-fade-in-down' : ''}`}>
         <div className="absolute inset-0 flex items-center justify-between px-4 z-10 pointer-events-none">
             <div className="flex items-center gap-2">
                 <SparklesIcon className="w-4 h-4 text-white" />
@@ -46,13 +48,13 @@ const TrialCountdownBar: React.FC<TrialCountdownBarProps> = ({ endTime }) => {
             className="bg-gradient-to-r from-indigo-500 to-green-400 h-8 rounded-full transition-all duration-1000 ease-linear"
             style={{ width: `${Math.max(progressPercentage, 0)}%` }}
         />
-       <style>{`
+       {!isInline && <style>{`
         @keyframes fade-in-down {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-down { animation: fade-in-down 0.5s ease-out forwards; }
-       `}</style>
+       `}</style>}
     </div>
   );
 };
