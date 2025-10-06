@@ -2,20 +2,20 @@ import React from 'react';
 import HomeIcon from './icons/HomeIcon';
 import ProjectsIcon from './icons/ProjectsIcon';
 import SettingsIcon from './icons/SettingsIcon';
-import DiamondIcon from './icons/DiamondIcon';
+import ZapIcon from './icons/ZapIcon';
 
-export type SidebarPage = 'home' | 'projects' | 'settings';
+export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans';
 
 interface SidebarProps {
   activePage: SidebarPage | null;
   onNavigate: (page: SidebarPage) => void;
-  onUpgradeClick: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onUpgradeClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   const navItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'projects', icon: ProjectsIcon, label: 'Projects' },
+    { id: 'plans', icon: ZapIcon, label: 'Plans' },
     { id: 'settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
@@ -38,17 +38,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onUpgradeClic
           </button>
         ))}
       </nav>
-
-      <div className="my-2 w-8 border-t border-white/20"></div>
-
-       <button
-            onClick={onUpgradeClick}
-            aria-label="Upgrade to Pro"
-            title="Upgrade to Pro"
-            className="p-3 rounded-full text-white hover:bg-indigo-500/50 transition-all duration-200 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-        >
-            <DiamondIcon className="w-6 h-6" />
-        </button>
     </div>
   );
 };

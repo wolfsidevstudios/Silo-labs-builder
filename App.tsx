@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import BuilderPage from './pages/BuilderPage';
 import SettingsPage from './pages/SettingsPage';
+import PlansPage from './pages/PlansPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
-import UpgradeModal from './components/UpgradeModal';
 import UltraBadge from './components/UltraBadge';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
   const [isUltra, setIsUltra] = useState<boolean>(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     // Check local storage first for persistent status
@@ -37,7 +36,7 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: SidebarPage) => {
-    if (page === 'home' || page === 'settings' || page === 'projects') {
+    if (page === 'home' || page === 'settings' || page === 'projects' || page === 'plans') {
       setCurrentPage(page);
     } else {
       alert(`The '${page}' page is not implemented in this demo.`);
@@ -52,6 +51,8 @@ const App: React.FC = () => {
         return <BuilderPage initialPrompt={builderPrompt} />;
       case 'settings':
         return <SettingsPage />;
+      case 'plans':
+        return <PlansPage />;
       case 'projects':
         // For now, redirect projects to home or show an alert.
         alert("The 'Projects' page is not yet implemented.");
@@ -66,6 +67,7 @@ const App: React.FC = () => {
     if (currentPage === 'home') return 'home';
     if (currentPage === 'projects') return 'projects';
     if (currentPage === 'settings') return 'settings';
+    if (currentPage === 'plans') return 'plans';
     return null;
   };
 
@@ -75,11 +77,6 @@ const App: React.FC = () => {
       <Sidebar
         activePage={getActivePageForSidebar()}
         onNavigate={handleNavigate}
-        onUpgradeClick={() => setIsUpgradeModalOpen(true)}
-      />
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
       />
       <div className="font-sans antialiased">
         {renderPage()}
