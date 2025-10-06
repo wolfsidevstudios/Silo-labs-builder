@@ -87,7 +87,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                 className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
             >
                 <SparklesIcon className="w-4 h-4" />
-                <span>Boost UI</span>
+                <span>Boost</span>
             </button>
             <button
                 type="button"
@@ -111,7 +111,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                 title={isGiphyConnected ? "Add GIF from Giphy" : "Connect to Giphy in Settings"}
             >
                 <GiphyIcon className="w-4 h-4" />
-                <span>Add GIF</span>
+                <span>GIFs</span>
             </button>
         </div>
       {uploadedImages.length > 0 && (
