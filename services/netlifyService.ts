@@ -45,6 +45,11 @@ export async function getUserInfo(token: string): Promise<NetlifyUser> {
   return netlifyApiRequest<NetlifyUser>('/user', token);
 }
 
+export async function getSites(token: string): Promise<NetlifySite[]> {
+  // By default, Netlify API returns sites sorted by `updated_at` descending
+  return netlifyApiRequest<NetlifySite[]>('/sites', token);
+}
+
 export async function createSite(token: string): Promise<NetlifySite> {
     return netlifyApiRequest<NetlifySite>('/sites', token, {
         method: 'POST',

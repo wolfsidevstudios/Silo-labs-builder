@@ -7,10 +7,10 @@ import GitHubIcon from '../components/icons/GitHubIcon';
 import NetlifyIcon from '../components/icons/NetlifyIcon';
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
-import { Secret, GitHubUser, GitHubRepo, NetlifyUser } from '../types';
+import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
 import { getSecrets, addSecret, removeSecret, identifyTool, Tool } from '../services/secretsService';
 import { savePat as saveGitHubPat, getPat as getGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo, getRepositories } from '../services/githubService';
-import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo } from '../services/netlifyService';
+import { savePat as saveNetlifyPat, getPat as getNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo, getSites as getNetlifySites } from '../services/netlifyService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -43,6 +43,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   // Netlify State
   const [netlifyPat, setNetlifyPat] = useState('');
   const [netlifyUser, setNetlifyUser] = useState<NetlifyUser | null>(null);
+  const [netlifySites, setNetlifySites] = useState<NetlifySite[]>([]);
   const [netlifyError, setNetlifyError] = useState<string | null>(null);
   const [isNetlifyConnecting, setIsNetlifyConnecting] = useState(false);
 
@@ -84,7 +85,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     if (ntPat) {
       setIsNetlifyConnecting(true);
       getNetlifyUserInfo(ntPat)
-        .then(user => setNetlifyUser(user))
+        .then(user => {
+            setNetlifyUser(user);
+            return getNetlifySites(ntPat);
+        })
+        .then(sites => setNetlifySites(sites))
         .catch(() => { setNetlifyError("Your PAT seems to be invalid or expired."); removeNetlifyPat(); })
         .finally(() => setIsNetlifyConnecting(false));
     }
@@ -165,8 +170,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     setNetlifyError(null);
     try {
       const user = await getNetlifyUserInfo(netlifyPat);
+      const sites = await getNetlifySites(netlifyPat);
       saveNetlifyPat(netlifyPat);
       setNetlifyUser(user);
+      setNetlifySites(sites);
       setNetlifyPat('');
     } catch (err) { setNetlifyError("Connection failed. Please check your token and permissions."); }
     finally { setIsNetlifyConnecting(false); }
@@ -175,6 +182,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const handleDisconnectNetlify = () => {
     removeNetlifyPat();
     setNetlifyUser(null);
+    setNetlifySites([]);
     setNetlifyError(null);
   };
 
@@ -244,6 +252,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                   <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg">
                     <div className="flex items-center gap-4"><img src={netlifyUser.avatar_url} alt="Netlify avatar" className="w-12 h-12 rounded-full border-2 border-slate-600" /><div><p className="font-bold text-lg text-white">{netlifyUser.full_name}</p><p className="text-sm text-slate-400">{netlifyUser.email}</p></div></div>
                     <button onClick={handleDisconnectNetlify} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button>
+                  </div>
+                   <div className="mt-6">
+                    <h3 className="font-semibold text-slate-300 mb-3">Your Sites</h3>
+                    <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                        {netlifySites.map(site => (
+                            <a href={site.ssl_url} target="_blank" rel="noopener noreferrer" key={site.id} className="block bg-slate-900/50 hover:bg-slate-800 p-3 rounded-md transition-colors">
+                                <p className="font-mono text-sm text-slate-200 truncate">{site.name}</p>
+                            </a>
+                        ))}
+                    </div>
                   </div>
                 </div>
             ) : (
