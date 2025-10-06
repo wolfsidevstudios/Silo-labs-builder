@@ -5,6 +5,15 @@ interface HomePageProps {
   onGenerate: (prompt: string) => void;
 }
 
+const suggestionPrompts = [
+  "a simple pomodoro timer",
+  "a weather app with a 5-day forecast",
+  "a responsive photo gallery",
+  "a markdown note-taking app",
+  "a real-time crypto price tracker",
+  "a recipe finder with a search bar",
+];
+
 const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
   const [prompt, setPrompt] = useState('');
 
@@ -49,6 +58,21 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
             <ArrowUpIcon className="w-6 h-6 text-black transition-transform group-hover:scale-110" />
           </button>
         </form>
+        
+        <div 
+          className="flex flex-wrap items-center justify-center gap-2 mt-4 max-w-2xl animate-fade-in-up"
+          style={{ animationDelay: '0.5s' }}
+        >
+          {suggestionPrompts.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => setPrompt(p)}
+              className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-sm text-slate-300 hover:bg-white/10 transition-colors"
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </main>
 
        <footer className="w-full text-center p-4 text-xs text-gray-600">

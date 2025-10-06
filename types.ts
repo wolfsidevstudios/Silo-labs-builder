@@ -8,3 +8,12 @@ export interface GeminiResponse {
   previewHtml: string;
   summary: string[];
 }
+
+export interface SavedProject {
+  id: string;
+  prompt: string;
+  files: AppFile[];
+  previewHtml: string;
+  summary: string[];
+  createdAt: string;
+}

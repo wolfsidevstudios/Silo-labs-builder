@@ -3,14 +3,17 @@ import HomePage from './pages/HomePage';
 import BuilderPage from './pages/BuilderPage';
 import SettingsPage from './pages/SettingsPage';
 import PlansPage from './pages/PlansPage';
+import ProjectsPage from './pages/ProjectsPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import UltraBadge from './components/UltraBadge';
+import { SavedProject } from './types';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
+  const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
   const [isUltra, setIsUltra] = useState<boolean>(false);
 
   useEffect(() => {
@@ -32,6 +35,13 @@ const App: React.FC = () => {
 
   const handleStartBuilding = (prompt: string) => {
     setBuilderPrompt(prompt);
+    setProjectToLoad(null); // Ensure we're not loading an old project
+    setCurrentPage('builder');
+  };
+  
+  const handleLoadProject = (project: SavedProject) => {
+    setProjectToLoad(project);
+    setBuilderPrompt(''); // Clear any prompt from home page
     setCurrentPage('builder');
   };
 
@@ -48,16 +58,13 @@ const App: React.FC = () => {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} />;
       case 'settings':
         return <SettingsPage />;
       case 'plans':
         return <PlansPage />;
       case 'projects':
-        // For now, redirect projects to home or show an alert.
-        alert("The 'Projects' page is not yet implemented.");
-        setCurrentPage('home');
-        return <HomePage onGenerate={handleStartBuilding} />;
+        return <ProjectsPage onLoadProject={handleLoadProject} />;
       default:
         return <HomePage onGenerate={handleStartBuilding} />;
     }
