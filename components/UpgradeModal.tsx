@@ -28,10 +28,10 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
             <DiamondIcon className="h-8 w-8 text-white" />
         </div>
         <h2 id="upgrade-modal-title" className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 text-transparent bg-clip-text">
-            Upgrade to Ultra
+            Upgrade to Pro
         </h2>
         <p className="mt-4 text-slate-400">
-            Unlock premium features, priority support, and build even more powerful applications with the Ultra plan.
+            Unlock premium features, priority support, and build even more powerful applications with the Pro plan.
         </p>
         <a
           href={PAYMENT_URL}

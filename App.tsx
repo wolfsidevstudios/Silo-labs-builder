@@ -5,7 +5,8 @@ import SettingsPage from './pages/SettingsPage';
 import PlansPage from './pages/PlansPage';
 import ProjectsPage from './pages/ProjectsPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
-import UltraBadge from './components/UltraBadge';
+import ProBadge from './components/ProBadge';
+import ReferralModal from './components/ReferralModal';
 import { SavedProject } from './types';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans';
@@ -14,24 +15,63 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
   const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
-  const [isUltra, setIsUltra] = useState<boolean>(false);
+  const [isPro, setIsPro] = useState<boolean>(false);
+  const [proTrialEndTime, setProTrialEndTime] = useState<number | null>(null);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [referrerId, setReferrerId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check local storage first for persistent status
-    const ultraStatus = localStorage.getItem('isUltra') === 'true';
-    if (ultraStatus) {
-      setIsUltra(true);
+    // Check for permanent Pro status from payment
+    const permanentProStatus = localStorage.getItem('isPro') === 'true';
+    if (permanentProStatus) {
+      setIsPro(true);
+      return; // Permanent pro doesn't need trial checks
     }
 
-    // Check for query param from payment redirect
+    // Check for trial status
+    const trialEndTimeStr = localStorage.getItem('proTrialEndTime');
+    if (trialEndTimeStr) {
+      const endTime = parseInt(trialEndTimeStr, 10);
+      if (Date.now() < endTime) {
+        setIsPro(true);
+        setProTrialEndTime(endTime);
+      } else {
+        localStorage.removeItem('proTrialEndTime'); // Clean up expired trial
+      }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check for referral
+    const refCode = urlParams.get('ref');
+    const referralSeen = localStorage.getItem('referralSeen') === 'true';
+
+    if (refCode && !referralSeen && !trialEndTimeStr && !permanentProStatus) {
+      setReferrerId(refCode);
+      setIsReferralModalOpen(true);
+      localStorage.setItem('referralSeen', 'true');
+    }
+
+    // Handle payment redirect
     if (urlParams.has('upgraded')) {
-      localStorage.setItem('isUltra', 'true');
-      setIsUltra(true);
-      // Clean up URL to avoid re-triggering on refresh
-      window.history.replaceState(null, '', window.location.pathname);
+      localStorage.setItem('isPro', 'true');
+      setIsPro(true);
+      // Clean up URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('upgraded');
+      newUrl.searchParams.delete('ref'); // also clean ref
+      window.history.replaceState(null, '', newUrl.toString());
     }
   }, []);
+  
+  const handleStartTrial = () => {
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+    const endTime = Date.now() + oneDayInMs;
+    localStorage.setItem('proTrialEndTime', String(endTime));
+    setProTrialEndTime(endTime);
+    setIsPro(true);
+    setIsReferralModalOpen(false);
+  };
 
   const handleStartBuilding = (prompt: string) => {
     setBuilderPrompt(prompt);
@@ -56,7 +96,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage onGenerate={handleStartBuilding} />;
+        return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
       case 'builder':
         return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} />;
       case 'settings':
@@ -66,7 +106,7 @@ const App: React.FC = () => {
       case 'projects':
         return <ProjectsPage onLoadProject={handleLoadProject} />;
       default:
-        return <HomePage onGenerate={handleStartBuilding} />;
+        return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
     }
   };
 
@@ -80,7 +120,13 @@ const App: React.FC = () => {
 
   return (
     <>
-      <UltraBadge isVisible={isUltra} />
+      <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />
+       <ReferralModal
+        isOpen={isReferralModalOpen}
+        onClose={() => setIsReferralModalOpen(false)}
+        onStartTrial={handleStartTrial}
+        referrerId={referrerId}
+      />
       <Sidebar
         activePage={getActivePageForSidebar()}
         onNavigate={handleNavigate}

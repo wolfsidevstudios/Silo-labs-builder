@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CheckIcon from '../components/icons/CheckIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import GiftIcon from '../components/icons/GiftIcon';
@@ -6,13 +6,25 @@ import GiftIcon from '../components/icons/GiftIcon';
 const PRO_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
 
 const PlansPage: React.FC = () => {
-  const [copyText, setCopyText] = useState('Copy Code');
-  const affiliateCode = 'FRIEND-2024';
+  const [copyText, setCopyText] = useState('Copy URL');
+  const [affiliateUrl, setAffiliateUrl] = useState('');
+
+  useEffect(() => {
+    let affiliateId = localStorage.getItem('user_affiliate_id');
+    if (!affiliateId) {
+      // Generate a simple unique ID
+      affiliateId = 'ref' + Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('user_affiliate_id', affiliateId);
+    }
+    setAffiliateUrl(`https://silo-labs-builder.vercel.app/?ref=${affiliateId}`);
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(affiliateCode).then(() => {
+    if (!affiliateUrl) return;
+
+    navigator.clipboard.writeText(affiliateUrl).then(() => {
       setCopyText('Copied!');
-      setTimeout(() => setCopyText('Copy Code'), 2000);
+      setTimeout(() => setCopyText('Copy URL'), 2000);
     }).catch(err => {
       console.error('Failed to copy text: ', err);
     });
@@ -90,14 +102,17 @@ const PlansPage: React.FC = () => {
                 </div>
                 <div>
                     <h3 className="text-2xl font-semibold text-white">Affiliate Program</h3>
-                    <p className="text-slate-400 mt-2 max-w-lg">Share your code to get <strong>1 free generation</strong> per sign-up. Soon, you'll also earn <strong>10% cash back</strong> every time a referred user buys premium!</p>
+                    <p className="text-slate-400 mt-2 max-w-lg">Share your unique tracking URL to get <strong>1 free generation</strong> per sign-up. Soon, you'll also earn <strong>10% cash back</strong> every time a referred user buys premium!</p>
                 </div>
             </div>
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-2">
-                <span className="text-indigo-300 font-mono text-lg px-4">{affiliateCode}</span>
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-2 w-full md:w-auto">
+                <span className="text-indigo-300 font-mono text-sm px-2 truncate" title={affiliateUrl}>
+                  {affiliateUrl || 'Generating...'}
+                </span>
                 <button 
                     onClick={handleCopy}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md transition-colors w-28"
+                    disabled={!affiliateUrl}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md transition-colors w-28 flex-shrink-0 disabled:bg-slate-600 disabled:cursor-not-allowed"
                 >
                     {copyText}
                 </button>
