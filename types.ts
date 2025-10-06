@@ -34,14 +34,17 @@ export interface SavedImage {
 
 // New types for chat history
 export interface UserMessage {
+  id: string;
   role: 'user';
   content: string;
   imagePreviewUrls?: string[];
 }
 
 export interface AssistantMessage {
+  id: string;
   role: 'assistant';
-  content: GeminiResponse;
+  content: Partial<GeminiResponse>;
+  isGenerating?: boolean;
 }
 
 export type ChatMessage = UserMessage | AssistantMessage;

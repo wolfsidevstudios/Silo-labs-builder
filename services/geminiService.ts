@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
@@ -195,7 +194,7 @@ export async function* streamGenerateOrUpdateAppCode(
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
     images?: UploadedImage[] | null
-): AsyncGenerator<{ previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
+): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("Gemini API key is missing. Please add it in the Settings page.");
@@ -226,16 +225,44 @@ export async function* streamGenerateOrUpdateAppCode(
     });
 
     let buffer = '';
+    let yieldedSummary = false;
+    let yieldedFiles = false;
+
     for await (const chunk of responseStream) {
         buffer += chunk.text;
+        
+        // Try to yield summary plan as soon as it's available
+        if (!yieldedSummary) {
+            const summaryRegex = /"summary"\s*:\s*(\[.*?\])/s;
+            const summaryMatch = buffer.match(summaryRegex);
+            if (summaryMatch) {
+                try {
+                    const summary = JSON.parse(summaryMatch[1]);
+                    yield { summary };
+                    yieldedSummary = true;
+                } catch (e) { /* Incomplete JSON, wait for more chunks */ }
+            }
+        }
+
+        // Try to yield file paths plan as soon as it's available
+        if (!yieldedFiles) {
+            const filesRegex = /"files"\s*:\s*(\[.*?\])/s;
+            const filesMatch = buffer.match(filesRegex);
+            if (filesMatch) {
+                 try {
+                    const files = JSON.parse(filesMatch[1]);
+                    if (Array.isArray(files) && files.every(f => f.path && Object.keys(f).length === 1)) {
+                         yield { files: files.map(f => ({ path: f.path, content: '' })) };
+                         yieldedFiles = true;
+                    }
+                } catch (e) { /* Incomplete JSON, wait for more chunks */ }
+            }
+        }
         
         const startMarker = '"previewHtml": "';
         const startIndex = buffer.indexOf(startMarker);
         
         if (startIndex !== -1) {
-            // Extract the content of the previewHtml string as it streams in.
-            // This is a simplified approach; it doesn't handle escaped quotes inside the HTML string,
-            // but for a live preview, it's generally effective.
             const htmlFragment = buffer.substring(startIndex + startMarker.length);
             yield { previewHtml: htmlFragment };
         }

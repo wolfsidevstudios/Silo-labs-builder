@@ -66,7 +66,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
   const isInitialGenerationDone = useRef(false);
 
-  const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant') as AssistantMessage | undefined;
+  const latestAssistantMessage = chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating) as AssistantMessage | undefined;
   const files = latestAssistantMessage?.content.files || [];
   const previewHtml = latestAssistantMessage?.content.previewHtml || '';
 
@@ -140,6 +140,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setError(null);
       setIsLoading(true);
       setRightPaneView('preview');
+      setStreamingPreviewHtml('');
 
       let userMessageContent = promptToSubmit;
       if (options.isBoost) userMessageContent = "✨ Boost UI";
@@ -147,49 +148,80 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       const imagesToSubmit = uploadedImages;
       const newUserMessage: UserMessage = { 
+        id: `user-${Date.now()}`,
         role: 'user', 
         content: userMessageContent,
         imagePreviewUrls: imagesToSubmit.map(img => img.previewUrl),
       };
-      setChatHistory(prev => [...prev, newUserMessage]);
       setPrompt('');
-      setUploadedImages([]); // Clear images from UI after submitting
+      setUploadedImages([]);
 
       if (options.visualEditTarget) {
         setSelectedElementSelector(null);
         setIsVisualEditMode(false);
       }
 
+      const tempAssistantId = `assistant-${Date.now()}`;
+      const placeholderAssistantMessage: AssistantMessage = {
+          id: tempAssistantId,
+          role: 'assistant',
+          content: {
+              summary: ['Thinking...'],
+          },
+          isGenerating: true,
+      };
+
+      setChatHistory(prev => [...prev, newUserMessage, placeholderAssistantMessage]);
+
       const currentFiles = files.length > 0 ? files : null;
       const useLivePreview = localStorage.getItem('experimental_live_preview') === 'true';
 
       try {
-          let result: GeminiResponse;
-
-          if (useLivePreview) {
-              setStreamingPreviewHtml('');
-              const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit);
-              let finalResponse: GeminiResponse | null = null;
-              for await (const update of stream) {
-                  if (update.previewHtml) setStreamingPreviewHtml(update.previewHtml);
-                  if (update.finalResponse) finalResponse = update.finalResponse;
-                  if (update.error) throw new Error(update.error);
+          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit);
+          let finalResponse: GeminiResponse | null = null;
+          
+          for await (const update of stream) {
+              if (update.error) throw new Error(update.error);
+              if (update.finalResponse) {
+                  finalResponse = update.finalResponse;
+                  break;
               }
-              if (!finalResponse) throw new Error("Stream finished without a valid result.");
-              result = finalResponse;
-          } else {
-              result = await generateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit);
-          }
 
-          const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
-          setChatHistory(prev => [...prev, newAssistantMessage]);
+              setChatHistory(prev => prev.map(msg => {
+                  if (msg.id === tempAssistantId && msg.role === 'assistant') {
+                      return {
+                          ...msg,
+                          content: {
+                              summary: update.summary || msg.content.summary,
+                              files: update.files || msg.content.files,
+                          }
+                      };
+                  }
+                  return msg;
+              }));
+
+              if (useLivePreview && update.previewHtml) {
+                  setStreamingPreviewHtml(update.previewHtml);
+              }
+          }
+          
+          if (!finalResponse) throw new Error("Stream finished without a valid result.");
+          
+          const finalAssistantMessage: AssistantMessage = {
+              id: tempAssistantId,
+              role: 'assistant',
+              content: finalResponse,
+              isGenerating: false,
+          };
+
+          setChatHistory(prev => prev.map(msg => msg.id === tempAssistantId ? finalAssistantMessage : msg));
 
           if (lastSavedProjectId) {
-              updateProject(lastSavedProjectId, { ...result });
+              updateProject(lastSavedProjectId, { ...finalResponse });
           } else {
               const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
               const projectPrompt = firstUserMessage ? firstUserMessage.content : userMessageContent;
-              const saved = saveProject({ prompt: projectPrompt, ...result });
+              const saved = saveProject({ prompt: projectPrompt, ...finalResponse });
               setLastSavedProjectId(saved.id);
           }
           if (lastSavedProjectId) {
@@ -200,7 +232,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
           setError(errorMessage);
-          setChatHistory(prev => prev.slice(0, -1));
+          setChatHistory(prev => prev.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id));
       } finally {
           setIsLoading(false);
           setStreamingPreviewHtml(null);
@@ -330,8 +362,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     if (gphKey) setIsGiphyConnected(true);
 
     if (initialProject) {
-      const initialUserMessage: UserMessage = { role: 'user', content: initialProject.prompt };
-      const initialAssistantMessage: AssistantMessage = { role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
+      const initialUserMessage: UserMessage = { id: `user-${initialProject.id}`, role: 'user', content: initialProject.prompt };
+      const initialAssistantMessage: AssistantMessage = { id: `assistant-${initialProject.id}`, role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
       setChatHistory([initialUserMessage, initialAssistantMessage]);
       setLastSavedProjectId(initialProject.id);
       if(initialProject.githubUrl) setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
@@ -358,7 +390,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
-            <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
+            <ChatHistory messages={chatHistory} error={error} />
         </div>
         <div className="flex-shrink-0">
             <PromptInput 
