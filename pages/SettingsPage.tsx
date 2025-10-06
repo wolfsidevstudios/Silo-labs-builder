@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import EyeIcon from '../components/icons/EyeIcon';
 import EyeOffIcon from '../components/icons/EyeOffIcon';
@@ -6,7 +5,12 @@ import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Theme } from '../types';
 
-const SettingsPage: React.FC = () => {
+interface SettingsPageProps {
+  isPro: boolean;
+  onUpgradeClick: () => void;
+}
+
+const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) => {
   const [apiKey, setApiKey] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isKeyVisible, setIsKeyVisible] = useState(false);
@@ -39,9 +43,13 @@ const SettingsPage: React.FC = () => {
     }, 500);
   };
 
-  const handleSelectTheme = (themeId: string) => {
-    setSelectedTheme(themeId);
-    localStorage.setItem('ui_theme_template', themeId);
+  const handleSelectTheme = (theme: Theme) => {
+    if (theme.isPro && !isPro) {
+      onUpgradeClick();
+      return;
+    }
+    setSelectedTheme(theme.id);
+    localStorage.setItem('ui_theme_template', theme.id);
   };
 
   const getButtonText = () => {
@@ -54,6 +62,10 @@ const SettingsPage: React.FC = () => {
         return 'Save Key';
     }
   };
+  
+  const standardThemes = THEMES.filter(t => !t.id.includes('holiday'));
+  const holidayThemes = THEMES.filter(t => t.id.includes('holiday'));
+
 
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
@@ -116,12 +128,34 @@ const SettingsPage: React.FC = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {THEMES.map(theme => (
+            {standardThemes.map(theme => (
               <ThemeTemplateCard
                 key={theme.id}
                 theme={theme}
                 isSelected={selectedTheme === theme.id}
-                onSelect={handleSelectTheme}
+                onSelect={() => handleSelectTheme(theme)}
+                isProUser={isPro}
+              />
+            ))}
+          </div>
+        </div>
+
+         {/* Holiday Packs Section */}
+        <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-slate-100 mb-2">Holiday Packs</h2>
+             <p className="text-base text-slate-400 mb-8 max-w-2xl mx-auto">
+              Get in the spirit with seasonal themes for your apps.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {holidayThemes.map(theme => (
+              <ThemeTemplateCard
+                key={theme.id}
+                theme={theme}
+                isSelected={selectedTheme === theme.id}
+                onSelect={() => handleSelectTheme(theme)}
+                isProUser={isPro}
               />
             ))}
           </div>
@@ -133,7 +167,7 @@ const SettingsPage: React.FC = () => {
           API keys are required for app generation
       </footer>
        <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Mono:wght@400;700&family=Lora:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Mono:wght@400;700&family=Lora:wght@400;700&family=Playfair+Display:wght@700&family=Mountains+of+Christmas:wght@700&family=Great+Vibes&display=swap');
         
         @keyframes fade-in-down {
             from { opacity: 0; transform: translateY(-20px); }

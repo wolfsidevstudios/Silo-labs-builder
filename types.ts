@@ -1,4 +1,3 @@
-
 // FIX: Add React import for CSSProperties type.
 import React from 'react';
 
@@ -39,6 +38,7 @@ export interface Theme {
   id: string;
   name: string;
   fontFamily: string;
+  isPro?: boolean;
   colors: {
     primary: string;
     secondary: string;

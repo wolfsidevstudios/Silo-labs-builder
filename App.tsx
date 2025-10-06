@@ -9,6 +9,7 @@ import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
 import OnboardingModal from './components/OnboardingModal';
 import UserGreeting from './components/UserGreeting';
+import UpgradeModal from './components/UpgradeModal';
 import { SavedProject } from './types';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans';
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const [proTrialEndTime, setProTrialEndTime] = useState<number | null>(null);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // State for new onboarding flow
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -129,7 +131,7 @@ const App: React.FC = () => {
       case 'builder':
         return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} />;
       case 'settings':
-        return <SettingsPage />;
+        return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} />;
       case 'plans':
         return <PlansPage />;
       case 'projects':
@@ -157,6 +159,10 @@ const App: React.FC = () => {
         onClose={() => setIsReferralModalOpen(false)}
         onStartTrial={handleStartTrial}
         referrerId={referrerId}
+      />
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
       />
       <Sidebar
         activePage={getActivePageForSidebar()}
