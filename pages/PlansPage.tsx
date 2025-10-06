@@ -1,9 +1,9 @@
 
 import React from 'react';
 import CheckIcon from '../components/icons/CheckIcon';
+import SparklesIcon from '../components/icons/SparklesIcon';
 
 const PRO_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
-const ULTRA_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true"); // In a real app, this would be a different link
 
 const PlansPage: React.FC = () => {
   return (
@@ -25,7 +25,8 @@ const PlansPage: React.FC = () => {
             <p className="text-4xl font-bold my-4">$0 <span className="text-lg font-normal text-slate-400">/ month</span></p>
             <p className="text-slate-400 mb-6 h-12">For individuals and hobbyists starting out.</p>
             <ul className="space-y-3 text-slate-300 flex-grow">
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Basic app generations</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> 30 monthly generations</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Access to all AI models</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Community support</li>
             </ul>
             <button className="mt-8 w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors">
@@ -39,11 +40,11 @@ const PlansPage: React.FC = () => {
                 <span className="bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Most Popular</span>
             </div>
             <h2 className="text-2xl font-semibold text-white">Pro</h2>
-            <p className="text-4xl font-bold my-4">$10 <span className="text-lg font-normal text-slate-400">/ month</span></p>
+            <p className="text-4xl font-bold my-4">$5 <span className="text-lg font-normal text-slate-400">/ month</span></p>
             <p className="text-slate-400 mb-6 h-12">For professionals and small teams building serious projects.</p>
             <ul className="space-y-3 text-slate-300 flex-grow">
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Unlimited generations</li>
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Access to Pro models</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Download project code</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Save projects</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Priority support</li>
             </ul>
@@ -55,17 +56,17 @@ const PlansPage: React.FC = () => {
           {/* Ultra Plan */}
           <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 flex flex-col">
             <h2 className="text-2xl font-semibold text-white">Ultra</h2>
-            <p className="text-4xl font-bold my-4">$20 <span className="text-lg font-normal text-slate-400">/ month</span></p>
+            <p className="text-4xl font-bold my-4">$10 <span className="text-lg font-normal text-slate-400">/ month</span></p>
             <p className="text-slate-400 mb-6 h-12">For large teams and enterprises needing maximum power.</p>
             <ul className="space-y-3 text-slate-300 flex-grow">
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Everything in Pro</li>
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Access to Ultra models</li>
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Team collaboration</li>
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Dedicated support</li>
+              <li className="flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-purple-400" /> Team collaboration (soon)</li>
+              <li className="flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-purple-400" /> Dedicated support (soon)</li>
+              <li className="flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-purple-400" /> And much more...</li>
             </ul>
-             <a href={ULTRA_PAYMENT_URL} className="mt-8 text-center w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors">
-              Upgrade to Ultra
-            </a>
+             <button disabled className="mt-8 text-center w-full px-6 py-3 bg-slate-700 text-slate-400 font-semibold rounded-lg cursor-not-allowed">
+              Coming Soon
+            </button>
           </div>
         </div>
       </main>
