@@ -75,10 +75,20 @@ const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onClose, onDeploy, st
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 m-4 max-w-lg w-full transform transition-transform duration-300 scale-95 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+      <div className="relative overflow-hidden bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8 m-4 max-w-lg w-full transform transition-transform duration-300 scale-95 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 -z-10 swirl-background"></div>
         {renderContent()}
       </div>
       <style>{`
+        .swirl-background {
+            background-image: radial-gradient(at 27% 37%, hsla(215, 98%, 61%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 97% 21%, hsla(125, 98%, 72%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 52% 99%, hsla(355, 98%, 76%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 10% 29%, hsla(256, 96%, 68%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 97% 96%, hsla(38, 60%, 74%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 33% 50%, hsla(222, 67%, 73%, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 79% 53%, hsla(343, 68%, 79%, 0.1) 0px, transparent 50%);
+        }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }

@@ -1,11 +1,28 @@
 import { NewsItem } from '../types';
 import RocketIcon from '../components/icons/RocketIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
-import KeyIcon from '../components/icons/KeyIcon';
 import ZapIcon from '../components/icons/ZapIcon';
 import DiamondIcon from '../components/icons/DiamondIcon';
+import GitHubIcon from '../components/icons/GitHubIcon';
+import NetlifyIcon from '../components/icons/NetlifyIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
+  {
+    id: '6',
+    date: 'November 5, 2025',
+    title: 'Deploy in One Click with Netlify',
+    icon: NetlifyIcon,
+    content:
+      "Take your projects live! We've integrated with Netlify to allow for seamless one-click deployments. Connect your account in Settings, and you can deploy a new site or redeploy changes directly from the builder, complete with a live URL.",
+  },
+  {
+    id: '5',
+    date: 'November 2, 2025',
+    title: 'Save Your Work to GitHub',
+    icon: GitHubIcon,
+    content:
+      "You can now connect your GitHub account and save your projects directly to a repository. Create new repos, commit your initial app, and save subsequent changes all without leaving the builder. Find the new integration in the Settings page.",
+  },
   {
     id: '4',
     date: 'October 30, 2025',
