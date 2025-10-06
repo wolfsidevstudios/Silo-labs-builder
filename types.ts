@@ -110,4 +110,5 @@ export interface NetlifyDeploy {
     site_id: string;
     ssl_url: string;
     state: string;
+    required?: string[];
 }

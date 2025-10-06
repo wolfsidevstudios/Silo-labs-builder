@@ -157,6 +157,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                   updateProject(lastSavedProjectId, { netlifySiteId: siteId });
               }
           }
+          if (!siteId) throw new Error("Could not create or find a site to deploy to.");
 
           const deploy = await deployToNetlify(token, siteId, files);
           setCurrentNetlifyUrl(deploy.ssl_url); // Update URL in case it changed (it shouldn't)
@@ -167,6 +168,15 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           else setError("An unknown deployment error occurred.");
           setDeployStatus('error');
       }
+  };
+  
+  const handleDeployClick = () => {
+    setDeployStatus('idle'); // Reset status
+    setIsDeployModalOpen(true);
+    // If it's a new deploy, trigger it immediately upon opening the modal.
+    if (!currentNetlifySiteId) {
+        handleDeploy();
+    }
   };
 
   useEffect(() => {
@@ -215,7 +225,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             isGitHubConnected={!!githubUser}
             onGitHubClick={() => setIsGitHubModalOpen(true)}
             isNetlifyConnected={isNetlifyConnected}
-            onDeployClick={() => { setDeployStatus('idle'); setIsDeployModalOpen(true); }}
+            onDeployClick={handleDeployClick}
             isDeployed={!!currentNetlifySiteId}
             hasFiles={files.length > 0}
          />

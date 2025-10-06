@@ -63,14 +63,21 @@ async function getFileSha1(content: string): Promise<string> {
 }
 
 export async function deployToNetlify(token: string, siteId: string, files: AppFile[]): Promise<NetlifyDeploy> {
-    // 1. Prepare file digests for the Netlify API
+    // 1. Prepare file digests and content maps for the Netlify API
     const digests: { [path: string]: string } = {};
+    const fileContents: { [sha: string]: string } = {};
+    const filePaths: { [sha: string]: string } = {};
+
     for (const file of files) {
-        digests[`/${file.path}`] = await getFileSha1(file.content);
+        const sha = await getFileSha1(file.content);
+        const path = `/${file.path}`;
+        digests[path] = sha;
+        fileContents[sha] = file.content;
+        filePaths[sha] = path;
     }
     
-    // 2. Create a new deploy record on Netlify
-    // This tells Netlify what files we plan to upload.
+    // 2. Create a new deploy record on Netlify.
+    // This tells Netlify what files we plan to upload and gets back a list of files it needs.
     const deploy = await netlifyApiRequest<NetlifyDeploy>(`/sites/${siteId}/deploys`, token, {
         method: 'POST',
         body: JSON.stringify({ files: digests }),
@@ -78,21 +85,23 @@ export async function deployToNetlify(token: string, siteId: string, files: AppF
 
     const deployId = deploy.id;
 
-    // 3. Upload each file individually
-    // Netlify's API requires uploading files one by one after creating the deploy record.
-    for (const file of files) {
-        const filePath = `/${file.path}`;
-        await fetch(`${NETLIFY_API_URL}/deploys/${deployId}/files${filePath}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/octet-stream'
-            },
-            body: file.content
-        });
+    // 3. Upload only the files Netlify has requested in the `required` array.
+    if (deploy.required && deploy.required.length > 0) {
+        for (const sha of deploy.required) {
+            const filePath = filePaths[sha];
+            const fileContent = fileContents[sha];
+            
+            await fetch(`${NETLIFY_API_URL}/deploys/${deployId}/files${filePath}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/octet-stream'
+                },
+                body: fileContent
+            });
+        }
     }
 
-    // Return the initial deploy object. It contains the URL.
-    // The deploy will be processing in the background on Netlify's side.
+    // Return the initial deploy object. The deploy will process on Netlify's side.
     return deploy;
 }
