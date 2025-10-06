@@ -61,6 +61,41 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setIsLoading(false);
     }
   };
+  
+  const handleBoostUi = async () => {
+    // Can't boost if already loading or if there's no app to boost
+    if (isLoading || files.length === 0) return;
+
+    const boostPrompt = "Dramatically improve the UI/UX of the current application. Make it look modern, professional, and visually stunning. Focus on layout, color scheme, typography, and interactivity.";
+
+    setError(null);
+    setIsLoading(true);
+
+    const newUserMessage: UserMessage = { role: 'user', content: "✨ Boost UI" };
+    setChatHistory(prev => [...prev, newUserMessage]);
+    setPrompt('');
+    setRightPaneView('preview');
+
+    try {
+      const result = await generateOrUpdateAppCode(boostPrompt, files);
+      
+      const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
+      setChatHistory(prev => [...prev, newAssistantMessage]);
+      
+      const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
+      const projectPrompt = firstUserMessage ? firstUserMessage.content : "AI Generated App";
+      saveProject({ prompt: projectPrompt, ...result });
+
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (initialProject) {
@@ -107,6 +142,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               prompt={prompt}
               setPrompt={setPrompt}
               onSubmit={handleSendMessage}
+              onBoostUi={handleBoostUi}
               isLoading={isLoading}
             />
         </div>
