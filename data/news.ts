@@ -8,7 +8,7 @@ import DiamondIcon from '../components/icons/DiamondIcon';
 export const NEWS_ITEMS: NewsItem[] = [
   {
     id: '4',
-    date: 'October 30, 2023',
+    date: 'October 30, 2025',
     title: 'Power Up: Gemini 2.5 Pro Now Available!',
     icon: DiamondIcon,
     content:
@@ -16,7 +16,7 @@ export const NEWS_ITEMS: NewsItem[] = [
   },
   {
     id: '3',
-    date: 'October 28, 2023',
+    date: 'October 28, 2025',
     title: 'Future Vision: Integrating More AI Models',
     icon: ZapIcon,
     content:
@@ -24,7 +24,7 @@ export const NEWS_ITEMS: NewsItem[] = [
   },
   {
     id: '2',
-    date: 'October 26, 2023',
+    date: 'October 26, 2025',
     title: 'New Features: UI Themes & Custom Secrets',
     icon: SparklesIcon,
     content:
@@ -32,7 +32,7 @@ export const NEWS_ITEMS: NewsItem[] = [
   },
   {
     id: '1',
-    date: 'October 20, 2023',
+    date: 'October 20, 2025',
     title: 'Initial Launch!',
     icon: RocketIcon,
     content:

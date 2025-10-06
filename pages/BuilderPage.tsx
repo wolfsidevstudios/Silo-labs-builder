@@ -155,7 +155,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             {rightPaneView === 'code' ? (
                 <CodeViewer files={files} />
             ) : (
-                <Preview htmlContent={previewHtml} hasFiles={files.length > 0} />
+                <Preview htmlContent={previewHtml} hasFiles={files.length > 0} isLoading={isLoading} />
             )}
          </div>
       </div>

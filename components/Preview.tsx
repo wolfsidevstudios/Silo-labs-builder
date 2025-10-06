@@ -4,26 +4,47 @@ import EyeIcon from './icons/EyeIcon';
 interface PreviewProps {
   htmlContent: string;
   hasFiles: boolean;
+  isLoading: boolean;
 }
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, hasFiles, isLoading }) => {
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 p-3 bg-slate-900/50 border-b border-slate-700">
             <EyeIcon className="w-5 h-5 text-slate-400" />
             <h2 className="font-semibold text-slate-300">Live Preview</h2>
         </div>
-        {hasFiles ? (
-            <iframe
-                srcDoc={htmlContent}
-                title="App Preview"
-                sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
-                className="w-full h-full flex-grow border-0 bg-white"
-            />
-        ) : (
-            <div className="flex-grow flex items-center justify-center text-slate-500">
-                Your app preview will appear here.
-            </div>
+
+        <div className={`
+            flex-grow 
+            ${isLoading ? 'p-1 bg-gradient-to-r from-pink-500 via-orange-400 to-yellow-300 animate-gradient-border' : ''}
+        `}>
+            {hasFiles ? (
+                <iframe
+                    srcDoc={htmlContent}
+                    title="App Preview"
+                    sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+                    className="w-full h-full border-0 bg-white"
+                />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-800">
+                    Your app preview will appear here.
+                </div>
+            )}
+        </div>
+        
+        {isLoading && (
+            <style>{`
+                @keyframes gradient-border-animation {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                .animate-gradient-border {
+                    background-size: 200% 200%;
+                    animation: gradient-border-animation 3s ease infinite;
+                }
+            `}</style>
         )}
     </div>
   );
