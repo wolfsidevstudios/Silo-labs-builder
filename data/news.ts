@@ -8,6 +8,14 @@ import NetlifyIcon from '../components/icons/NetlifyIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
   {
+    id: '7',
+    date: 'October 9, 2025',
+    title: 'Visual Editor & Silo AI Sneak Peek',
+    icon: SparklesIcon,
+    content:
+      "Precisely edit any element on your app with our new Visual Editor! Just click 'Edit' and select an element to make targeted changes. We're also excited to announce Silo AI is coming soon, a powerful new way to directly integrate Gemini into your generated applications.",
+  },
+  {
     id: '6',
     date: 'October 6, 2025',
     title: 'Deploy in One Click with Netlify',
