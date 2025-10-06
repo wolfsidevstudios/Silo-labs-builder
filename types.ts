@@ -1,4 +1,3 @@
-
 // FIX: Add React import for CSSProperties type.
 import React from 'react';
 
@@ -23,6 +22,14 @@ export interface SavedProject {
   githubUrl?: string;
   netlifySiteId?: string; // Add optional Netlify Site ID
   netlifyUrl?: string;
+}
+
+// New type for the image library
+export interface SavedImage {
+  id: string;
+  data: string; // base64 string
+  mimeType: string;
+  createdAt: string;
 }
 
 // New types for chat history

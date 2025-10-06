@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import PromptInput from '../components/PromptInput';
 import CodeViewer from '../components/CodeViewer';
@@ -8,11 +7,13 @@ import ViewSwitcher from '../components/ViewSwitcher';
 import GitHubSaveModal from '../components/GitHubSaveModal';
 import DeployModal from '../components/DeployModal';
 import VisualEditBar from '../components/VisualEditBar';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse } from '../types';
+import ImageLibraryModal from '../components/ImageLibraryModal';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
+import { saveImage } from '../services/imageService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -37,6 +38,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   // Image Upload State
   const [uploadedImages, setUploadedImages] = useState<UploadedImageState[]>([]);
+  const [isImageLibraryOpen, setIsImageLibraryOpen] = useState(false);
   
   // Visual Edit Mode State
   const [isVisualEditMode, setIsVisualEditMode] = useState(false);
@@ -70,14 +72,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           const dataUrl = reader.result as string;
           const [header, base64Data] = dataUrl.split(',');
           const mimeType = header.match(/:(.*?);/)?.[1] || file.type;
+          
+          // Add to local UI state for prompt
           setUploadedImages(prev => [...prev, {
               data: base64Data,
               mimeType: mimeType,
               previewUrl: dataUrl
           }]);
+          
+          // Also save to global image library for reuse
+          saveImage({ data: base64Data, mimeType });
       };
       reader.readAsDataURL(file);
     });
+  };
+  
+  const handleSelectFromLibrary = (images: SavedImage[]) => {
+    const newImages: UploadedImageState[] = images.map(img => ({
+        data: img.data,
+        mimeType: img.mimeType,
+        previewUrl: `data:${img.mimeType};base64,${img.data}`
+    }));
+    setUploadedImages(prev => [...prev, ...newImages]);
   };
 
   const handleImageRemove = (indexToRemove: number) => {
@@ -301,6 +317,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     <div className="h-screen w-screen bg-black text-white flex pl-20">
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!currentProjectRepo} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={currentNetlifyUrl} isNewDeploy={!currentNetlifySiteId} />
+      <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
@@ -317,6 +334,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 uploadedImages={uploadedImages}
                 onImagesUpload={handleImagesUpload}
                 onImageRemove={handleImageRemove}
+                onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
             />
         </div>
       </div>

@@ -1,5 +1,4 @@
-
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import ArrowUpIcon from './icons/ArrowUpIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
@@ -17,10 +16,13 @@ interface PromptInputProps {
   uploadedImages: { previewUrl: string }[];
   onImagesUpload: (files: FileList) => void;
   onImageRemove: (index: number) => void;
+  onOpenImageLibrary: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
+  const uploadMenuRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -32,19 +34,49 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (uploadMenuRef.current && !uploadMenuRef.current.contains(event.target as Node)) {
+        setIsUploadMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <form onSubmit={onSubmit} className="p-4">
       <div className="flex items-center mb-3 ml-2">
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple />
-            <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                className="flex items-center justify-center h-10 w-10 bg-white/5 border border-white/10 rounded-full text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Upload Image"
-            >
-                <PlusIcon className="w-5 h-5" />
-            </button>
+            <div className="relative" ref={uploadMenuRef}>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple />
+                <button
+                    type="button"
+                    onClick={() => setIsUploadMenuOpen(prev => !prev)}
+                    disabled={isLoading}
+                    className="flex items-center justify-center h-10 w-10 bg-white/5 border border-white/10 rounded-full text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Add Image"
+                >
+                    <PlusIcon className="w-5 h-5" />
+                </button>
+                {isUploadMenuOpen && (
+                    <div className="absolute bottom-12 -left-2 bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-48 animate-fade-in-up-sm">
+                        <button
+                            type="button"
+                            onClick={() => { fileInputRef.current?.click(); setIsUploadMenuOpen(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-t-lg"
+                        >
+                            Upload from computer
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { onOpenImageLibrary(); setIsUploadMenuOpen(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-b-lg"
+                        >
+                            Select from library
+                        </button>
+                    </div>
+                )}
+            </div>
             <button
                 type="button"
                 onClick={onBoostUi}
@@ -116,6 +148,15 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
           )}
         </button>
       </div>
+      <style>{`
+        @keyframes fade-in-up-sm {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up-sm {
+          animation: fade-in-up-sm 0.2s ease-out forwards;
+        }
+      `}</style>
     </form>
   );
 };

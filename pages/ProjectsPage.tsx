@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { SavedProject } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { SavedProject, SavedImage } from '../types';
 import { getProjects } from '../services/projectService';
+import { getImages, saveImage, removeImage } from '../services/imageService';
 import RocketIcon from '../components/icons/RocketIcon';
 import ExternalLinkIcon from '../components/icons/ExternalLinkIcon';
+import ImageIcon from '../components/icons/ImageIcon';
+import PlusIcon from '../components/icons/PlusIcon';
+import TrashIcon from '../components/icons/TrashIcon';
 
 interface ProjectsPageProps {
   onLoadProject: (project: SavedProject) => void;
@@ -10,11 +14,39 @@ interface ProjectsPageProps {
 
 const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
   const [projects, setProjects] = useState<SavedProject[]>([]);
-  const [view, setView] = useState<'projects' | 'deployments'>('projects');
+  const [images, setImages] = useState<SavedImage[]>([]);
+  const [view, setView] = useState<'projects' | 'deployments' | 'images'>('projects');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setProjects(getProjects());
+    setImages(getImages());
   }, []);
+  
+  const handleImageFilesUpload = (files: FileList) => {
+    const filesToProcess = Array.from(files);
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          const [header, base64Data] = dataUrl.split(',');
+          const mimeType = header.match(/:(.*?);/)?.[1] || file.type;
+          saveImage({ data: base64Data, mimeType });
+          // Refresh the list after saving
+          setImages(getImages());
+      };
+      reader.readAsDataURL(file);
+    });
+    // Clear the input value to allow re-uploading the same file
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+  
+  const handleImageDelete = (id: string) => {
+    removeImage(id);
+    setImages(getImages());
+  };
 
   const deployedProjects = projects.filter(p => p.netlifySiteId && p.netlifyUrl);
 
@@ -26,7 +58,7 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
             My Work
           </h1>
           <p className="text-lg text-slate-400 mt-2">
-            Browse your saved projects or view your live deployments.
+            Browse projects, manage deployments, and organize your image library.
           </p>
         </div>
 
@@ -39,7 +71,7 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
                         view === 'projects' ? 'bg-white text-black' : 'text-slate-300 hover:bg-slate-700/50'
                     }`}
                 >
-                    Recent Projects
+                    Projects
                 </button>
                 <button
                     onClick={() => setView('deployments')}
@@ -47,7 +79,15 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
                         view === 'deployments' ? 'bg-white text-black' : 'text-slate-300 hover:bg-slate-700/50'
                     }`}
                 >
-                    Recent Deployments
+                    Deployments
+                </button>
+                <button
+                    onClick={() => setView('images')}
+                    className={`px-6 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                        view === 'images' ? 'bg-white text-black' : 'text-slate-300 hover:bg-slate-700/50'
+                    }`}
+                >
+                    Images
                 </button>
             </div>
         </div>
@@ -144,6 +184,41 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
               </div>
             )}
           </>
+        )}
+
+        {view === 'images' && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                 <input type="file" ref={fileInputRef} onChange={(e) => e.target.files && handleImageFilesUpload(e.target.files)} accept="image/*" className="hidden" multiple />
+                 <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square bg-slate-900 border-2 border-dashed border-slate-700 rounded-lg flex flex-col items-center justify-center text-slate-500 hover:text-indigo-400 hover:border-indigo-500 transition-colors"
+                 >
+                    <PlusIcon className="w-10 h-10" />
+                    <span className="mt-2 text-sm font-semibold">Upload Images</span>
+                </button>
+                {images.map((image, index) => (
+                    <div
+                        key={image.id}
+                        className="relative group aspect-square bg-slate-800 rounded-lg overflow-hidden animate-fade-in-up"
+                        style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                        <img 
+                            src={`data:${image.mimeType};base64,${image.data}`} 
+                            alt={`Saved content ${new Date(image.createdAt).toLocaleString()}`} 
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <button 
+                                onClick={() => handleImageDelete(image.id)}
+                                className="p-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full"
+                                aria-label="Delete image"
+                             >
+                                <TrashIcon className="w-5 h-5" />
+                             </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         )}
 
       </main>
