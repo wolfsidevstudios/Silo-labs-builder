@@ -19,7 +19,8 @@ export interface SavedProject {
   previewHtml: string;
   summary: string[];
   createdAt: string;
-  githubUrl?: string; // Add optional GitHub URL
+  githubUrl?: string;
+  netlifySiteId?: string; // Add optional Netlify Site ID
 }
 
 // New types for chat history
@@ -71,7 +72,7 @@ export interface NewsItem {
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
 }
 
-// New types for GitHub Integration
+// GitHub Integration types
 export interface GitHubUser {
     login: string;
     avatar_url: string;
@@ -86,4 +87,27 @@ export interface GitHubRepo {
     private: boolean;
     html_url: string;
     description: string | null;
+}
+
+// Netlify Integration types
+export interface NetlifyUser {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url: string;
+}
+
+export interface NetlifySite {
+    id: string;
+    name: string;
+    url: string;
+    ssl_url: string;
+    admin_url: string;
+}
+
+export interface NetlifyDeploy {
+    id: string;
+    site_id: string;
+    ssl_url: string;
+    state: string;
 }

@@ -10,11 +10,25 @@ interface ViewSwitcherProps {
   setActiveView: (view: View) => void;
   isGitHubConnected: boolean;
   onGitHubClick: () => void;
+  isNetlifyConnected: boolean;
+  onDeployClick: () => void;
+  isDeployed: boolean;
   hasFiles: boolean;
 }
 
-const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ activeView, setActiveView, isGitHubConnected, onGitHubClick, hasFiles }) => {
+const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ 
+    activeView, setActiveView, 
+    isGitHubConnected, onGitHubClick, 
+    isNetlifyConnected, onDeployClick, isDeployed,
+    hasFiles 
+}) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
+
+  const getDeployTitle = () => {
+    if (!isNetlifyConnected) return "Connect to Netlify in Settings";
+    if (!hasFiles) return "Generate an app first";
+    return isDeployed ? "Redeploy to Netlify" : "Deploy to Netlify";
+  };
 
   return (
     <div className="flex-shrink-0 flex items-center justify-between px-4 py-2">
@@ -44,15 +58,24 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ activeView, setActiveView, 
         </button>
       </div>
 
-      <button
-        onClick={onGitHubClick}
-        disabled={!isGitHubConnected || !hasFiles}
-        className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-sm text-slate-300 hover:bg-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
-        title={!isGitHubConnected ? "Connect to GitHub in Settings" : !hasFiles ? "Generate an app first" : "Save to GitHub"}
-      >
-        <GitHubIcon className="w-4 h-4" />
-        <span>Save to GitHub</span>
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+            onClick={onGitHubClick}
+            disabled={!isGitHubConnected || !hasFiles}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-full text-sm text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!isGitHubConnected ? "Connect to GitHub in Settings" : !hasFiles ? "Generate an app first" : "Save to GitHub"}
+        >
+            <GitHubIcon className="w-5 h-5" />
+        </button>
+        <button
+            onClick={onDeployClick}
+            disabled={!isNetlifyConnected || !hasFiles}
+            className="px-5 py-2 bg-white text-black font-semibold rounded-full text-sm hover:bg-gray-200 transition-colors disabled:bg-gray-500 disabled:text-gray-800 disabled:cursor-not-allowed"
+            title={getDeployTitle()}
+        >
+          {isDeployed ? "Redeploy" : "Deploy"}
+        </button>
+      </div>
     </div>
   );
 };

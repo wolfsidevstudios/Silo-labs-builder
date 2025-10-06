@@ -5,10 +5,12 @@ import Preview from '../components/Preview';
 import ChatHistory from '../components/ChatHistory';
 import ViewSwitcher from '../components/ViewSwitcher';
 import GitHubSaveModal from '../components/GitHubSaveModal';
+import DeployModal from '../components/DeployModal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser } from '../types';
 import { generateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
-import { getPat, getUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
+import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
+import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -25,7 +27,15 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   // GitHub State
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
-  const [currentProjectRepo, setCurrentProjectRepo] = useState<string | null>(null); // e.g., "owner/repo"
+  const [currentProjectRepo, setCurrentProjectRepo] = useState<string | null>(null);
+  
+  // Netlify State
+  const [isNetlifyConnected, setIsNetlifyConnected] = useState(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
+  const [currentNetlifySiteId, setCurrentNetlifySiteId] = useState<string | null>(null);
+  const [currentNetlifyUrl, setCurrentNetlifyUrl] = useState<string | null>(null);
+
   const [lastSavedProjectId, setLastSavedProjectId] = useState<string | null>(null);
   
   const isInitialGenerationDone = useRef(false);
@@ -44,7 +54,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
     const newUserMessage: UserMessage = { role: 'user', content: userPrompt };
     setChatHistory(prev => [...prev, newUserMessage]);
-    setPrompt(''); // Clear input after sending
+    setPrompt('');
     
     setRightPaneView('preview');
 
@@ -59,9 +69,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       const projectPrompt = firstUserMessage ? firstUserMessage.content : userPrompt;
       const saved = saveProject({ prompt: projectPrompt, ...result });
       setLastSavedProjectId(saved.id);
-      if (!currentProjectRepo && saved.githubUrl) {
-        setCurrentProjectRepo(new URL(saved.githubUrl).pathname.substring(1));
-      }
+
+      // Preserve deployment info across AI updates
+      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId });
+      if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
 
     } catch (err) {
       if (err instanceof Error) {
@@ -75,14 +86,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
   
   const handleBoostUi = async () => {
-    // Can't boost if already loading or if there's no app to boost
     if (isLoading || files.length === 0) return;
-
     const boostPrompt = "Dramatically improve the UI/UX of the current application. Make it look modern, professional, and visually stunning. Focus on layout, color scheme, typography, and interactivity.";
-
     setError(null);
     setIsLoading(true);
-
     const newUserMessage: UserMessage = { role: 'user', content: "✨ Boost UI" };
     setChatHistory(prev => [...prev, newUserMessage]);
     setPrompt('');
@@ -90,101 +97,96 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
     try {
       const result = await generateOrUpdateAppCode(boostPrompt, files);
-      
       const newAssistantMessage: AssistantMessage = { role: 'assistant', content: result };
       setChatHistory(prev => [...prev, newAssistantMessage]);
-      
       const firstUserMessage = chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
       const projectPrompt = firstUserMessage ? firstUserMessage.content : "AI Generated App";
       const saved = saveProject({ prompt: projectPrompt, ...result });
       setLastSavedProjectId(saved.id);
-       if (!currentProjectRepo && saved.githubUrl) {
-        setCurrentProjectRepo(new URL(saved.githubUrl).pathname.substring(1));
-      }
-
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      
+      if (currentNetlifySiteId) updateProject(saved.id, { netlifySiteId: currentNetlifySiteId });
+      if (currentProjectRepo) updateProject(saved.id, { githubUrl: `https://github.com/${currentProjectRepo}`});
+    } catch (err) { if (err instanceof Error) setError(err.message); else setError("An unexpected error occurred."); }
+    finally { setIsLoading(false); }
   };
   
   const handleGitHubSave = async (details: { repoName?: string, description?: string, commitMessage: string }) => {
-    const token = getPat();
+    const token = getGitHubPat();
     if (!token || !githubUser || files.length === 0) {
-        setError("Cannot save to GitHub. Ensure you are connected and have generated an app.");
-        return;
+        setError("Cannot save to GitHub. Ensure you are connected and have generated an app."); return;
     }
-    
     setIsLoading(true);
     let repoFullName = currentProjectRepo;
-
     try {
-        // Step 1: Create repo if it doesn't exist
         if (!repoFullName && details.repoName) {
             const newRepo = await createRepository(token, details.repoName, details.description);
             repoFullName = newRepo.full_name;
             setCurrentProjectRepo(repoFullName);
-            // Link it to the project in our DB
             if (lastSavedProjectId) {
                 updateProject(lastSavedProjectId, { githubUrl: newRepo.html_url });
             }
         }
-        
         if (!repoFullName) throw new Error("Repository not specified.");
-
-        // Step 2: Push files
         const [owner, repo] = repoFullName.split('/');
         for (const file of files) {
             let sha: string | undefined = undefined;
             try {
                 const existingFile = await getRepoContent(token, owner, repo, file.path);
                 sha = existingFile.sha;
-            } catch (error) {
-                // File doesn't exist, which is fine for the first push.
-                console.log(`File ${file.path} not found in repo, creating it.`);
-            }
+            } catch (error) { console.log(`File ${file.path} not found in repo, creating it.`); }
             await createOrUpdateFile(token, owner, repo, file.path, file.content, details.commitMessage, sha);
         }
-    } catch (err) {
-        if (err instanceof Error) setError(err.message);
-        else setError("An unknown error occurred while saving to GitHub.");
-    } finally {
-        setIsLoading(false);
-        setIsGitHubModalOpen(false);
-    }
+    } catch (err) { if (err instanceof Error) setError(err.message); else setError("An unknown error occurred while saving to GitHub."); }
+    finally { setIsLoading(false); setIsGitHubModalOpen(false); }
+  };
+
+  const handleDeploy = async () => {
+      const token = getNetlifyPat();
+      if (!token || files.length === 0) return;
+      
+      setDeployStatus('deploying');
+      let siteId = currentNetlifySiteId;
+      
+      try {
+          if (!siteId) {
+              const newSite = await createSite(token);
+              siteId = newSite.id;
+              setCurrentNetlifySiteId(siteId);
+              setCurrentNetlifyUrl(newSite.ssl_url);
+              if(lastSavedProjectId) {
+                  updateProject(lastSavedProjectId, { netlifySiteId: siteId });
+              }
+          }
+
+          const deploy = await deployToNetlify(token, siteId, files);
+          setCurrentNetlifyUrl(deploy.ssl_url); // Update URL in case it changed (it shouldn't)
+          setDeployStatus('success');
+
+      } catch (err) {
+          if (err instanceof Error) setError(err.message);
+          else setError("An unknown deployment error occurred.");
+          setDeployStatus('error');
+      }
   };
 
   useEffect(() => {
-    const token = getPat();
-    if (token) {
-        getUserInfo(token).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
-    }
+    const ghToken = getGitHubPat();
+    if (ghToken) getGitHubUserInfo(ghToken).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
     
+    const ntToken = getNetlifyPat();
+    if (ntToken) setIsNetlifyConnected(true);
+
     if (initialProject) {
       const initialUserMessage: UserMessage = { role: 'user', content: initialProject.prompt };
-      const initialAssistantMessage: AssistantMessage = {
-        role: 'assistant',
-        content: {
-          files: initialProject.files,
-          previewHtml: initialProject.previewHtml,
-          summary: initialProject.summary,
-        }
-      };
+      const initialAssistantMessage: AssistantMessage = { role: 'assistant', content: { files: initialProject.files, previewHtml: initialProject.previewHtml, summary: initialProject.summary } };
       setChatHistory([initialUserMessage, initialAssistantMessage]);
       setLastSavedProjectId(initialProject.id);
-      if(initialProject.githubUrl) {
-          setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
-      }
+      if(initialProject.githubUrl) setCurrentProjectRepo(new URL(initialProject.githubUrl).pathname.substring(1));
+      if(initialProject.netlifySiteId) setCurrentNetlifySiteId(initialProject.netlifySiteId);
       isInitialGenerationDone.current = true;
     } else if (initialPrompt) {
       setPrompt(initialPrompt);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject, initialPrompt]);
   
   useEffect(() => {
@@ -192,17 +194,12 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         handleSendMessage();
         isInitialGenerationDone.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, chatHistory.length]);
 
   return (
     <div className="h-screen w-screen bg-black text-white flex pl-20">
-      <GitHubSaveModal
-        isOpen={isGitHubModalOpen}
-        onClose={() => setIsGitHubModalOpen(false)}
-        onSave={handleGitHubSave}
-        isNewRepo={!currentProjectRepo}
-      />
+      <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!currentProjectRepo} />
+      <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={currentNetlifyUrl} isNewDeploy={!currentNetlifySiteId} />
       <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
         <div className="flex-grow flex flex-col overflow-hidden">
             <ChatHistory messages={chatHistory} isLoading={isLoading} error={error} />
@@ -217,6 +214,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             setActiveView={setRightPaneView}
             isGitHubConnected={!!githubUser}
             onGitHubClick={() => setIsGitHubModalOpen(true)}
+            isNetlifyConnected={isNetlifyConnected}
+            onDeployClick={() => { setDeployStatus('idle'); setIsDeployModalOpen(true); }}
+            isDeployed={!!currentNetlifySiteId}
             hasFiles={files.length > 0}
          />
          <div className="flex-grow p-4 pt-0 overflow-hidden">
