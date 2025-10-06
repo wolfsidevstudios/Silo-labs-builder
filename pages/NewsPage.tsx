@@ -1,0 +1,86 @@
+import React from 'react';
+import { NEWS_ITEMS } from '../data/news';
+import KeyIcon from '../components/icons/KeyIcon';
+import SparklesIcon from '../components/icons/SparklesIcon';
+
+const NewsPage: React.FC = () => {
+  return (
+    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
+      <main className="w-full max-w-5xl px-4 py-12">
+        <div className="text-center mb-16 animate-fade-in-down">
+          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-4">
+            News & Updates
+          </h1>
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            Stay up-to-date with the latest features, improvements, and announcements.
+          </p>
+        </div>
+
+        {/* What's New Section */}
+        <div className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <h2 className="text-3xl font-bold text-slate-100 mb-6 text-center">What's New</h2>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-indigo-500/30 rounded-2xl p-8 shadow-2xl shadow-indigo-500/10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                 <div className="flex items-center gap-3 mb-3">
+                    <SparklesIcon className="w-7 h-7 text-indigo-400" />
+                    <h3 className="text-2xl font-bold text-white">UI Theme Templates</h3>
+                </div>
+                <p className="text-slate-400">
+                    Guide the AI with pre-defined design systems. Choose from a variety of themes in the Settings page to ensure your apps have a consistent, professional look and feel.
+                </p>
+              </div>
+              <div>
+                 <div className="flex items-center gap-3 mb-3">
+                    <KeyIcon className="w-7 h-7 text-indigo-400" />
+                    <h3 className="text-2xl font-bold text-white">Custom Secrets</h3>
+                </div>
+                <p className="text-slate-400">
+                    Securely use API keys and other secrets in your apps. Add them in Settings, and the AI will use them as environment variables, keeping your sensitive data safe.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div className="relative animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <div className="absolute left-1/2 -translate-x-1/2 h-full w-0.5 bg-slate-800" aria-hidden="true"></div>
+          
+          {NEWS_ITEMS.map((item, index) => {
+            const Icon = item.icon;
+            const isLeft = index % 2 === 0;
+            return (
+              <div key={item.id} className={`relative flex items-center mb-12 ${isLeft ? 'justify-start' : 'justify-end'}`}>
+                <div className={`w-1/2 ${isLeft ? 'pr-8' : 'pl-8'}`}>
+                  <div className={`bg-slate-800/50 border border-slate-700 p-6 rounded-lg shadow-lg text-left`}>
+                    <p className="text-sm text-slate-500 mb-2">{item.date}</p>
+                    <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                    <p className="text-slate-400">{item.content}</p>
+                  </div>
+                </div>
+                <div className="absolute left-1/2 -translate-x-1/2 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center ring-8 ring-black">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+      <style>{`
+        @keyframes fade-in-down {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-down { animation: fade-in-down 0.6s ease-out forwards; }
+        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+      `}</style>
+    </div>
+  );
+};
+
+export default NewsPage;

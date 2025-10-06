@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Theme } from '../types';
 import LockIcon from './icons/LockIcon';
@@ -14,7 +15,7 @@ const ThemeTemplateCard: React.FC<ThemeTemplateCardProps> = ({ theme, isSelected
 
   return (
     <div
-      onClick={() => onSelect(theme.id)}
+      onClick={() => !isLocked && onSelect(theme.id)}
       className={`relative bg-slate-800/50 border rounded-lg p-4 flex flex-col gap-4 transition-all duration-200 ${
         isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/50' : 'border-slate-700'
       } ${

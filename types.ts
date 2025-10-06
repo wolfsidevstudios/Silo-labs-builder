@@ -56,3 +56,16 @@ export interface Theme {
     style: React.CSSProperties;
   };
 }
+
+export interface Secret {
+  name: string;
+  value: string;
+}
+
+export interface NewsItem {
+  id: string;
+  date: string;
+  title: string;
+  content: string;
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+}

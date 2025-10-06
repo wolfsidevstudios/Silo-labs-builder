@@ -1,8 +1,8 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
+import { getSecrets } from './secretsService';
 
 function getApiKey(): string {
   const storedKey = localStorage.getItem('gemini_api_key');
@@ -43,7 +43,12 @@ const schema = {
 };
 
 function getThemeInstruction(): string {
-  const themeId = localStorage.getItem('ui_theme_template') || THEMES[0].id; // Default to first theme
+  const themeId = localStorage.getItem('ui_theme_template');
+  
+  if (!themeId || themeId === 'none') {
+    return '';
+  }
+
   const theme = THEMES.find(t => t.id === themeId);
   if (!theme) return '';
 
@@ -66,6 +71,20 @@ Strictly use these theme properties in the generated code, primarily using Tailw
 `;
 }
 
+function getSecretsInstruction(): string {
+  const secrets = getSecrets();
+  if (secrets.length === 0) {
+    return '';
+  }
+  const secretNames = secrets.map(s => `- ${s.name}`).join('\n');
+  return `
+---
+**CUSTOM SECRETS (MUST USE process.env):**
+You have access to the following secrets. Use them in your code with \`process.env.SECRET_NAME\`.
+${secretNames}
+---
+`;
+}
 
 export async function generateOrUpdateAppCode(prompt: string, existingFiles: AppFile[] | null): Promise<GeminiResponse> {
   try {
@@ -75,6 +94,7 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
     }
     const ai = new GoogleGenAI({ apiKey });
     const themeInstruction = getThemeInstruction();
+    const secretsInstruction = getSecretsInstruction();
 
     let fullPrompt = '';
     if (existingFiles && existingFiles.length > 0) {
@@ -82,9 +102,9 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
         .map(f => `// File: ${f.path}\n\n${f.content}`)
         .join('\n\n---\n\n');
       
-      fullPrompt = `${themeInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
+      fullPrompt = `${themeInstruction}${secretsInstruction}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`;
     } else {
-        fullPrompt = `${themeInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
+        fullPrompt = `${themeInstruction}${secretsInstruction}\n\nPlease generate an application based on the following request: ${prompt}`;
     }
 
     const response = await ai.models.generateContent({
@@ -98,9 +118,8 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
     });
 
     const jsonString = response.text;
-    const generatedApp = JSON.parse(jsonString);
+    const generatedApp = JSON.parse(jsonString) as GeminiResponse;
 
-    // Basic validation
     if (
       !generatedApp ||
       typeof generatedApp.previewHtml !== 'string' ||
@@ -111,7 +130,19 @@ export async function generateOrUpdateAppCode(prompt: string, existingFiles: App
       throw new Error("AI response is not in the expected format or is empty.");
     }
 
-    return generatedApp as GeminiResponse;
+    // Inject secrets into the preview HTML
+    const secrets = getSecrets();
+    if (secrets.length > 0) {
+        const secretsObject = secrets.reduce((obj, secret) => {
+            obj[secret.name] = secret.value;
+            return obj;
+        }, {} as Record<string, string>);
+
+        const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`;
+        generatedApp.previewHtml = generatedApp.previewHtml.replace('</head>', `${secretScript}</head>`);
+    }
+
+    return generatedApp;
 
   } catch (error) {
     console.error("Error generating app code:", error);

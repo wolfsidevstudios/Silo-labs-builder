@@ -39,5 +39,10 @@ You MUST return a single JSON object with three properties: \`summary\`, \`files
 - All Tailwind CSS classes and inline styles should reflect the provided theme. For example, if the primary color is '#6366F1', use classes like \`bg-indigo-500\` or inline styles with that hex code, not a generic color like 'purple'.
 - The specified font family MUST be imported in the HTML head from a service like Google Fonts and applied to the body.
 
+**Custom Secrets (VERY IMPORTANT):**
+- If custom secrets are provided in a "CUSTOM SECRETS" block, you MUST use them in the code via \`process.env.SECRET_NAME\`.
+- **DO NOT** hardcode the secret values directly in the code files.
+- The \`previewHtml\` will have these secrets injected into a \`process.env\` object, so your code will work correctly in the preview.
+
 Now, fulfill the user's request.
 `;
