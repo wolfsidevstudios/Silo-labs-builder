@@ -9,7 +9,7 @@ import NetlifyIcon from '../components/icons/NetlifyIcon';
 export const NEWS_ITEMS: NewsItem[] = [
   {
     id: '7',
-    date: 'October 9, 2025',
+    date: 'October 6, 2025',
     title: 'Visual Editor & Silo AI Sneak Peek',
     icon: SparklesIcon,
     content:
@@ -17,7 +17,7 @@ export const NEWS_ITEMS: NewsItem[] = [
   },
   {
     id: '6',
-    date: 'October 6, 2025',
+    date: 'October 5, 2025',
     title: 'Deploy in One Click with Netlify',
     icon: NetlifyIcon,
     content:
