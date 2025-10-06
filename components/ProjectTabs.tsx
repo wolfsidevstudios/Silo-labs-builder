@@ -17,7 +17,7 @@ interface ProjectTabsProps {
 
 const ProjectTabs: React.FC<ProjectTabsProps> = ({ tabs, activeTabId, onSelectTab, onAddTab, onCloseTab }) => {
   return (
-    <div className="flex items-center p-2 bg-slate-900">
+    <div className="flex items-center p-2 bg-black">
       <nav className="flex-grow flex items-center gap-2" aria-label="Tabs">
         {tabs.map(tab => (
           <div

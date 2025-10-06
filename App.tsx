@@ -145,7 +145,7 @@ const App: React.FC = () => {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isTrialActive={isPro} trialEndTime={proTrialEndTime} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} />;
       case 'plans':
@@ -170,9 +170,12 @@ const App: React.FC = () => {
 
   return (
     <>
+      <header className="fixed top-6 left-20 z-30 flex items-center gap-4">
+          <h1 className="text-xl font-bold text-white tracking-wider">Silo Build</h1>
+          {currentPage === 'home' && <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />}
+      </header>
       <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} />
       {userName && currentPage === 'home' && <UserGreeting name={userName} />}
-      <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />
        <ReferralModal
         isOpen={isReferralModalOpen}
         onClose={() => setIsReferralModalOpen(false)}
