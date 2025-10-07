@@ -16,6 +16,7 @@ import GiphyIcon from './icons/GiphyIcon';
 import ZapIcon from './icons/ZapIcon';
 import GiftIcon from './icons/GiftIcon';
 import GoogleIcon from './icons/GoogleIcon';
+import BeakerIcon from './icons/BeakerIcon';
 
 
 interface FeatureDropModalProps {
@@ -87,9 +88,19 @@ const Part2Content = () => (
     </div>
 );
 
+const Part3Content = () => (
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-slate-700 animate-fade-in flex flex-col items-center justify-center text-center py-16">
+       <BeakerIcon className="w-12 h-12 text-indigo-400 mb-4" />
+       <h3 className="font-bold text-white text-xl">The AI Revolution is Coming</h3>
+       <p className="text-slate-400 mt-2 max-w-sm">
+           Directly integrate Gemini into your apps, create agents, and unlock powerful new AI capabilities. Stay tuned.
+       </p>
+   </div>
+);
+
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2'>('part2');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3'>('part3');
 
   if (!isOpen) return null;
 
@@ -120,14 +131,15 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             </h2>
         </div>
         <p className="font-semibold text-slate-300 mb-8">
-            {activePart === 'part1' ? 'Part I: The Foundation' : 'Part II: The API Update'}
+            {activePart === 'part1' ? 'Part I: The Foundation' : activePart === 'part2' ? 'Part II: The API Update' : 'Part III: The AI Revolution'}
         </p>
 
-        {activePart === 'part1' ? <Part1Content /> : <Part2Content />}
+        {activePart === 'part1' ? <Part1Content /> : activePart === 'part2' ? <Part2Content /> : <Part3Content />}
         
         <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50">
             <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
             <button onClick={() => setActivePart('part2')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part2' ? 'bg-white text-black' : 'text-slate-300'}`}>Part II</button>
+            <button onClick={() => setActivePart('part3')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part3' ? 'bg-white text-black' : 'text-slate-300'}`}>Part III</button>
         </div>
       </div>
       <style>{`

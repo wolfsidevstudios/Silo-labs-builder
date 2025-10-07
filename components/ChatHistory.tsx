@@ -27,9 +27,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error }) => {
       {messages.map((message) => (
         <div key={message.id}>
           {message.role === 'user' ? (
-            <div className="flex flex-col items-start">
-                <div className="bg-slate-700 text-white p-3 rounded-lg max-w-xl">
-                    <p className="font-semibold text-sm mb-1 text-indigo-300">You</p>
+            <div className="flex flex-col items-end">
+                <div className="bg-white text-slate-900 p-3 rounded-xl max-w-xl shadow-md">
+                    <p className="font-semibold text-sm mb-1 text-indigo-600">You</p>
                     {message.imagePreviewUrls && message.imagePreviewUrls.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
                             {message.imagePreviewUrls.map((url, i) => (
@@ -42,7 +42,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error }) => {
             </div>
           ) : (
             <div className="flex flex-col items-start w-full">
-              <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg w-full max-w-xl animate-fade-in-up">
+              <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl w-full max-w-xl animate-fade-in-up shadow-2xl shadow-black/20">
                 <p className="font-semibold text-sm mb-2 text-indigo-300">AI Plan</p>
                 {message.content.summary && (
                   <ul className="list-disc list-inside space-y-1 text-slate-300 mb-4 pl-2">
@@ -52,7 +52,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error }) => {
                   </ul>
                 )}
                 {message.content.files && message.content.files.length > 0 && (
-                  <div className="bg-slate-900/50 border border-slate-600 rounded-md p-3">
+                  <div className="bg-black/20 border border-white/10 rounded-md p-3">
                     <p className="font-semibold text-sm mb-3 text-slate-400">Files to be updated</p>
                     <div className="space-y-2">
                       {message.content.files.map((file) => (
