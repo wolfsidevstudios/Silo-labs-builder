@@ -10,6 +10,7 @@ import VisualEditBar from '../components/VisualEditBar';
 import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
 import UnsplashSearchModal from '../components/UnsplashSearchModal';
+import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
@@ -19,6 +20,7 @@ import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createReposit
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
 import { getApiKey as getGiphyKey } from '../services/giphyService';
 import { getAccessKey as getUnsplashKey } from '../services/unsplashService';
+import { getApiKey as getYouTubeKey } from '../services/youtubeService';
 import { getApiKey as getPexelsKey } from '../services/pexelsService';
 import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
@@ -92,12 +94,14 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
+  const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false);
 
   // Connections can be global
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [isNetlifyConnected, setIsNetlifyConnected] = useState(false);
   const [isGiphyConnected, setIsGiphyConnected] = useState(false);
   const [isUnsplashConnected, setIsUnsplashConnected] = useState(false);
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
   const [isPexelsConnected, setIsPexelsConnected] = useState(false);
   const [isFreeSoundConnected, setIsFreeSoundConnected] = useState(false);
 
@@ -202,6 +206,14 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handleSelectGif = (gif: GiphyGif) => { setIsGiphyModalOpen(false); addMediaAsUploadedImage(gif.images.original.url, 'image/gif'); };
   const handleSelectUnsplashPhoto = (photo: UnsplashPhoto) => { setIsUnsplashModalOpen(false); addMediaAsUploadedImage(photo.urls.regular, 'image/jpeg'); };
+  const handleSelectYouTubeVideo = (videoId: string) => {
+    if (!activeTab) return;
+    const currentPrompt = activeTab.prompt;
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const newPrompt = currentPrompt ? `${currentPrompt}\nIncorporate this YouTube video: ${videoUrl}` : `Incorporate this YouTube video: ${videoUrl}`;
+    updateActiveTab({ prompt: newPrompt });
+    setIsYouTubeModalOpen(false);
+  };
 
 
   const handleSubmit = async (promptToSubmit: string, options: { isBoost?: boolean; visualEditTarget?: { selector: string } } = {}) => {
@@ -393,6 +405,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     setDeployStatus('idle'); setIsDeployModalOpen(true);
     if (!activeTab?.currentNetlifySiteId) handleDeploy();
   };
+  
+  const handleDownloadClick = () => {
+    if (!isTrialActive || !activeTab || files.length === 0) return;
+    
+    // For this app, we only generate a single index.html
+    const fileToDownload = files[0];
+    if (!fileToDownload) {
+      updateActiveTab({ error: "Could not find a file to download." });
+      return;
+    }
+    
+    const blob = new Blob([fileToDownload.content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileToDownload.path;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
 
   const toggleVisualEditMode = () => {
     const nextState = !activeTab?.isVisualEditMode;
@@ -428,6 +462,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const ntToken = getNetlifyPat(); if (ntToken) setIsNetlifyConnected(true);
     const gphKey = getGiphyKey(); if (gphKey) setIsGiphyConnected(true);
     const uspKey = getUnsplashKey(); if (uspKey) setIsUnsplashConnected(true);
+    const ytKey = getYouTubeKey(); if (ytKey) setIsYouTubeConnected(true);
     const pexKey = getPexelsKey(); if (pexKey) setIsPexelsConnected(true);
     const fsKey = getFreeSoundKey(); if (fsKey) setIsFreeSoundConnected(true);
 
@@ -447,6 +482,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
+      <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
       
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
@@ -478,6 +514,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
                         isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
                         isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
+                        isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
                     />
                 )}
             </div>
@@ -492,6 +529,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 onDeployClick={handleDeployClick}
                 isDeployed={!!activeTab?.currentNetlifySiteId}
                 hasFiles={files.length > 0}
+                isPro={isTrialActive}
+                onDownloadClick={handleDownloadClick}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (

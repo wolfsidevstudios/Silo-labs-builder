@@ -2,6 +2,8 @@ import React from 'react';
 import EyeIcon from './icons/EyeIcon';
 import CodeIcon from './icons/CodeIcon';
 import GitHubIcon from './icons/GitHubIcon';
+import DownloadIcon from './icons/DownloadIcon';
+import LockIcon from './icons/LockIcon';
 
 type View = 'preview' | 'code';
 
@@ -14,13 +16,15 @@ interface ViewSwitcherProps {
   onDeployClick: () => void;
   isDeployed: boolean;
   hasFiles: boolean;
+  isPro: boolean;
+  onDownloadClick: () => void;
 }
 
 const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ 
     activeView, setActiveView, 
     isGitHubConnected, onGitHubClick, 
     isNetlifyConnected, onDeployClick, isDeployed,
-    hasFiles 
+    hasFiles, isPro, onDownloadClick
 }) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
 
@@ -28,6 +32,12 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     if (!isNetlifyConnected) return "Connect to Netlify in Settings";
     if (!hasFiles) return "Generate an app first";
     return isDeployed ? "Redeploy to Netlify" : "Deploy to Netlify";
+  };
+  
+  const getDownloadTitle = () => {
+    if (!isPro) return "Upgrade to Pro to download code";
+    if (!hasFiles) return "Generate an app first";
+    return "Download code (.html)";
   };
 
   return (
@@ -59,6 +69,19 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
+         <button
+            onClick={onDownloadClick}
+            disabled={!hasFiles || !isPro}
+            className="relative flex items-center justify-center h-9 w-9 bg-slate-800 border border-slate-700 rounded-full text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={getDownloadTitle()}
+        >
+            <DownloadIcon className="w-5 h-5" />
+            {!isPro && (
+                <div className="absolute bottom-0 right-0 p-0.5 bg-slate-800 rounded-full">
+                    <LockIcon className="w-2.5 h-2.5 text-yellow-400" />
+                </div>
+            )}
+        </button>
         <button
             onClick={onGitHubClick}
             disabled={!isGitHubConnected || !hasFiles}

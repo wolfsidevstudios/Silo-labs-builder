@@ -13,6 +13,16 @@ import { getApiKey as getFreeSoundApiKey } from './freesoundService';
 import { getClientCredentials as getSpotifyCredentials } from './spotifyService';
 import { getApiKey as getStabilityApiKey } from './stabilityService';
 import { getApiKey as getStreamlineApiKey } from './streamlineService';
+import { getApiKey as getWeatherApiKey } from './weatherApiService';
+import { getApiKey as getOpenWeatherMapApiKey } from './openWeatherMapService';
+import { getApiKey as getTmdbApiKey } from './tmdbService';
+import { getApiKey as getYouTubeApiKey } from './youtubeService';
+import { getApiKey as getMapboxApiKey } from './mapboxService';
+import { getApiKey as getExchangeRateApiKey } from './exchangeRateApiService';
+import { getApiKey as getFmpApiKey } from './financialModelingPrepService';
+import { getApiKey as getNewsApiKey } from './newsApiService';
+import { getApiKey as getRawgApiKey } from './rawgService';
+import { getApiKey as getWordsApiKey } from './wordsApiService';
 
 
 interface UploadedImage {
@@ -229,6 +239,108 @@ An OpenAI API Key is available. If the user asks for an AI image generation appl
 `;
 }
 
+// --- NEW API INSTRUCTIONS ---
+
+function getWeatherApiInstruction(): string {
+  if (!getWeatherApiKey()) return '';
+  return `
+---
+**WEATHERAPI.COM API AVAILABLE:**
+A WeatherAPI.com API key is available. If the user asks for a weather application, follow the WeatherAPI.com integration rules in the system prompt.
+---
+`;
+}
+
+function getOpenWeatherMapInstruction(): string {
+    if (!getOpenWeatherMapApiKey()) return '';
+    return `
+---
+**OPENWEATHERMAP API AVAILABLE:**
+An OpenWeatherMap API key is available. If the user asks for a weather application, this is an alternative to WeatherAPI.com. Follow the OpenWeatherMap integration rules in the system prompt.
+---
+`;
+}
+
+function getTmdbInstruction(): string {
+    if (!getTmdbApiKey()) return '';
+    return `
+---
+**THE MOVIE DATABASE (TMDB) API AVAILABLE:**
+A TMDB API key is available. If the user asks for a movie or TV show database app, follow the TMDB integration rules in the system prompt.
+---
+`;
+}
+
+function getYouTubeInstruction(): string {
+    if (!getYouTubeApiKey()) return '';
+    return `
+---
+**YOUTUBE DATA API AVAILABLE:**
+A YouTube Data API key is available. If the user asks to build an app involving YouTube videos, follow the YouTube integration rules in the system prompt.
+---
+`;
+}
+
+function getMapboxInstruction(): string {
+    if (!getMapboxApiKey()) return '';
+    return `
+---
+**MAPBOX API AVAILABLE:**
+A Mapbox API key is available. If the user asks to build a map-based application, follow the Mapbox integration rules in the system prompt.
+---
+`;
+}
+
+function getExchangeRateApiInstruction(): string {
+    if (!getExchangeRateApiKey()) return '';
+    return `
+---
+**EXCHANGERATE-API AVAILABLE:**
+An ExchangeRate-API key is available. For any app involving currency conversion, follow the ExchangeRate-API integration rules in the system prompt.
+---
+`;
+}
+
+function getFmpInstruction(): string {
+    if (!getFmpApiKey()) return '';
+    return `
+---
+**FINANCIAL MODELING PREP (FMP) API AVAILABLE:**
+An FMP API key is available. For any app involving stock market data, follow the FMP integration rules in the system prompt.
+---
+`;
+}
+
+function getNewsApiInstruction(): string {
+    if (!getNewsApiKey()) return '';
+    return `
+---
+**NEWSAPI AVAILABLE:**
+A NewsAPI key is available. For any app that needs to display news articles, follow the NewsAPI integration rules in the system prompt.
+---
+`;
+}
+
+function getRawgInstruction(): string {
+    if (!getRawgApiKey()) return '';
+    return `
+---
+**RAWG VIDEO GAMES API AVAILABLE:**
+A RAWG API key is available. For any app related to video games, follow the RAWG integration rules in the system prompt.
+---
+`;
+}
+
+function getWordsApiInstruction(): string {
+    if (!getWordsApiKey()) return '';
+    return `
+---
+**WORDSAPI AVAILABLE:**
+A WordsAPI key is available. For dictionary or thesaurus apps, follow the WordsAPI integration rules in the system prompt.
+---
+`;
+}
+
 
 function constructFullPrompt(
     prompt: string,
@@ -238,6 +350,7 @@ function constructFullPrompt(
     const instructions = [
         getThemeInstruction(),
         getSecretsInstruction(),
+        // Existing APIs
         getLogoDevInstruction(),
         getGiphyInstruction(),
         getGeminiInstruction(),
@@ -246,8 +359,19 @@ function constructFullPrompt(
         getFreeSoundInstruction(),
         getSpotifyInstruction(),
         getStreamlineInstruction(),
-        getStabilityInstruction(), // Placed before OpenAI to encourage preference
+        getStabilityInstruction(),
         getOpenAiInstruction(),
+        // New APIs
+        getWeatherApiInstruction(),
+        getOpenWeatherMapInstruction(),
+        getTmdbInstruction(),
+        getYouTubeInstruction(),
+        getMapboxInstruction(),
+        getExchangeRateApiInstruction(),
+        getFmpInstruction(),
+        getNewsApiInstruction(),
+        getRawgInstruction(),
+        getWordsApiInstruction(),
     ].filter(Boolean).join('\n');
 
     const filesString = existingFiles
@@ -322,6 +446,37 @@ function injectApiKeys(code: string): string {
     // StreamlineHQ
     const streamlineKey = getStreamlineApiKey();
     if (streamlineKey) injectedCode = injectedCode.replace(/'YOUR_STREAMLINE_API_KEY'/g, `'${streamlineKey}'`);
+    
+    // --- NEW APIs ---
+    const weatherApiKey = getWeatherApiKey();
+    if (weatherApiKey) injectedCode = injectedCode.replace(/'YOUR_WEATHERAPI_KEY'/g, `'${weatherApiKey}'`);
+    
+    const openWeatherMapKey = getOpenWeatherMapApiKey();
+    if (openWeatherMapKey) injectedCode = injectedCode.replace(/'YOUR_OPENWEATHERMAP_KEY'/g, `'${openWeatherMapKey}'`);
+
+    const tmdbKey = getTmdbApiKey();
+    if (tmdbKey) injectedCode = injectedCode.replace(/'YOUR_TMDB_KEY'/g, `'${tmdbKey}'`);
+
+    const youtubeKey = getYouTubeApiKey();
+    if (youtubeKey) injectedCode = injectedCode.replace(/'YOUR_YOUTUBE_KEY'/g, `'${youtubeKey}'`);
+
+    const mapboxKey = getMapboxApiKey();
+    if (mapboxKey) injectedCode = injectedCode.replace(/'YOUR_MAPBOX_KEY'/g, `'${mapboxKey}'`);
+    
+    const exchangeRateKey = getExchangeRateApiKey();
+    if (exchangeRateKey) injectedCode = injectedCode.replace(/'YOUR_EXCHANGERATE_KEY'/g, `'${exchangeRateKey}'`);
+
+    const fmpKey = getFmpApiKey();
+    if (fmpKey) injectedCode = injectedCode.replace(/'YOUR_FMP_KEY'/g, `'${fmpKey}'`);
+
+    const newsApiKey = getNewsApiKey();
+    if (newsApiKey) injectedCode = injectedCode.replace(/'YOUR_NEWSAPI_KEY'/g, `'${newsApiKey}'`);
+
+    const rawgKey = getRawgApiKey();
+    if (rawgKey) injectedCode = injectedCode.replace(/'YOUR_RAWG_KEY'/g, `'${rawgKey}'`);
+
+    const wordsApiKey = getWordsApiKey();
+    if (wordsApiKey) injectedCode = injectedCode.replace(/'YOUR_WORDSAPI_KEY'/g, `'${wordsApiKey}'`);
 
     return injectedCode;
 }

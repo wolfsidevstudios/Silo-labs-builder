@@ -65,7 +65,7 @@ export type StudioChatMessage = StudioUserMessage | StudioAssistantMessage;
 
 
 export interface Theme {
-  id: string;
+  id:string;
   name: string;
   fontFamily: string;
   isPro?: boolean;
@@ -231,4 +231,21 @@ export interface StreamlineIcon {
   family_slug: string;
   image: string; // URL to PNG
   svg: string; // Full SVG content
+}
+
+// YouTube Integration types
+export interface YouTubeVideo {
+  id: {
+    videoId: string;
+  };
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      default: { url: string };
+      medium: { url: string };
+      high: { url: string };
+    };
+    channelTitle: string;
+  };
 }

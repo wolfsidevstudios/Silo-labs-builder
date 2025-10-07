@@ -7,6 +7,7 @@ import XIcon from './icons/XIcon';
 import FilmIcon from './icons/FilmIcon'; // A more generic icon for media
 import GiphyIcon from './icons/GiphyIcon';
 import UnsplashIcon from './icons/UnsplashIcon';
+import YouTubeIcon from './icons/YouTubeIcon';
 
 
 interface PromptInputProps {
@@ -25,9 +26,11 @@ interface PromptInputProps {
   onAddGifClick: () => void;
   isUnsplashConnected: boolean;
   onAddStockPhotoClick: () => void;
+  isYouTubeConnected: boolean;
+  onAddYouTubeVideoClick: () => void;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick, isYouTubeConnected, onAddYouTubeVideoClick }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
@@ -57,7 +60,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   
-  const anyMediaConnected = isGiphyConnected || isUnsplashConnected;
+  const anyMediaConnected = isGiphyConnected || isUnsplashConnected || isYouTubeConnected;
 
   return (
     <form onSubmit={onSubmit} className="p-4">
@@ -106,7 +109,8 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                     <div className="absolute bottom-12 -left-2 bg-slate-800 border border-slate-700 rounded-lg shadow-lg w-56 animate-fade-in-up-sm">
                         {isGiphyConnected && <button type="button" onClick={() => { onAddGifClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-t-lg"><GiphyIcon className="w-4 h-4" /> Add GIF from Giphy</button>}
                         {isUnsplashConnected && <button type="button" onClick={() => { onAddStockPhotoClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50"><UnsplashIcon className="w-4 h-4" /> Add Photo from Unsplash</button>}
-                        {!anyMediaConnected && <p className="px-4 py-3 text-sm text-slate-500 text-center">Connect media apps in Settings to add stock photos, GIFs, and sounds.</p>}
+                        {isYouTubeConnected && <button type="button" onClick={() => { onAddYouTubeVideoClick(); setIsMediaMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50"><YouTubeIcon className="w-4 h-4" /> Add Video from YouTube</button>}
+                        {!anyMediaConnected && <p className="px-4 py-3 text-sm text-slate-500 text-center">Connect media apps in Settings to add stock photos, GIFs, and more.</p>}
                     </div>
                 )}
             </div>
