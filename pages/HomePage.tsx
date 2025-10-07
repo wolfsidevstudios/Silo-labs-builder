@@ -28,7 +28,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, isTrialActive, trialEnd
   };
 
   return (
-    <div className="h-screen w-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+    <div className="h-screen w-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
       <main className="flex flex-col items-center justify-center w-full flex-grow text-center">
         {isTrialActive && trialEndTime && <TrialCountdownBar endTime={trialEndTime} />}
         <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12 animate-fade-in-down">

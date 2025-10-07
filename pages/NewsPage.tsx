@@ -8,7 +8,7 @@ const NewsPage: React.FC = () => {
   const [view, setView] = useState<'timeline' | 'announcements'>('announcements');
 
   return (
-    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
+    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white overflow-y-auto">
       <main className="w-full max-w-5xl px-4 py-12">
         <div className="text-center mb-12 animate-fade-in-down">
           <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-4">

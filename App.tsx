@@ -14,6 +14,7 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { SavedProject } from './types';
+import FeatureDropModal from './components/FeatureDropModal';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
 
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
 
   // State for new onboarding flow
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -41,6 +43,12 @@ const App: React.FC = () => {
       if (storedName) {
         setUserName(storedName);
       }
+    }
+
+    // Feature Drop Modal check
+    const featureDropSeen = localStorage.getItem('featureDrop_oct2025_seen') === 'true';
+    if (!featureDropSeen) {
+        setIsFeatureDropModalOpen(true);
     }
 
     // Check for permanent Pro status first. This is the highest priority.
@@ -145,6 +153,11 @@ const App: React.FC = () => {
     setCurrentPage('home');
   };
 
+  const handleCloseFeatureDropModal = () => {
+    setIsFeatureDropModalOpen(false);
+    localStorage.setItem('featureDrop_oct2025_seen', 'true');
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -175,7 +188,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      <header className="fixed top-6 left-20 z-30 flex items-center gap-4">
+      <header className="fixed top-6 left-[4.5rem] z-30 flex items-center gap-4">
           <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
             <Logo type={currentPage === 'home' ? 'full' : 'icon'} />
           </button>
@@ -192,6 +205,10 @@ const App: React.FC = () => {
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
+      />
+      <FeatureDropModal
+        isOpen={isFeatureDropModalOpen}
+        onClose={handleCloseFeatureDropModal}
       />
       <Sidebar
         activePage={getActivePageForSidebar()}

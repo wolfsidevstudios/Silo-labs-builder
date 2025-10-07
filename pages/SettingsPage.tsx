@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import EyeIcon from '../components/icons/EyeIcon';
 import EyeOffIcon from '../components/icons/EyeOffIcon';
@@ -199,7 +197,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const handleDisconnectStreamline = () => { removeStreamlineKey(); setIsStreamlineConnected(false); setStreamlineError(null); };
 
   return (
-    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-20 selection:bg-indigo-500 selection:text-white overflow-y-auto">
+    <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white overflow-y-auto">
       <main className="w-full max-w-5xl px-4 py-12">
         <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12 text-center animate-fade-in-down">
           Settings
