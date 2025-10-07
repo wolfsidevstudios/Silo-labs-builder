@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import XIcon from './icons/XIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import WeatherApiIcon from './icons/WeatherApiIcon';
@@ -11,6 +11,11 @@ import FinancialModelingPrepIcon from './icons/FinancialModelingPrepIcon';
 import NewsApiIcon from './icons/NewsApiIcon';
 import RawgIcon from './icons/RawgIcon';
 import WordsApiIcon from './icons/WordsApiIcon';
+import SpotifyIcon from './icons/SpotifyIcon';
+import GiphyIcon from './icons/GiphyIcon';
+import ZapIcon from './icons/ZapIcon';
+import GiftIcon from './icons/GiftIcon';
+import GoogleIcon from './icons/GoogleIcon';
 
 
 interface FeatureDropModalProps {
@@ -31,7 +36,61 @@ const apiIntegrations = [
   { name: 'WordsAPI', icon: WordsApiIcon },
 ];
 
+const Part1Content = () => (
+    <div className="w-full space-y-3 animate-fade-in">
+        <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 p-4 bg-black/30 rounded-xl flex flex-col justify-center">
+                <h3 className="font-bold text-white text-lg">From Prompt to App</h3>
+                <div className="mt-2 text-left bg-black/50 p-3 rounded-lg border border-white/10 text-xs text-slate-400">e.g., a photo gallery with a masonry layout...</div>
+            </div>
+             <div className="p-4 bg-black/30 rounded-xl flex flex-col items-center justify-center text-center">
+                <h3 className="font-bold text-white text-sm">Create API apps</h3>
+                <div className="flex items-center gap-3 mt-2">
+                    <SpotifyIcon className="w-6 h-6 text-green-500" />
+                    <GoogleIcon className="w-5 h-5 text-white" />
+                    <GiphyIcon className="w-6 h-6 text-white" />
+                </div>
+            </div>
+        </div>
+         <div className="grid grid-cols-3 gap-3">
+             <div className="p-4 bg-black/30 rounded-xl flex flex-col items-center justify-center">
+                <h3 className="font-bold text-lg bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">Gemini 2.5 Pro</h3>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
+                <h3 className="font-bold text-white text-xl">October drop.</h3>
+            </div>
+             <div className="p-4 bg-black/30 rounded-xl flex flex-col items-center justify-center text-center">
+                <ZapIcon className="w-7 h-7 text-yellow-300" />
+                <h3 className="font-semibold text-white text-xs mt-1">faster and better apps</h3>
+            </div>
+        </div>
+        <div className="p-4 bg-black/30 rounded-xl flex items-center gap-4">
+            <GiftIcon className="w-10 h-10 text-indigo-400 flex-shrink-0" />
+            <div>
+                <h3 className="font-bold text-white">Affiliate Program</h3>
+                <p className="text-xs text-slate-400">Share your tracking URL to get 1 free generation per sign-up and earn cash back.</p>
+            </div>
+        </div>
+    </div>
+);
+
+const Part2Content = () => (
+     <div className="w-full p-4 bg-black/30 rounded-2xl border border-white/5 animate-fade-in">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+            {apiIntegrations.map((api, index) => (
+                <div key={api.name} className="flex flex-col items-center justify-center gap-2 p-2 bg-slate-800/50 rounded-lg">
+                    <api.icon className="w-8 h-8 text-white" />
+                    <span className="text-xs text-slate-300 text-center">{api.name}</span>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
+  const [activePart, setActivePart] = useState<'part1' | 'part2'>('part2');
+
   if (!isOpen) return null;
 
   return (
@@ -60,21 +119,16 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
                 October Drop.
             </h2>
         </div>
-        <p className="font-semibold text-slate-300 mb-8">Part II: The API Update</p>
-        
-        <p className="text-slate-400 mb-6">Build even more powerful apps with 10 new API integrations!</p>
+        <p className="font-semibold text-slate-300 mb-8">
+            {activePart === 'part1' ? 'Part I: The Foundation' : 'Part II: The API Update'}
+        </p>
 
-        <div className="w-full p-4 bg-black/30 rounded-2xl border border-white/5">
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-                {apiIntegrations.map((api, index) => (
-                    <div key={api.name} className="flex flex-col items-center justify-center gap-2 p-2 bg-slate-800/50 rounded-lg animate-fade-in-up" style={{ animationDelay: `${index * 50}ms`}}>
-                        <api.icon className="w-8 h-8 text-white" />
-                        <span className="text-xs text-slate-300 text-center">{api.name}</span>
-                    </div>
-                ))}
-            </div>
+        {activePart === 'part1' ? <Part1Content /> : <Part2Content />}
+        
+        <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50">
+            <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
+            <button onClick={() => setActivePart('part2')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part2' ? 'bg-white text-black' : 'text-slate-300'}`}>Part II</button>
         </div>
-         <p className="text-slate-500 text-sm mt-6">Connect them all in the Settings page.</p>
       </div>
       <style>{`
         @keyframes fade-in {
@@ -85,13 +139,8 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
         .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
       `}</style>
     </div>
   );
