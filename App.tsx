@@ -5,7 +5,8 @@ import SettingsPage from './pages/SettingsPage';
 import PlansPage from './pages/PlansPage';
 import ProjectsPage from './pages/ProjectsPage';
 import NewsPage from './pages/NewsPage';
-import StudioPage from './pages/StudioPage';
+import MarketplacePage from './pages/MarketplacePage';
+import ProfilePage from './pages/ProfilePage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -14,10 +15,11 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject } from './types';
+import { SavedProject, AppFile } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
+import { getUserId } from './services/supabaseService';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -35,6 +37,9 @@ const App: React.FC = () => {
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ensure user has a persistent ID for Supabase interactions
+    getUserId();
+
     // Onboarding check
     const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
     if (!onboardingCompleted) {
@@ -144,11 +149,24 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: SidebarPage) => {
-    if (['home', 'settings', 'projects', 'plans', 'news', 'studio'].includes(page)) {
+    if (['home', 'settings', 'projects', 'plans', 'news', 'marketplace', 'profile'].includes(page)) {
       setCurrentPage(page as Page);
     } else {
       alert(`The '${page}' page is not implemented in this demo.`);
     }
+  };
+
+  const handleLoadAppFromMarketplace = (prompt: string, html_content: string, summary: string[]) => {
+      const files: AppFile[] = [{ path: 'index.html', content: html_content }];
+      const project: SavedProject = {
+          id: `marketplace-${Date.now()}`,
+          prompt,
+          files,
+          previewHtml: html_content,
+          summary,
+          createdAt: new Date().toISOString(),
+      };
+      handleLoadProject(project);
   };
   
   const handleGoHome = () => {
@@ -174,15 +192,17 @@ const App: React.FC = () => {
         return <ProjectsPage onLoadProject={handleLoadProject} />;
       case 'news':
         return <NewsPage />;
-      case 'studio':
-        return <StudioPage onGenerate={handleStartBuilding} />;
+      case 'marketplace':
+        return <MarketplacePage onForkApp={handleLoadAppFromMarketplace} />;
+      case 'profile':
+        return <ProfilePage onLoadProject={handleLoadProject} />;
       default:
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
     }
   };
 
   const getActivePageForSidebar = (): SidebarPage | null => {
-    if (['home', 'projects', 'settings', 'plans', 'news', 'studio'].includes(currentPage)) {
+    if (['home', 'projects', 'settings', 'plans', 'news', 'marketplace', 'profile'].includes(currentPage)) {
       return currentPage as SidebarPage;
     }
     return null;

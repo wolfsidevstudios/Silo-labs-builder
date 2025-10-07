@@ -1,8 +1,9 @@
 
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppFile, GeminiResponse } from "../types";
-import { SYSTEM_PROMPT, STUDIO_SYSTEM_PROMPT } from '../constants';
+import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets } from './secretsService';
 import { getApiKey as getGiphyApiKey } from './giphyService';
@@ -219,6 +220,48 @@ function constructFullPrompt( prompt: string, existingFiles: AppFile[] | null, v
 function injectSecrets(html: string): string { const secrets = getSecrets(); if (secrets.length > 0) { const secretsObject = secrets.reduce((obj, secret) => { obj[secret.name] = secret.value; return obj; }, {} as Record<string, string>); const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`; return html.replace('</head>', `${secretScript}</head>`); } return html; }
 
 function injectApiKeys(code: string): string { let injectedCode = code; const giphyKey = getGiphyApiKey(); if (giphyKey) injectedCode = injectedCode.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`); try { const geminiKey = getGeminiApiKey(); injectedCode = injectedCode.replace(/'YOUR_GEMINI_API_KEY'/g, `'${geminiKey}'`); } catch(e) { /* No Gemini key, do nothing */ } const unsplashKey = getUnsplashAccessKey(); if (unsplashKey) injectedCode = injectedCode.replace(/'YOUR_UNSPLASH_ACCESS_KEY'/g, `'${unsplashKey}'`); const pexelsKey = getPexelsApiKey(); if (pexelsKey) injectedCode = injectedCode.replace(/'YOUR_PEXELS_API_KEY'/g, `'${pexelsKey}'`); const freeSoundKey = getFreeSoundApiKey(); if (freeSoundKey) injectedCode = injectedCode.replace(/'YOUR_FREESOUND_API_KEY'/g, `'${freeSoundKey}'`); const spotifyCreds = getSpotifyCredentials(); if (spotifyCreds) { injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_ID'/g, `'${spotifyCreds.clientId}'`); injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_SECRET'/g, `'${spotifyCreds.clientSecret}'`); } const openAiKey = getOpenAiApiKey(); if (openAiKey) injectedCode = injectedCode.replace(/'YOUR_OPENAI_API_KEY'/g, `'${openAiKey}'`); const stabilityKey = getStabilityApiKey(); if (stabilityKey) injectedCode = injectedCode.replace(/'YOUR_STABILITY_API_KEY'/g, `'${stabilityKey}'`); const streamlineKey = getStreamlineApiKey(); if (streamlineKey) injectedCode = injectedCode.replace(/'YOUR_STREAMLINE_API_KEY'/g, `'${streamlineKey}'`); const weatherApiKey = getWeatherApiKey(); if (weatherApiKey) injectedCode = injectedCode.replace(/'YOUR_WEATHERAPI_KEY'/g, `'${weatherApiKey}'`); const openWeatherMapKey = getOpenWeatherMapApiKey(); if (openWeatherMapKey) injectedCode = injectedCode.replace(/'YOUR_OPENWEATHERMAP_KEY'/g, `'${openWeatherMapKey}'`); const tmdbKey = getTmdbApiKey(); if (tmdbKey) injectedCode = injectedCode.replace(/'YOUR_TMDB_KEY'/g, `'${tmdbKey}'`); const youtubeKey = getYouTubeApiKey(); if (youtubeKey) injectedCode = injectedCode.replace(/'YOUR_YOUTUBE_KEY'/g, `'${youtubeKey}'`); const mapboxKey = getMapboxApiKey(); if (mapboxKey) injectedCode = injectedCode.replace(/'YOUR_MAPBOX_KEY'/g, `'${mapboxKey}'`); const exchangeRateKey = getExchangeRateApiKey(); if (exchangeRateKey) injectedCode = injectedCode.replace(/'YOUR_EXCHANGERATE_KEY'/g, `'${exchangeRateKey}'`); const fmpKey = getFmpApiKey(); if (fmpKey) injectedCode = injectedCode.replace(/'YOUR_FMP_KEY'/g, `'${fmpKey}'`); const newsApiKey = getNewsApiKey(); if (newsApiKey) injectedCode = injectedCode.replace(/'YOUR_NEWSAPI_KEY'/g, `'${newsApiKey}'`); const rawgKey = getRawgApiKey(); if (rawgKey) injectedCode = injectedCode.replace(/'YOUR_RAWG_KEY'/g, `'${rawgKey}'`); const wordsApiKey = getWordsApiKey(); if (wordsApiKey) injectedCode = injectedCode.replace(/'YOUR_WORDSAPI_KEY'/g, `'${wordsApiKey}'`); return injectedCode; }
+
+const STUDIO_SYSTEM_PROMPT = `
+You are a Creative Studio Agent. Your goal is to help a user brainstorm and refine an idea for a web application.
+You will have a conversation with the user. Ask clarifying questions to understand their vision.
+Guide them on features, design, and functionality.
+Once you have enough information, you MUST provide a final, detailed prompt for another AI (the "Builder AI") to use.
+The final prompt MUST be enclosed in a markdown code block with the language specifier "prompt".
+For example:
+\`\`\`prompt
+Create a responsive photo gallery with a masonry layout.
+- It should have a search bar to filter images by tags.
+- Include a lightbox feature to view images in full screen.
+- The design should be modern and minimal, with a dark theme.
+- Add a button to upload new images.
+\`\`\`
+Before you provide the final prompt, you can have a normal conversation. Once you think you have all the details, generate the prompt in the format above. Do not generate code, only the prompt for the other AI.
+`;
+
+export async function chatWithStudioAgent(
+  history: { role: 'user' | 'model'; parts: { text: string }[] }[]
+): Promise<string> {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("Gemini API key is missing. Please add it in the Settings page.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
+  const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+
+  const chat = ai.chats.create({
+    model: model,
+    config: { systemInstruction: STUDIO_SYSTEM_PROMPT },
+    history: history.slice(0, -1), // History without the last message
+  });
+
+  const lastMessage = history[history.length - 1];
+  if (lastMessage.role !== 'user') {
+    throw new Error("Last message in history must be from user.");
+  }
+  
+  const response = await chat.sendMessage(lastMessage.parts[0].text);
+  return response.text;
+}
 
 async function _generateWithHuggingFace(fullPrompt: string): Promise<GeminiResponse> {
     const creds = getHuggingFaceCreds();
@@ -490,33 +533,5 @@ export async function* streamGenerateOrUpdateAppCode(
     console.error("Error streaming app code:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     yield { error: `Failed to generate app code: ${errorMessage}` };
-  }
-}
-
-
-function getStudioSystemPrompt(): string { const isGiphyConnected = !!getGiphyApiKey(); let isGeminiConnected = false; try { getGeminiApiKey(); isGeminiConnected = true; } catch (e) { /* ignore */ } const secrets = getSecrets(); const secretsList = secrets.length > 0 ? secrets.map(s => s.name).join(', ') : 'None'; return STUDIO_SYSTEM_PROMPT .replace('{{GIPHY_STATUS}}', isGiphyConnected ? 'Connected' : 'Not Connected') .replace('{{GEMINI_STATUS}}', isGeminiConnected ? 'Connected' : 'Not Connected') .replace('{{SECRETS_LIST}}', secretsList); }
-
-// New function for Studio Chat
-export async function chatWithStudioAgent( history: { role: 'user' | 'model'; parts: { text: string }[] }[] ): Promise<string> {
-  try {
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-      throw new Error("Gemini API key is missing. Please add it in the Settings page.");
-    }
-    const ai = new GoogleGenAI({ apiKey });
-    const model = 'gemini-2.5-flash'; // Always use flash for chat
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: history,
-      config: { systemInstruction: getStudioSystemPrompt() }
-    });
-    // FIX: The .text property on the response can be undefined if the model returns a function call or no text content. Coalesce to an empty string to satisfy the function's return type of `Promise<string>`.
-    return response.text ?? '';
-  } catch (error) {
-    console.error("Error chatting with Studio Agent:", error);
-    if (error instanceof Error) {
-      throw new Error(`Studio Agent failed: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while chatting with the Studio Agent.");
   }
 }

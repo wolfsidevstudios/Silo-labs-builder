@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export interface AppFile {
@@ -62,6 +63,31 @@ export interface StudioAssistantMessage {
 }
 
 export type StudioChatMessage = StudioUserMessage | StudioAssistantMessage;
+
+// --- Supabase Types ---
+export interface Profile {
+  id: string; // uuid
+  user_id: string; // text (client-side generated)
+  username: string;
+  avatar_url?: string;
+  created_at: string;
+}
+
+export interface PublishedApp {
+  id: string; // uuid
+  author_id: string; // uuid
+  prompt: string;
+  summary: string[];
+  html_content: string;
+  preview_html: string;
+  created_at: string;
+  likes: number;
+  // Joined data
+  profiles?: {
+    username: string;
+    avatar_url?: string;
+  }
+}
 
 
 export interface Theme {

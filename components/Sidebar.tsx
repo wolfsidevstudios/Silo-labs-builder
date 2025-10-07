@@ -4,9 +4,10 @@ import ProjectsIcon from './icons/ProjectsIcon';
 import SettingsIcon from './icons/SettingsIcon';
 import ZapIcon from './icons/ZapIcon';
 import BellIcon from './icons/BellIcon';
-import BeakerIcon from './icons/BeakerIcon';
+import StoreIcon from './icons/StoreIcon';
+import UserIcon from './icons/UserIcon';
 
-export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news' | 'studio';
+export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
 interface SidebarProps {
   activePage: SidebarPage | null;
@@ -17,14 +18,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   const navItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'projects', icon: ProjectsIcon, label: 'Projects' },
-    { id: 'studio', icon: BeakerIcon, label: 'Studio'},
+    { id: 'marketplace', icon: StoreIcon, label: 'Marketplace'},
     { id: 'news', icon: BellIcon, label: 'News' },
     { id: 'plans', icon: ZapIcon, label: 'Plans' },
     { id: 'settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
   return (
-    <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">
+    <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-between h-auto bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-full py-4">
       <nav className="flex flex-col items-center gap-4">
         {navItems.map((item) => (
           <button
@@ -42,6 +43,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
           </button>
         ))}
       </nav>
+      <div className="my-4 border-t border-slate-700 w-8/12" />
+      <button
+        onClick={() => onNavigate('profile')}
+        aria-label="Profile"
+        title="Profile"
+        className={`p-3 rounded-full transition-all duration-200 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
+          activePage === 'profile'
+            ? 'bg-white text-black shadow-lg'
+            : 'text-white hover:bg-white/20'
+        }`}
+      >
+        <UserIcon className="w-6 h-6" />
+      </button>
     </div>
   );
 };

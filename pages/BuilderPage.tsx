@@ -14,6 +14,7 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
+import PublishModal from '../components/PublishModal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
@@ -25,6 +26,7 @@ import { getApiKey as getYouTubeKey } from '../services/youtubeService';
 import { getApiKey as getPexelsKey } from '../services/pexelsService';
 import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
+import { getUserId, getProfile, publishApp } from '../services/supabaseService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -92,6 +94,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isImageLibraryOpen, setIsImageLibraryOpen] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
@@ -445,6 +448,38 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     URL.revokeObjectURL(url);
   };
 
+  const handlePublish = async () => {
+    if (!activeTab) return;
+    const userId = getUserId();
+    const profile = await getProfile(userId);
+    if (!profile) {
+        // Here you might want to redirect to the profile page or show a modal
+        alert("Please create a profile before publishing.");
+        return;
+    }
+    const lastMessage = activeTab.chatHistory[activeTab.chatHistory.length - 1];
+    if (lastMessage?.role !== 'assistant' || !lastMessage.content.files) {
+        updateActiveTab({error: "No app content to publish."});
+        return;
+    }
+    
+    const appData = {
+        prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || 'Untitled App',
+        summary: lastMessage.content.summary || [],
+        html_content: lastMessage.content.files[0].content,
+        preview_html: lastMessage.content.previewHtml || lastMessage.content.files[0].content,
+    };
+    
+    try {
+        await publishApp(userId, appData);
+        setIsPublishModalOpen(false);
+        // Maybe show a success notification
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "An unknown error occurred while publishing.";
+        updateActiveTab({ error: errorMsg });
+    }
+  };
+
 
   const toggleVisualEditMode = () => {
     const nextState = !activeTab?.isVisualEditMode;
@@ -504,6 +539,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     <div className="h-screen w-screen bg-black text-white flex flex-col pl-[4.5rem]">
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!activeTab?.currentProjectRepo} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={activeTab?.currentNetlifyUrl || null} isNewDeploy={!activeTab?.currentNetlifySiteId} />
+      <PublishModal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} onPublish={handlePublish} />
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
@@ -557,6 +593,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 hasFiles={files.length > 0}
                 isPro={isTrialActive}
                 onDownloadClick={handleDownloadClick}
+                onPublishClick={() => setIsPublishModalOpen(true)}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (
