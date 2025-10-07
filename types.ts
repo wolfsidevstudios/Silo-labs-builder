@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export interface AppFile {
@@ -70,6 +71,7 @@ export interface Profile {
   user_id: string; // text (client-side generated)
   username: string;
   avatar_url?: string;
+  banner_url?: string;
   created_at: string;
 }
 

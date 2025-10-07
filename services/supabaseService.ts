@@ -30,12 +30,47 @@ export async function getProfile(userId: string) {
     return data;
 }
 
-export async function createOrUpdateProfile(userId: string, username: string, avatar_url?: string) {
+export async function uploadProfileImage(file: File, userId: string, type: 'avatar' | 'banner'): Promise<string> {
+    const bucket = `${type}s`;
+    const fileName = `${userId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true,
+        });
+
+    if (error) {
+        console.error(`Error uploading ${type}:`, error);
+        throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(data.path);
+
+    return publicUrlData.publicUrl;
+}
+
+export async function createOrUpdateProfile(userId: string, updates: { username?: string, avatar_url?: string, banner_url?: string }) {
+    const updateData: { user_id: string; [key: string]: any } = { user_id: userId };
+    
+    // Only include fields that are being updated
+    if (updates.username) updateData.username = updates.username;
+    if (updates.avatar_url) updateData.avatar_url = updates.avatar_url;
+    if (updates.banner_url) updateData.banner_url = updates.banner_url;
+
+    // Ensure there's more than just user_id to update
+    if (Object.keys(updateData).length <= 1) {
+        return getProfile(userId); // Nothing to update, return current profile
+    }
+
     const { data, error } = await supabase
         .from('profiles')
-        .upsert({ user_id: userId, username, avatar_url }, { onConflict: 'user_id' })
+        .upsert(updateData, { onConflict: 'user_id' })
         .select()
         .single();
+        
     if (error) {
         console.error('Error updating profile:', error);
         throw error;

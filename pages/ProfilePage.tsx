@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getUserId, getProfile, createOrUpdateProfile, getUserApps } from '../services/supabaseService';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getUserId, getProfile, createOrUpdateProfile, getUserApps, uploadProfileImage } from '../services/supabaseService';
 import { Profile, PublishedApp, SavedProject } from '../types';
 import UserIcon from '../components/icons/UserIcon';
 import RocketIcon from '../components/icons/RocketIcon';
+import CameraIcon from '../components/icons/CameraIcon';
 
 interface ProfilePageProps {
   onLoadProject: (project: SavedProject) => void;
@@ -15,6 +16,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userApps, setUserApps] = useState<PublishedApp[]>([]);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const userId = getUserId();
 
@@ -42,6 +50,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
     fetchProfileData();
   }, [fetchProfileData]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      if (type === 'avatar') {
+        setAvatarFile(file);
+        setAvatarPreview(previewUrl);
+      } else {
+        setBannerFile(file);
+        setBannerPreview(previewUrl);
+      }
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!username.trim()) {
       setError("Username cannot be empty.");
@@ -50,10 +72,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const updatedProfile = await createOrUpdateProfile(userId, username);
+      let avatarUrl = profile?.avatar_url;
+      let bannerUrl = profile?.banner_url;
+
+      if (avatarFile) {
+        avatarUrl = await uploadProfileImage(avatarFile, userId, 'avatar');
+      }
+      if (bannerFile) {
+        bannerUrl = await uploadProfileImage(bannerFile, userId, 'banner');
+      }
+
+      const updatedProfile = await createOrUpdateProfile(userId, { username, avatar_url: avatarUrl, banner_url: bannerUrl });
+      
       setProfile(updatedProfile);
+      setAvatarFile(null);
+      setBannerFile(null);
+      setAvatarPreview(null);
+      setBannerPreview(null);
       setIsEditing(false);
-      // Refetch apps if it's a new profile
+
       if (!profile) {
           const apps = await getUserApps(updatedProfile.id);
           setUserApps(apps);
@@ -80,39 +117,69 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white">
       <main className="w-full max-w-7xl mx-auto px-4 animate-fade-in-up">
-        {isLoading && <div className="text-center text-slate-400">Loading profile...</div>}
+        {isLoading && !profile && <div className="text-center text-slate-400">Loading profile...</div>}
         {error && <div className="text-center text-red-400 p-4 bg-red-900/50 border border-red-800 rounded-lg">{error}</div>}
         
         {!isLoading && !error && (
             <>
-                <div className="mb-12 p-8 bg-slate-900/50 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <UserIcon className="w-12 h-12 text-white" />
-                    </div>
-                    <div className="flex-grow text-center md:text-left">
-                        {isEditing || !profile ? (
-                            <input 
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Enter your username"
-                                className="text-4xl font-bold bg-transparent border-b-2 border-slate-600 focus:border-indigo-500 outline-none transition-colors text-white"
-                            />
-                        ) : (
-                            <h1 className="text-4xl font-bold text-white">{profile?.username}</h1>
-                        )}
-                        <p className="text-slate-400 mt-1">Unique ID: <span className="font-mono text-xs">{userId}</span></p>
-                    </div>
-                    <div>
-                        {isEditing || !profile ? (
-                             <button onClick={handleSaveProfile} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-colors">Save Profile</button>
-                        ) : (
-                             <button onClick={() => setIsEditing(true)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full transition-colors">Edit Profile</button>
-                        )}
-                    </div>
+                <div 
+                  className="relative mb-12 rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/50 bg-cover bg-center min-h-[250px] flex flex-col justify-end"
+                  style={{ backgroundImage: `url(${bannerPreview || profile?.banner_url || ''})` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                  
+                  {isEditing && (
+                    <>
+                      <button onClick={() => bannerInputRef.current?.click()} className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full text-xs text-white hover:bg-white/20 transition-colors">
+                        <CameraIcon className="w-4 h-4" /> Change Banner
+                      </button>
+                      <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} className="hidden" accept="image/*" />
+                    </>
+                  )}
+                  
+                  <div className="relative p-6 flex flex-col md:flex-row items-center gap-6">
+                      <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 -mb-16 md:mb-0 border-4 border-slate-800">
+                          {(avatarPreview || profile?.avatar_url) ? (
+                            <img src={avatarPreview || profile.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            <UserIcon className="w-14 h-14 text-white" />
+                          )}
+                          {isEditing && (
+                            <>
+                              <button onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                <CameraIcon className="w-8 h-8 text-white" />
+                              </button>
+                              <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} className="hidden" accept="image/*" />
+                            </>
+                          )}
+                      </div>
+                      <div className="flex-grow text-center md:text-left">
+                          {isEditing || !profile ? (
+                              <input 
+                                  type="text"
+                                  value={username}
+                                  onChange={(e) => setUsername(e.target.value)}
+                                  placeholder="Enter your username"
+                                  className="text-4xl font-bold bg-transparent border-b-2 border-slate-600 focus:border-indigo-500 outline-none transition-colors text-white w-full md:w-auto"
+                              />
+                          ) : (
+                              <h1 className="text-4xl font-bold text-white">{profile?.username}</h1>
+                          )}
+                          <p className="text-slate-400 mt-1">Unique ID: <span className="font-mono text-xs">{userId}</span></p>
+                      </div>
+                      <div className="flex-shrink-0">
+                          {isEditing || !profile ? (
+                               <button onClick={handleSaveProfile} disabled={isLoading} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-colors disabled:bg-slate-500">
+                                {isLoading ? 'Saving...' : 'Save Profile'}
+                               </button>
+                          ) : (
+                               <button onClick={() => setIsEditing(true)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full transition-colors">Edit Profile</button>
+                          )}
+                      </div>
+                  </div>
                 </div>
 
-                <h2 className="text-3xl font-bold text-slate-200 mb-8">My Published Apps</h2>
+                <h2 className="text-3xl font-bold text-slate-200 mb-8 mt-16 md:mt-8">My Published Apps</h2>
                  {userApps.length === 0 ? (
                     <div className="text-center py-20 border-2 border-dashed border-slate-800 rounded-2xl">
                         <RocketIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
