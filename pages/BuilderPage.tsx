@@ -303,6 +303,14 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               lastSavedProjectId: finalProjectId,
           } : t));
 
+          // Send a push notification if the tab is not active
+          if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+              new Notification('Silo Build: App Ready!', {
+                  body: "Your new app has been generated successfully. Come check it out!",
+                  icon: 'https://i.ibb.co/DgYbPJ9z/IMG-3953.png', // App's favicon
+              });
+          }
+
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
           setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
@@ -435,6 +443,13 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
   
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+
+  useEffect(() => {
+    // Ask for notification permission when the builder page loads
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+  }, []);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

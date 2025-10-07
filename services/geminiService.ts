@@ -497,4 +497,26 @@ export async function* streamGenerateOrUpdateAppCode(
 function getStudioSystemPrompt(): string { const isGiphyConnected = !!getGiphyApiKey(); let isGeminiConnected = false; try { getGeminiApiKey(); isGeminiConnected = true; } catch (e) { /* ignore */ } const secrets = getSecrets(); const secretsList = secrets.length > 0 ? secrets.map(s => s.name).join(', ') : 'None'; return STUDIO_SYSTEM_PROMPT .replace('{{GIPHY_STATUS}}', isGiphyConnected ? 'Connected' : 'Not Connected') .replace('{{GEMINI_STATUS}}', isGeminiConnected ? 'Connected' : 'Not Connected') .replace('{{SECRETS_LIST}}', secretsList); }
 
 // New function for Studio Chat
-export async function chatWithStudioAgent( history: { role: 'user' | 'model'; parts: { text: string }[] }[] ): Promise<string> { try { const apiKey = getGeminiApiKey(); if (!apiKey) { throw new Error("Gemini API key is missing. Please add it in the Settings page."); } const ai = new GoogleGenAI({ apiKey }); const model = 'gemini-2.5-flash'; // Always use flash for chat const response = await ai.models.generateContent({ model: model, contents: history, config: { systemInstruction: getStudioSystemPrompt() } }); return response.text; } catch (error) { console.error("Error chatting with Studio Agent:", error); if (error instanceof Error) { throw new Error(`Studio Agent failed: ${error.message}`); } throw new Error("An unknown error occurred while chatting with the Studio Agent."); } }
+export async function chatWithStudioAgent( history: { role: 'user' | 'model'; parts: { text: string }[] }[] ): Promise<string> {
+  try {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      throw new Error("Gemini API key is missing. Please add it in the Settings page.");
+    }
+    const ai = new GoogleGenAI({ apiKey });
+    const model = 'gemini-2.5-flash'; // Always use flash for chat
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: history,
+      config: { systemInstruction: getStudioSystemPrompt() }
+    });
+    // FIX: The .text property on the response can be undefined if the model returns a function call or no text content. Coalesce to an empty string to satisfy the function's return type of `Promise<string>`.
+    return response.text ?? '';
+  } catch (error) {
+    console.error("Error chatting with Studio Agent:", error);
+    if (error instanceof Error) {
+      throw new Error(`Studio Agent failed: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while chatting with the Studio Agent.");
+  }
+}
