@@ -14,6 +14,18 @@ import SpotifyIcon from '../components/icons/SpotifyIcon';
 import StableDiffusionIcon from '../components/icons/StableDiffusionIcon';
 import LogoDevIcon from '../components/icons/LogoDevIcon';
 import StreamlineIcon from '../components/icons/StreamlineIcon';
+// New API Icons
+import WeatherApiIcon from '../components/icons/WeatherApiIcon';
+import OpenWeatherMapIcon from '../components/icons/OpenWeatherMapIcon';
+import TmdbIcon from '../components/icons/TmdbIcon';
+import YouTubeIcon from '../components/icons/YouTubeIcon';
+import MapboxIcon from '../components/icons/MapboxIcon';
+import ExchangeRateApiIcon from '../components/icons/ExchangeRateApiIcon';
+import FinancialModelingPrepIcon from '../components/icons/FinancialModelingPrepIcon';
+import NewsApiIcon from '../components/icons/NewsApiIcon';
+import RawgIcon from '../components/icons/RawgIcon';
+import WordsApiIcon from '../components/icons/WordsApiIcon';
+
 import { THEMES } from '../data/themes';
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import { Secret, GitHubUser, GitHubRepo, NetlifyUser, NetlifySite } from '../types';
@@ -28,6 +40,18 @@ import { saveApiKey as saveFreeSoundKey, getApiKey as getFreeSoundKey, removeApi
 import { saveClientCredentials as saveSpotifyCreds, getClientCredentials as getSpotifyCreds, removeClientCredentials as removeSpotifyCreds, testSpotifyCredentials } from '../services/spotifyService';
 import { saveApiKey as saveStabilityKey, getApiKey as getStabilityKey, removeApiKey as removeStabilityKey, testStabilityApiKey } from '../services/stabilityService';
 import { saveApiKey as saveStreamlineKey, getApiKey as getStreamlineKey, removeApiKey as removeStreamlineKey, testStreamlineApiKey } from '../services/streamlineService';
+
+// New API Services
+import { saveApiKey as saveWeatherApiKey, getApiKey as getWeatherApiKey, removeApiKey as removeWeatherApiKey, testApiKey as testWeatherApi } from '../services/weatherApiService';
+import { saveApiKey as saveOpenWeatherMapApiKey, getApiKey as getOpenWeatherMapApiKey, removeApiKey as removeOpenWeatherMapApiKey, testApiKey as testOpenWeatherMapApi } from '../services/openWeatherMapService';
+import { saveApiKey as saveTmdbApiKey, getApiKey as getTmdbApiKey, removeApiKey as removeTmdbApiKey, testApiKey as testTmdbApi } from '../services/tmdbService';
+import { saveApiKey as saveYouTubeApiKey, getApiKey as getYouTubeApiKey, removeApiKey as removeYouTubeApiKey, testApiKey as testYouTubeApi } from '../services/youtubeService';
+import { saveApiKey as saveMapboxApiKey, getApiKey as getMapboxApiKey, removeApiKey as removeMapboxApiKey, testApiKey as testMapboxApi } from '../services/mapboxService';
+import { saveApiKey as saveExchangeRateApiKey, getApiKey as getExchangeRateApiKey, removeApiKey as removeExchangeRateApiKey, testApiKey as testExchangeRateApi } from '../services/exchangeRateApiService';
+import { saveApiKey as saveFmpApiKey, getApiKey as getFmpApiKey, removeApiKey as removeFmpApiKey, testApiKey as testFmpApi } from '../services/financialModelingPrepService';
+import { saveApiKey as saveNewsApiKey, getApiKey as getNewsApiKey, removeApiKey as removeNewsApiKey, testApiKey as testNewsApi } from '../services/newsApiService';
+import { saveApiKey as saveRawgApiKey, getApiKey as getRawgApiKey, removeApiKey as removeRawgApiKey, testApiKey as testRawgApi } from '../services/rawgService';
+import { saveApiKey as saveWordsApiKey, getApiKey as getWordsApiKey, removeApiKey as removeWordsApiKey, testApiKey as testWordsApi } from '../services/wordsApiService';
 
 
 type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro';
@@ -103,6 +127,58 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [isStreamlineConnected, setIsStreamlineConnected] = useState(false);
   const [streamlineError, setStreamlineError] = useState<string | null>(null);
   const [isStreamlineConnecting, setIsStreamlineConnecting] = useState(false);
+  
+  // New API Connection States
+  const [weatherApiKey, setWeatherApiKey] = useState('');
+  const [isWeatherApiConnected, setIsWeatherApiConnected] = useState(false);
+  const [weatherApiError, setWeatherApiError] = useState<string | null>(null);
+  const [isWeatherApiConnecting, setIsWeatherApiConnecting] = useState(false);
+  
+  const [openWeatherMapKey, setOpenWeatherMapKey] = useState('');
+  const [isOpenWeatherMapConnected, setIsOpenWeatherMapConnected] = useState(false);
+  const [openWeatherMapError, setOpenWeatherMapError] = useState<string | null>(null);
+  const [isOpenWeatherMapConnecting, setIsOpenWeatherMapConnecting] = useState(false);
+  
+  const [tmdbKey, setTmdbKey] = useState('');
+  const [isTmdbConnected, setIsTmdbConnected] = useState(false);
+  const [tmdbError, setTmdbError] = useState<string | null>(null);
+  const [isTmdbConnecting, setIsTmdbConnecting] = useState(false);
+  
+  const [youTubeKey, setYouTubeKey] = useState('');
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
+  const [youTubeError, setYouTubeError] = useState<string | null>(null);
+  const [isYouTubeConnecting, setIsYouTubeConnecting] = useState(false);
+  
+  const [mapboxKey, setMapboxKey] = useState('');
+  const [isMapboxConnected, setIsMapboxConnected] = useState(false);
+  const [mapboxError, setMapboxError] = useState<string | null>(null);
+  const [isMapboxConnecting, setIsMapboxConnecting] = useState(false);
+  
+  const [exchangeRateKey, setExchangeRateKey] = useState('');
+  const [isExchangeRateConnected, setIsExchangeRateConnected] = useState(false);
+  const [exchangeRateError, setExchangeRateError] = useState<string | null>(null);
+  const [isExchangeRateConnecting, setIsExchangeRateConnecting] = useState(false);
+  
+  const [fmpKey, setFmpKey] = useState('');
+  const [isFmpConnected, setIsFmpConnected] = useState(false);
+  const [fmpError, setFmpError] = useState<string | null>(null);
+  const [isFmpConnecting, setIsFmpConnecting] = useState(false);
+  
+  const [newsApiKey, setNewsApiKey] = useState('');
+  const [isNewsApiConnected, setIsNewsApiConnected] = useState(false);
+  const [newsApiError, setNewsApiError] = useState<string | null>(null);
+  const [isNewsApiConnecting, setIsNewsApiConnecting] = useState(false);
+  
+  const [rawgKey, setRawgKey] = useState('');
+  const [isRawgConnected, setIsRawgConnected] = useState(false);
+  const [rawgError, setRawgError] = useState<string | null>(null);
+  const [isRawgConnecting, setIsRawgConnecting] = useState(false);
+  
+  const [wordsApiKey, setWordsApiKey] = useState('');
+  const [isWordsApiConnected, setIsWordsApiConnected] = useState(false);
+  const [wordsApiError, setWordsApiError] = useState<string | null>(null);
+  const [isWordsApiConnecting, setIsWordsApiConnecting] = useState(false);
+
 
   // Experimental Features
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState(false);
@@ -137,6 +213,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     if (getSpotifyCreds()) setIsSpotifyConnected(true);
     if (getStabilityKey()) setIsStabilityConnected(true);
     if (getStreamlineKey()) setIsStreamlineConnected(true);
+    // New APIs
+    if (getWeatherApiKey()) setIsWeatherApiConnected(true);
+    if (getOpenWeatherMapApiKey()) setIsOpenWeatherMapConnected(true);
+    if (getTmdbApiKey()) setIsTmdbConnected(true);
+    if (getYouTubeApiKey()) setIsYouTubeConnected(true);
+    if (getMapboxApiKey()) setIsMapboxConnected(true);
+    if (getExchangeRateApiKey()) setIsExchangeRateConnected(true);
+    if (getFmpApiKey()) setIsFmpConnected(true);
+    if (getNewsApiKey()) setIsNewsApiConnected(true);
+    if (getRawgApiKey()) setIsRawgConnected(true);
+    if (getWordsApiKey()) setIsWordsApiConnected(true);
+
 
   }, []);
 
@@ -195,6 +283,29 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const handleDisconnectStability = () => { removeStabilityKey(); setIsStabilityConnected(false); setStabilityError(null); };
   const handleConnectStreamline = async () => { if (!streamlineKey.trim()) { setStreamlineError("Please enter a Streamline API Key."); return; } setIsStreamlineConnecting(true); setStreamlineError(null); try { await testStreamlineApiKey(streamlineKey); saveStreamlineKey(streamlineKey); setIsStreamlineConnected(true); setStreamlineKey(''); } catch (err) { setStreamlineError("Connection failed. Please check your API key."); } finally { setIsStreamlineConnecting(false); } };
   const handleDisconnectStreamline = () => { removeStreamlineKey(); setIsStreamlineConnected(false); setStreamlineError(null); };
+  
+  // --- New API Connection Handlers ---
+  const handleConnectWeatherApi = async () => { if (!weatherApiKey.trim()) { setWeatherApiError("Please enter a WeatherAPI.com API Key."); return; } setIsWeatherApiConnecting(true); setWeatherApiError(null); try { if (!(await testWeatherApi(weatherApiKey))) throw new Error("Invalid key"); saveWeatherApiKey(weatherApiKey); setIsWeatherApiConnected(true); setWeatherApiKey(''); } catch (err) { setWeatherApiError("Connection failed. Please check your API key."); } finally { setIsWeatherApiConnecting(false); } };
+  const handleDisconnectWeatherApi = () => { removeWeatherApiKey(); setIsWeatherApiConnected(false); setWeatherApiError(null); };
+  const handleConnectOpenWeatherMap = async () => { if (!openWeatherMapKey.trim()) { setOpenWeatherMapError("Please enter an OpenWeatherMap API Key."); return; } setIsOpenWeatherMapConnecting(true); setOpenWeatherMapError(null); try { if (!(await testOpenWeatherMapApi(openWeatherMapKey))) throw new Error("Invalid key"); saveOpenWeatherMapApiKey(openWeatherMapKey); setIsOpenWeatherMapConnected(true); setOpenWeatherMapKey(''); } catch (err) { setOpenWeatherMapError("Connection failed. Please check your API key."); } finally { setIsOpenWeatherMapConnecting(false); } };
+  const handleDisconnectOpenWeatherMap = () => { removeOpenWeatherMapApiKey(); setIsOpenWeatherMapConnected(false); setOpenWeatherMapError(null); };
+  const handleConnectTmdb = async () => { if (!tmdbKey.trim()) { setTmdbError("Please enter a TMDB API Key."); return; } setIsTmdbConnecting(true); setTmdbError(null); try { if (!(await testTmdbApi(tmdbKey))) throw new Error("Invalid key"); saveTmdbApiKey(tmdbKey); setIsTmdbConnected(true); setTmdbKey(''); } catch (err) { setTmdbError("Connection failed. Please check your API key."); } finally { setIsTmdbConnecting(false); } };
+  const handleDisconnectTmdb = () => { removeTmdbApiKey(); setIsTmdbConnected(false); setTmdbError(null); };
+  const handleConnectYouTube = async () => { if (!youTubeKey.trim()) { setYouTubeError("Please enter a YouTube Data API Key."); return; } setIsYouTubeConnecting(true); setYouTubeError(null); try { if (!(await testYouTubeApi(youTubeKey))) throw new Error("Invalid key"); saveYouTubeApiKey(youTubeKey); setIsYouTubeConnected(true); setYouTubeKey(''); } catch (err) { setYouTubeError("Connection failed. Please check your API key."); } finally { setIsYouTubeConnecting(false); } };
+  const handleDisconnectYouTube = () => { removeYouTubeApiKey(); setIsYouTubeConnected(false); setYouTubeError(null); };
+  const handleConnectMapbox = async () => { if (!mapboxKey.trim()) { setMapboxError("Please enter a Mapbox Access Token."); return; } setIsMapboxConnecting(true); setMapboxError(null); try { if (!(await testMapboxApi(mapboxKey))) throw new Error("Invalid key"); saveMapboxApiKey(mapboxKey); setIsMapboxConnected(true); setMapboxKey(''); } catch (err) { setMapboxError("Connection failed. Please check your Access Token."); } finally { setIsMapboxConnecting(false); } };
+  const handleDisconnectMapbox = () => { removeMapboxApiKey(); setIsMapboxConnected(false); setMapboxError(null); };
+  const handleConnectExchangeRate = async () => { if (!exchangeRateKey.trim()) { setExchangeRateError("Please enter an ExchangeRate-API Key."); return; } setIsExchangeRateConnecting(true); setExchangeRateError(null); try { if (!(await testExchangeRateApi(exchangeRateKey))) throw new Error("Invalid key"); saveExchangeRateApiKey(exchangeRateKey); setIsExchangeRateConnected(true); setExchangeRateKey(''); } catch (err) { setExchangeRateError("Connection failed. Please check your API key."); } finally { setIsExchangeRateConnecting(false); } };
+  const handleDisconnectExchangeRate = () => { removeExchangeRateApiKey(); setIsExchangeRateConnected(false); setExchangeRateError(null); };
+  const handleConnectFmp = async () => { if (!fmpKey.trim()) { setFmpError("Please enter a Financial Modeling Prep API Key."); return; } setIsFmpConnecting(true); setFmpError(null); try { if (!(await testFmpApi(fmpKey))) throw new Error("Invalid key"); saveFmpApiKey(fmpKey); setIsFmpConnected(true); setFmpKey(''); } catch (err) { setFmpError("Connection failed. Please check your API key."); } finally { setIsFmpConnecting(false); } };
+  const handleDisconnectFmp = () => { removeFmpApiKey(); setIsFmpConnected(false); setFmpError(null); };
+  const handleConnectNewsApi = async () => { if (!newsApiKey.trim()) { setNewsApiError("Please enter a NewsAPI Key."); return; } setIsNewsApiConnecting(true); setNewsApiError(null); try { if (!(await testNewsApi(newsApiKey))) throw new Error("Invalid key"); saveNewsApiKey(newsApiKey); setIsNewsApiConnected(true); setNewsApiKey(''); } catch (err) { setNewsApiError("Connection failed. Please check your API key."); } finally { setIsNewsApiConnecting(false); } };
+  const handleDisconnectNewsApi = () => { removeNewsApiKey(); setIsNewsApiConnected(false); setNewsApiError(null); };
+  const handleConnectRawg = async () => { if (!rawgKey.trim()) { setRawgError("Please enter a RAWG API Key."); return; } setIsRawgConnecting(true); setRawgError(null); try { if (!(await testRawgApi(rawgKey))) throw new Error("Invalid key"); saveRawgApiKey(rawgKey); setIsRawgConnected(true); setRawgKey(''); } catch (err) { setRawgError("Connection failed. Please check your API key."); } finally { setIsRawgConnecting(false); } };
+  const handleDisconnectRawg = () => { removeRawgApiKey(); setIsRawgConnected(false); setRawgError(null); };
+  const handleConnectWordsApi = async () => { if (!wordsApiKey.trim()) { setWordsApiError("Please enter a WordsAPI Key."); return; } setIsWordsApiConnecting(true); setWordsApiError(null); try { if (!(await testWordsApi(wordsApiKey))) throw new Error("Invalid key"); saveWordsApiKey(wordsApiKey); setIsWordsApiConnected(true); setWordsApiKey(''); } catch (err) { setWordsApiError("Connection failed. Please check your API key."); } finally { setIsWordsApiConnecting(false); } };
+  const handleDisconnectWordsApi = () => { removeWordsApiKey(); setIsWordsApiConnected(false); setWordsApiError(null); };
+
 
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col items-center p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white overflow-y-auto">
@@ -285,8 +396,48 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             {isOpenAiConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <OpenAiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">OpenAI Connected</p> <p className="text-sm text-slate-400">Ready to generate images with DALL-E.</p> </div> </div> <button onClick={handleDisconnectOpenAI} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><OpenAiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to OpenAI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide an <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">OpenAI API Key</a> to generate images with DALL-E in your projects.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-..." className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectOpenAI} disabled={isOpenAiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isOpenAiConnecting ? 'Connecting...' : 'Connect'}</button></div> {openAiError && <p className="text-red-400 text-sm mt-3">{openAiError}</p>} </div> )}
           </div>
           {/* Stability AI Section */}
-          <div>
+          <div className="mb-8 pb-8 border-b border-slate-800">
             {isStabilityConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <StableDiffusionIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Stability AI Connected</p> <p className="text-sm text-slate-400">Ready to generate images with Stable Diffusion.</p> </div> </div> <button onClick={handleDisconnectStability} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><StableDiffusionIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Stability AI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a <a href="https://platform.stability.ai/account/keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Stability AI API Key</a> to generate images with Stable Diffusion.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={stabilityKey} onChange={e => setStabilityKey(e.target.value)} placeholder="Your Stability AI API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-grow" /><button onClick={handleConnectStability} disabled={isStabilityConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isStabilityConnecting ? 'Connecting...' : 'Connect'}</button></div> {stabilityError && <p className="text-red-400 text-sm mt-3">{stabilityError}</p>} </div> )}
+          </div>
+          {/* WeatherAPI.com Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isWeatherApiConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <WeatherApiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">WeatherAPI.com Connected</p> <p className="text-sm text-slate-400">Ready to build weather apps.</p> </div> </div> <button onClick={handleDisconnectWeatherApi} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><WeatherApiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to WeatherAPI.com</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">WeatherAPI.com</a> to get weather data.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={weatherApiKey} onChange={e => setWeatherApiKey(e.target.value)} placeholder="Your WeatherAPI Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectWeatherApi} disabled={isWeatherApiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isWeatherApiConnecting ? 'Connecting...' : 'Connect'}</button></div> {weatherApiError && <p className="text-red-400 text-sm mt-3">{weatherApiError}</p>} </div> )}
+          </div>
+          {/* OpenWeatherMap Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isOpenWeatherMapConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <OpenWeatherMapIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">OpenWeatherMap Connected</p> <p className="text-sm text-slate-400">Ready to build weather apps.</p> </div> </div> <button onClick={handleDisconnectOpenWeatherMap} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><OpenWeatherMapIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to OpenWeatherMap</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">OpenWeatherMap</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={openWeatherMapKey} onChange={e => setOpenWeatherMapKey(e.target.value)} placeholder="Your OpenWeatherMap Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectOpenWeatherMap} disabled={isOpenWeatherMapConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isOpenWeatherMapConnecting ? 'Connecting...' : 'Connect'}</button></div> {openWeatherMapError && <p className="text-red-400 text-sm mt-3">{openWeatherMapError}</p>} </div> )}
+          </div>
+          {/* TMDB Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isTmdbConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <TmdbIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">TMDB Connected</p> <p className="text-sm text-slate-400">Ready to build movie apps.</p> </div> </div> <button onClick={handleDisconnectTmdb} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><TmdbIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to The Movie DB</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://www.themoviedb.org/documentation/api" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">TMDB</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={tmdbKey} onChange={e => setTmdbKey(e.target.value)} placeholder="Your TMDB Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectTmdb} disabled={isTmdbConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isTmdbConnecting ? 'Connecting...' : 'Connect'}</button></div> {tmdbError && <p className="text-red-400 text-sm mt-3">{tmdbError}</p>} </div> )}
+          </div>
+          {/* YouTube Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isYouTubeConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <YouTubeIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">YouTube Connected</p> <p className="text-sm text-slate-400">Ready to search and embed videos.</p> </div> </div> <button onClick={handleDisconnectYouTube} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><YouTubeIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to YouTube</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from the <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Google Cloud Console</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={youTubeKey} onChange={e => setYouTubeKey(e.target.value)} placeholder="Your YouTube API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectYouTube} disabled={isYouTubeConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isYouTubeConnecting ? 'Connecting...' : 'Connect'}</button></div> {youTubeError && <p className="text-red-400 text-sm mt-3">{youTubeError}</p>} </div> )}
+          </div>
+          {/* Mapbox Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isMapboxConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <MapboxIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">Mapbox Connected</p> <p className="text-sm text-slate-400">Ready to build map apps.</p> </div> </div> <button onClick={handleDisconnectMapbox} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><MapboxIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Mapbox</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://www.mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Mapbox</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={mapboxKey} onChange={e => setMapboxKey(e.target.value)} placeholder="Your Mapbox Access Token" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectMapbox} disabled={isMapboxConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isMapboxConnecting ? 'Connecting...' : 'Connect'}</button></div> {mapboxError && <p className="text-red-400 text-sm mt-3">{mapboxError}</p>} </div> )}
+          </div>
+          {/* ExchangeRate-API Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isExchangeRateConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <ExchangeRateApiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">ExchangeRate-API Connected</p> <p className="text-sm text-slate-400">Ready for currency conversions.</p> </div> </div> <button onClick={handleDisconnectExchangeRate} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><ExchangeRateApiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to ExchangeRate-API</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">ExchangeRate-API</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={exchangeRateKey} onChange={e => setExchangeRateKey(e.target.value)} placeholder="Your ExchangeRate-API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectExchangeRate} disabled={isExchangeRateConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isExchangeRateConnecting ? 'Connecting...' : 'Connect'}</button></div> {exchangeRateError && <p className="text-red-400 text-sm mt-3">{exchangeRateError}</p>} </div> )}
+          </div>
+          {/* Financial Modeling Prep Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isFmpConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <FinancialModelingPrepIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">FMP Connected</p> <p className="text-sm text-slate-400">Ready for financial data apps.</p> </div> </div> <button onClick={handleDisconnectFmp} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><FinancialModelingPrepIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to Financial Modeling Prep</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">FMP</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={fmpKey} onChange={e => setFmpKey(e.target.value)} placeholder="Your FMP API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectFmp} disabled={isFmpConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isFmpConnecting ? 'Connecting...' : 'Connect'}</button></div> {fmpError && <p className="text-red-400 text-sm mt-3">{fmpError}</p>} </div> )}
+          </div>
+          {/* NewsAPI Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isNewsApiConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <NewsApiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">NewsAPI Connected</p> <p className="text-sm text-slate-400">Ready to build news apps.</p> </div> </div> <button onClick={handleDisconnectNewsApi} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><NewsApiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to NewsAPI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://newsapi.org/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">NewsAPI</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={newsApiKey} onChange={e => setNewsApiKey(e.target.value)} placeholder="Your NewsAPI Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectNewsApi} disabled={isNewsApiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isNewsApiConnecting ? 'Connecting...' : 'Connect'}</button></div> {newsApiError && <p className="text-red-400 text-sm mt-3">{newsApiError}</p>} </div> )}
+          </div>
+          {/* RAWG Section */}
+          <div className="mb-8 pb-8 border-b border-slate-800">
+            {isRawgConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <RawgIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">RAWG Connected</p> <p className="text-sm text-slate-400">Ready for video game data apps.</p> </div> </div> <button onClick={handleDisconnectRawg} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><RawgIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to RAWG</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://rawg.io/apidocs" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">RAWG</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={rawgKey} onChange={e => setRawgKey(e.target.value)} placeholder="Your RAWG API Key" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectRawg} disabled={isRawgConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isRawgConnecting ? 'Connecting...' : 'Connect'}</button></div> {rawgError && <p className="text-red-400 text-sm mt-3">{rawgError}</p>} </div> )}
+          </div>
+          {/* WordsAPI Section */}
+          <div>
+            {isWordsApiConnected ? ( <div> <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-lg"> <div className="flex items-center gap-4"> <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center bg-black"> <WordsApiIcon className="w-8 h-8 text-white" /> </div> <div> <p className="font-bold text-lg text-white">WordsAPI Connected</p> <p className="text-sm text-slate-400">Ready for dictionary apps.</p> </div> </div> <button onClick={handleDisconnectWordsApi} className="px-4 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors">Disconnect</button> </div> </div> ) : ( <div> <div className="flex items-center gap-3 mb-2"><WordsApiIcon className="w-6 h-6 text-white"/><h3 className="font-semibold text-slate-300 text-lg">Connect to WordsAPI</h3></div> <p className="text-sm text-slate-500 mb-4">Provide a key from <a href="https://rapidapi.com/dpventures/api/wordsapi/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">RapidAPI</a>.</p> <div className="flex flex-col md:flex-row gap-4 items-start"><input type="password" value={wordsApiKey} onChange={e => setWordsApiKey(e.target.value)} placeholder="Your WordsAPI Key (from RapidAPI)" className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg shadow-inner" /><button onClick={handleConnectWordsApi} disabled={isWordsApiConnecting} className="w-full md:w-auto px-5 py-3 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-500 text-white transition-colors">{isWordsApiConnecting ? 'Connecting...' : 'Connect'}</button></div> {wordsApiError && <p className="text-red-400 text-sm mt-3">{wordsApiError}</p>} </div> )}
           </div>
         </div>
         

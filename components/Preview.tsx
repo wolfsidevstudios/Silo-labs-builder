@@ -98,7 +98,10 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
         <div className="relative flex-shrink-0 flex items-center gap-2 px-4 py-3 bg-slate-900 overflow-hidden">
-            <div className="absolute top-1/2 right-0 w-2/3 h-[300%] bg-gradient-to-r from-fuchsia-600 to-pink-600 opacity-25 blur-3xl transform -translate-y-1/2 -rotate-[25deg]" aria-hidden="true" />
+            <div 
+                className={`absolute top-1/2 right-0 w-2/3 h-[300%] ${isLoading ? 'bg-fuchsia-500 animate-pulse' : 'bg-gradient-to-r from-fuchsia-600 to-pink-600'} opacity-25 blur-3xl transform -translate-y-1/2 -rotate-[25deg] transition-all duration-500`}
+                aria-hidden="true" 
+            />
             <EyeIcon className="relative z-10 w-5 h-5 text-slate-300" />
             <h2 className="relative z-10 font-semibold text-slate-200">Live Preview</h2>
         </div>
