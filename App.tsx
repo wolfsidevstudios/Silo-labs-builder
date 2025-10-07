@@ -13,6 +13,7 @@ import OnboardingModal from './components/OnboardingModal';
 import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
+import { trackAffiliateClick } from './services/affiliateService';
 import { SavedProject } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
 
@@ -91,6 +92,7 @@ const App: React.FC = () => {
     if (refCode && !referralSeen && !permanentProStatus) {
       setReferrerId(refCode);
       setIsReferralModalOpen(true);
+      trackAffiliateClick(refCode); // Track the click
       localStorage.setItem('referralSeen', 'true');
     }
 

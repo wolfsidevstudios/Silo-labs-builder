@@ -2,21 +2,22 @@ import React, { useState, useEffect } from 'react';
 import CheckIcon from '../components/icons/CheckIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import GiftIcon from '../components/icons/GiftIcon';
+import AffiliateCard from '../components/AffiliateCard';
+import { getAffiliateId, getAffiliateStats } from '../services/affiliateService';
 
 const PRO_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
 
 const PlansPage: React.FC = () => {
   const [copyText, setCopyText] = useState('Copy URL');
   const [affiliateUrl, setAffiliateUrl] = useState('');
+  const [userName, setUserName] = useState<string | null>(null);
+  const [affiliateStats, setAffiliateStats] = useState({ clicks: 0, credits: 0 });
 
   useEffect(() => {
-    let affiliateId = localStorage.getItem('user_affiliate_id');
-    if (!affiliateId) {
-      // Generate a simple unique ID
-      affiliateId = 'ref' + Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('user_affiliate_id', affiliateId);
-    }
+    const affiliateId = getAffiliateId();
     setAffiliateUrl(`https://silo-labs-builder.vercel.app/?ref=${affiliateId}`);
+    setUserName(localStorage.getItem('userName'));
+    setAffiliateStats(getAffiliateStats());
   }, []);
 
   const handleCopy = () => {
@@ -96,31 +97,22 @@ const PlansPage: React.FC = () => {
         </div>
 
         {/* Affiliate Program Section */}
-        <div className="mt-20 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-                <div className="hidden sm:block">
-                    <GiftIcon className="w-16 h-16 text-indigo-400" />
-                </div>
+        <div className="mt-20 text-center">
+             <div className="flex items-center justify-center gap-4 mb-8">
+                <GiftIcon className="w-8 h-8 text-indigo-400" />
                 <div>
-                    <h3 className="text-2xl font-semibold text-white">Affiliate Program</h3>
-                    <p className="text-slate-400 mt-2 max-w-lg">Share your unique tracking URL to get <strong>1 free generation</strong> per sign-up. Soon, you'll also earn <strong>10% cash back</strong> every time a referred user buys premium!</p>
+                    <h3 className="text-3xl font-semibold text-white">Join the Affiliate Program</h3>
+                    <p className="text-slate-400 mt-1 max-w-lg mx-auto">Share your link to get <strong>1 free generation</strong> per sign-up and earn <strong>10% cash back</strong> on premium purchases (coming soon).</p>
                 </div>
-            </div>
-            <div className="relative w-full md:w-auto md:min-w-[420px]">
-              <div 
-                title={affiliateUrl}
-                className="w-full p-3 pr-28 bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-full shadow-inner shadow-black/20 text-indigo-300 font-mono text-sm truncate pl-5"
-              >
-                  {affiliateUrl || 'Generating...'}
-              </div>
-              <button
-                  onClick={handleCopy}
-                  disabled={!affiliateUrl}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-colors text-sm disabled:bg-slate-600 disabled:cursor-not-allowed"
-              >
-                  {copyText}
-              </button>
-            </div>
+             </div>
+            <AffiliateCard 
+                userName={userName}
+                affiliateUrl={affiliateUrl}
+                clicks={affiliateStats.clicks}
+                credits={affiliateStats.credits}
+                onCopy={handleCopy}
+                copyText={copyText}
+            />
         </div>
       </main>
       <style>{`
