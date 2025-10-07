@@ -13,6 +13,7 @@ import UnsplashSearchModal from '../components/UnsplashSearchModal';
 import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
+import QuotaErrorModal from '../components/QuotaErrorModal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
@@ -95,6 +96,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false);
+  const [isQuotaErrorModalOpen, setIsQuotaErrorModalOpen] = useState(false);
 
   // Connections can be global
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
@@ -313,11 +315,19 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-          setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
-              ...t,
-              error: errorMessage,
-              chatHistory: t.chatHistory.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id)
-          } : t));
+          if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('quota')) {
+              setIsQuotaErrorModalOpen(true);
+              setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
+                  ...t,
+                  chatHistory: t.chatHistory.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id)
+              } : t));
+          } else {
+            setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
+                ...t,
+                error: errorMessage,
+                chatHistory: t.chatHistory.filter(msg => msg.id !== tempAssistantId && msg.id !== newUserMessage.id)
+            } : t));
+          }
       } finally {
           updateActiveTab({ isLoading: false, streamingPreviewHtml: null });
       }
@@ -498,6 +508,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
       <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
+      <QuotaErrorModal isOpen={isQuotaErrorModalOpen} onClose={() => setIsQuotaErrorModalOpen(false)} />
       
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
