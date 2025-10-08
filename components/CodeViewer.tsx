@@ -87,7 +87,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ files }) => {
             ))}
           </div>
           <div className="flex-grow p-1 overflow-auto">
-             <pre className="text-sm h-full line-numbers"><code className="language-jsx">{displayedFile?.content}</code></pre>
+             <pre className="text-sm h-full line-numbers" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><code className="language-jsx">{displayedFile?.content}</code></pre>
           </div>
         </>
       )}

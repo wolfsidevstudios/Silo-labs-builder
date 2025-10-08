@@ -2,17 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import CursorIcon from './icons/CursorIcon';
 
 interface AgentCursorProps {
-  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; }[];
+  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; type: string; href?: string; }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
 }
 
 const generateRandomText = () => {
     const texts = [
         'Hello World',
-        'Testing agent 1.02',
+        'Testing agent 1.03',
         'Silo MAX',
         'Gemini 3.0',
-        'Automated input test',
+        'Autonomous input test',
         'San Francisco',
         'How does this work?',
         Math.random().toString(36).substring(7),
@@ -38,34 +38,50 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
       await wait(1000);
 
       while (isActive.current) {
-        // Decide on an action: scroll, type, or click
-        const actionRoll = Math.random();
+        if (targets.length === 0) {
+            setActionText('Scanning page...');
+            await wait(2000);
+            continue; // Wait for targets to appear from the iframe
+        }
 
-        if (actionRoll < 0.33) { // ~33% chance to scroll
+        const actionRoll = Math.random();
+        
+        const navigationTargets = targets.filter(t => t.type === 'navigate');
+        const inputTargets = targets.filter(t => t.type === 'input');
+        const clickTargets = targets.filter(t => t.type === 'click');
+
+        if (actionRoll < 0.25 && navigationTargets.length > 0) { // 25% chance to navigate
+            const target = navigationTargets[Math.floor(Math.random() * navigationTargets.length)];
+            
+            setActionText(`Navigating to ${target.href}...`);
+            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
+            await wait(1200);
+
+            if (!isActive.current) return;
+            
+            setIsClicking(true);
+            iframeRef.current.contentWindow.postMessage({
+                type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id },
+            }, '*');
+            await wait(300);
+            setIsClicking(false);
+            
+            setActionText('Loading page...');
+            await wait(3000); // Wait for page to potentially load
+
+        } else if (actionRoll < 0.50) { // 25% chance to scroll
           setActionText('Scrolling...');
           const scrollAmount = (Math.random() - 0.5) * 800; // Scroll up or down
           iframeRef.current.contentWindow.postMessage(
-            {
-              type: 'MAX_AGENT_ACTION',
-              action: 'scroll',
-              payload: { amount: scrollAmount },
-            },
-            '*'
+            { type: 'MAX_AGENT_ACTION', action: 'scroll', payload: { amount: scrollAmount } }, '*'
           );
-          await wait(1500); // Wait for scroll to complete
-        } else if (actionRoll < 0.66) { // ~33% chance to type
-          const inputTargets = targets.filter(
-            (t) => t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'
-          );
-          if (inputTargets.length > 0) {
-            const target =
-              inputTargets[Math.floor(Math.random() * inputTargets.length)];
+          await wait(1500);
+
+        } else if (actionRoll < 0.75 && inputTargets.length > 0) { // 25% chance to type
+            const target = inputTargets[Math.floor(Math.random() * inputTargets.length)];
 
             setActionText('Moving to input...');
-            setPosition({
-              top: target.top + target.height / 2,
-              left: target.left + target.width / 2,
-            });
+            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
             await wait(1200);
 
             if (!isActive.current) return;
@@ -73,49 +89,29 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
             setActionText('Typing...');
             const randomText = generateRandomText();
             iframeRef.current.contentWindow.postMessage(
-              {
-                type: 'MAX_AGENT_ACTION',
-                action: 'type',
-                payload: { id: target.id, text: randomText },
-              },
-              '*'
+              { type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: randomText } }, '*'
             );
             await wait(randomText.length * 50 + 500);
 
             if (!isActive.current) return;
 
-            // Look for and click a submit button
-            const submitKeywords = [
-              'send',
-              'submit',
-              'search',
-              'go',
-              'add',
-              'post',
-              'ok',
-              '>',
-              '->',
-            ];
+            // Look for and click a submit button near the input
+            const submitKeywords = ['submit', 'search', 'go', 'add', 'post', 'ok', '>', '->', 'send'];
             const potentialButtons = targets.filter(
-              (t) =>
-                (t.tagName === 'BUTTON' || t.tagName === 'INPUT') &&
-                submitKeywords.some((kw) => t.text.includes(kw))
+              (t) => (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'INPUT') && submitKeywords.some((kw) => t.text.includes(kw))
             );
 
             if (potentialButtons.length > 0) {
+              // Find the button geometrically closest to the input field
               let closestButton = potentialButtons[0];
               let minDistance = Infinity;
-
               const inputCenterX = target.left + target.width / 2;
               const inputCenterY = target.top + target.height / 2;
 
               for (const btn of potentialButtons) {
                 const btnCenterX = btn.left + btn.width / 2;
                 const btnCenterY = btn.top + btn.height / 2;
-                const distance = Math.sqrt(
-                  Math.pow(btnCenterX - inputCenterX, 2) +
-                    Math.pow(btnCenterY - inputCenterY, 2)
-                );
+                const distance = Math.sqrt(Math.pow(btnCenterX - inputCenterX, 2) + Math.pow(btnCenterY - inputCenterY, 2));
                 if (distance < minDistance) {
                   minDistance = distance;
                   closestButton = btn;
@@ -123,60 +119,36 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
               }
 
               setActionText('Submitting...');
-              setPosition({
-                top: closestButton.top + closestButton.height / 2,
-                left: closestButton.left + closestButton.width / 2,
-              });
+              setPosition({ top: closestButton.top + closestButton.height / 2, left: closestButton.left + closestButton.width / 2 });
               await wait(1200);
 
               if (!isActive.current) return;
               setIsClicking(true);
               iframeRef.current.contentWindow.postMessage(
-                {
-                  type: 'MAX_AGENT_ACTION',
-                  action: 'click',
-                  payload: { id: closestButton.id },
-                },
-                '*'
+                { type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id } }, '*'
               );
               await wait(300);
               setIsClicking(false);
             }
-          }
-        } else { // ~33% chance to click a non-input element
-          const clickTargets = targets.filter(
-            (t) => t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA'
-          );
-          if (clickTargets.length > 0) {
-            const target =
-              clickTargets[Math.floor(Math.random() * clickTargets.length)];
+        } else if (clickTargets.length > 0) { // 25% chance to click a generic element
+            const target = clickTargets[Math.floor(Math.random() * clickTargets.length)];
 
-            setActionText('Moving to interactive element...');
-            setPosition({
-              top: target.top + target.height / 2,
-              left: target.left + target.width / 2,
-            });
+            setActionText('Clicking element...');
+            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
             await wait(1200);
 
             if (!isActive.current) return;
 
-            setActionText('Clicking!');
             setIsClicking(true);
             iframeRef.current.contentWindow.postMessage(
-              {
-                type: 'MAX_AGENT_ACTION',
-                action: 'click',
-                payload: { id: target.id },
-              },
-              '*'
+              { type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*'
             );
             await wait(300);
             setIsClicking(false);
-          }
         }
 
         setActionText('Thinking...');
-        await wait(2000); // Wait before next action
+        await wait(2000);
         if (!isActive.current) return;
       }
     };

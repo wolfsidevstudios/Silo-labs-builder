@@ -130,6 +130,22 @@ const maxAgentScript = `
         .map((el, index) => {
           el.setAttribute('data-max-agent-id', String(index));
           const rect = el.getBoundingClientRect();
+          
+          let type = 'click'; // default
+          let href = null;
+          const tagName = el.tagName.toUpperCase();
+
+          if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+              type = 'input';
+          } else if (tagName === 'A') {
+              const elHref = el.getAttribute('href');
+              // Ensure it's a valid, non-fragment, non-JS link
+              if (elHref && !elHref.startsWith('#') && !elHref.startsWith('javascript:')) {
+                  type = 'navigate';
+                  href = elHref;
+              }
+          }
+
           return {
             id: index, // Send ID back to parent
             top: rect.top,
@@ -138,6 +154,8 @@ const maxAgentScript = `
             height: rect.height,
             tagName: el.tagName,
             text: (el.innerText || el.value || '').trim().toLowerCase(),
+            type: type,
+            href: href,
           };
         });
     };
