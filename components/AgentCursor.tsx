@@ -2,9 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
 
 interface AgentCursorProps {
-  targets: { id: number; top: number; left: number; width: number; height: number }[];
+  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
 }
+
+const generateRandomText = () => {
+    const texts = [
+        'Hello World',
+        'Testing agent 1.01',
+        'Silo MAX',
+        'Gemini 3.0',
+        'Automated input test',
+        Math.random().toString(36).substring(7),
+    ];
+    return texts[Math.floor(Math.random() * texts.length)];
+};
+
 
 const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
   const [position, setPosition] = useState({ top: 50, left: 50 });
@@ -23,7 +36,7 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
       await wait(1000);
 
       while (isActive.current) {
-        // Decide on an action: 50% chance to scroll, 50% to click (if targets exist)
+        // Decide on an action: 50% chance to scroll, 50% to click/type (if targets exist)
         const shouldScroll = Math.random() < 0.5;
 
         if (shouldScroll) {
@@ -47,17 +60,28 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
             await wait(1200); // Wait for cursor travel
             
             if (!isActive.current) return;
-
-            setActionText('Clicking!');
-            setIsClicking(true);
-            iframeRef.current.contentWindow.postMessage({
-                type: 'MAX_AGENT_ACTION',
-                action: 'click',
-                payload: { id: target.id }
-            }, '*');
-            await wait(300); // Click duration
-
-            setIsClicking(false);
+            
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+                setActionText('Typing...');
+                const randomText = generateRandomText();
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'MAX_AGENT_ACTION',
+                    action: 'type',
+                    payload: { id: target.id, text: randomText }
+                }, '*');
+                // Wait for typing animation to finish
+                await wait(randomText.length * 50 + 500);
+            } else {
+                setActionText('Clicking!');
+                setIsClicking(true);
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'MAX_AGENT_ACTION',
+                    action: 'click',
+                    payload: { id: target.id }
+                }, '*');
+                await wait(300); // Click duration
+                setIsClicking(false);
+            }
         }
 
         setActionText('Thinking...');

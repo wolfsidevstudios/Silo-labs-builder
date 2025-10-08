@@ -86,20 +86,40 @@ const maxAgentScript = `
     window.addEventListener('message', (event) => {
         if (event.data.type === 'MAX_AGENT_ACTION') {
             const { action, payload } = event.data;
+            const el = document.querySelector('[data-max-agent-id="' + payload.id + '"]');
+            if (!el) return;
+
             if (action === 'click') {
-                const el = document.querySelector('[data-max-agent-id="' + payload.id + '"]');
-                if (el && typeof el.click === 'function') {
+                if (typeof el.click === 'function') {
                   el.focus();
                   el.click();
                 }
             } else if (action === 'scroll') {
                 window.scrollBy({ top: payload.amount, left: 0, behavior: 'smooth' });
+            } else if (action === 'type') {
+                if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                    el.focus();
+                    el.value = ''; // Clear existing value
+                    let i = 0;
+                    const text = payload.text;
+                    const interval = setInterval(() => {
+                        if (i < text.length) {
+                            el.value += text.charAt(i);
+                            i++;
+                        } else {
+                            clearInterval(interval);
+                            // Dispatch events to trigger any framework-level state updates
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }, 50); // 50ms per character
+                }
             }
         }
     });
 
     const getInteractiveElements = () => {
-      const selectors = 'a, button, input:not([type="hidden"]), [role="button"], [onclick]';
+      const selectors = 'a, button, input:not([type="hidden"]), textarea, [role="button"], [onclick]';
       const elements = Array.from(document.querySelectorAll(selectors));
       return elements
         .filter(el => {
@@ -116,6 +136,7 @@ const maxAgentScript = `
             left: rect.left,
             width: rect.width,
             height: rect.height,
+            tagName: el.tagName,
           };
         });
     };
