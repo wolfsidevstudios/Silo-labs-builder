@@ -1,14 +1,15 @@
-
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { AppFile } from '../types';
 import CodeIcon from './icons/CodeIcon';
+
+declare var Prism: any;
 
 interface CodeViewerProps {
   files: AppFile[];
 }
 
 const CodeViewer: React.FC<CodeViewerProps> = ({ files }) => {
-  const [activeFile, setActiveFile] = useState<string | null>(
+  const [activeFile, setActiveFile] = React.useState<string | null>(
     files.length > 0 ? files[0].path : null
   );
 
@@ -22,8 +23,43 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ files }) => {
 
   const displayedFile = files.find((file) => file.path === activeFile);
 
+  useEffect(() => {
+    if (displayedFile) {
+      Prism.highlightAll();
+    }
+  }, [displayedFile]);
+
+
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
+      <style>{`
+        /* Custom Prism theme adjustments */
+        pre[class*="language-"].line-numbers {
+            position: relative;
+            padding-left: 3.8em;
+            counter-reset: linenumber;
+        }
+        .line-numbers .line-numbers-rows {
+            border-right: 1px solid #2d3748; /* slate-700 */
+        }
+        .line-numbers-rows > span:before {
+            color: #4a5568; /* slate-600 */
+        }
+        pre[class*="language-"]::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        pre[class*="language-"]::-webkit-scrollbar-track {
+            background: #1a202c; /* slate-800 */
+        }
+        pre[class*="language-"]::-webkit-scrollbar-thumb {
+            background-color: #4a5568; /* slate-600 */
+            border-radius: 4px;
+        }
+        pre[class*="language-"]::-webkit-scrollbar-thumb:hover {
+            background-color: #718096; /* slate-500 */
+        }
+      `}</style>
       <div className="flex items-center gap-2 p-3 bg-slate-900 border-b border-slate-700">
         <CodeIcon className="w-5 h-5 text-slate-400" />
         <h2 className="font-semibold text-slate-300">Code</h2>
@@ -51,7 +87,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ files }) => {
             ))}
           </div>
           <div className="flex-grow p-1 overflow-auto">
-             <pre className="text-sm p-4 h-full"><code className="language-javascript">{displayedFile?.content}</code></pre>
+             <pre className="text-sm h-full line-numbers"><code className="language-jsx">{displayedFile?.content}</code></pre>
           </div>
         </>
       )}

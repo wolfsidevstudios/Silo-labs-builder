@@ -19,6 +19,7 @@ import GoogleIcon from './icons/GoogleIcon';
 import BeakerIcon from './icons/BeakerIcon';
 import DiamondIcon from './icons/DiamondIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
+import ArrowUpIcon from './icons/ArrowUpIcon';
 
 
 interface FeatureDropModalProps {
@@ -108,7 +109,7 @@ const Part4Content = () => (
        </div>
        <h3 className="font-bold text-white text-xl">The Future is Coming: Gemini 3.0</h3>
        <p className="text-slate-400 mt-2 max-w-md">
-           We are committed to providing the most powerful tools. We're already preparing to integrate the next generation of AI, including Gemini 3.0 Pro and regular models, as soon as they are released.
+           We are committed to providing the most powerful tools. We're already preparing to integrate the next generation of AI, including Gemini 3.0 Pro and Flash models, as soon as they are released.
        </p>
    </div>
 );
@@ -144,9 +145,33 @@ const Part6Content = () => (
    </div>
 );
 
+const Part7Content = () => (
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-green-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
+       <div className="flex items-center gap-4">
+         <div className="relative">
+            <svg width="64" height="64" viewBox="0 0 24 24" className="w-16 h-16 text-slate-500">
+                <rect x="3" y="8" width="18" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5"></rect>
+                <path d="M7 12h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"></path>
+            </svg>
+            <span className="absolute top-1/2 left-8 font-mono text-cyan-400 animate-pulse">query...</span>
+         </div>
+         <span className="text-2xl font-bold text-slate-400">&rarr;</span>
+         <div className="relative">
+            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center">
+                <ArrowUpIcon className="w-8 h-8 text-green-400"/>
+            </div>
+         </div>
+       </div>
+       <h3 className="font-bold text-white text-xl mt-6">Silo MAX 1.02: Smart Submission</h3>
+       <p className="text-slate-400 mt-4 max-w-md">
+            MAX is getting smarter. After typing into an input field, it now intelligently looks for the nearest submission button—like "Search," "Send," or "Go"—and clicks it. Your agent can now complete entire workflows, from data entry to action.
+       </p>
+   </div>
+);
+
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6'>('part6');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6' | 'part7'>('part7');
 
   if (!isOpen) return null;
 
@@ -182,7 +207,8 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
              : activePart === 'part3' ? 'Part III: The AI Revolution'
              : activePart === 'part4' ? 'Part IV: The Next Generation'
              : activePart === 'part5' ? 'Part V: The MAX Revolution'
-             : 'Part VI: MAX 1.01'}
+             : activePart === 'part6' ? 'Part VI: MAX 1.01'
+             : 'Part VII: MAX 1.02'}
         </p>
 
         {activePart === 'part1' ? <Part1Content /> 
@@ -190,7 +216,8 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
          : activePart === 'part3' ? <Part3Content />
          : activePart === 'part4' ? <Part4Content />
          : activePart === 'part5' ? <Part5Content />
-         : <Part6Content />}
+         : activePart === 'part6' ? <Part6Content />
+         : <Part7Content />}
         
         <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50 flex-wrap justify-center">
             <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
@@ -199,6 +226,7 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             <button onClick={() => setActivePart('part4')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part4' ? 'bg-white text-black' : 'text-slate-300'}`}>Part IV</button>
             <button onClick={() => setActivePart('part5')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part5' ? 'bg-white text-black' : 'text-slate-300'}`}>Part V</button>
             <button onClick={() => setActivePart('part6')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part6' ? 'bg-white text-black' : 'text-slate-300'}`}>Part VI</button>
+            <button onClick={() => setActivePart('part7')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part7' ? 'bg-white text-black' : 'text-slate-300'}`}>Part VII</button>
         </div>
       </div>
       <style>{`

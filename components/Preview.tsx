@@ -137,6 +137,7 @@ const maxAgentScript = `
             width: rect.width,
             height: rect.height,
             tagName: el.tagName,
+            text: (el.innerText || el.value || '').trim().toLowerCase(),
           };
         });
     };

@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
 
 interface AgentCursorProps {
-  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string }[];
+  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
 }
 
 const generateRandomText = () => {
     const texts = [
         'Hello World',
-        'Testing agent 1.01',
+        'Testing agent 1.02',
         'Silo MAX',
         'Gemini 3.0',
         'Automated input test',
+        'San Francisco',
+        'How does this work?',
         Math.random().toString(36).substring(7),
     ];
     return texts[Math.floor(Math.random() * texts.length)];
@@ -36,8 +38,8 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
       await wait(1000);
 
       while (isActive.current) {
-        // Decide on an action: 50% chance to scroll, 50% to click/type (if targets exist)
-        const shouldScroll = Math.random() < 0.5;
+        // Decide on an action: 40% chance to scroll, 60% to click/type (if targets exist)
+        const shouldScroll = Math.random() < 0.4;
 
         if (shouldScroll) {
           setActionText('Scrolling...');
@@ -71,6 +73,47 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
                 }, '*');
                 // Wait for typing animation to finish
                 await wait(randomText.length * 50 + 500);
+
+                // --- MAX 1.02 Logic: Find and click a submit button ---
+                if (!isActive.current) return;
+
+                const submitKeywords = ['send', 'submit', 'search', 'go', 'add', 'post', 'ok', '>', '->'];
+                const potentialButtons = targets.filter(t => 
+                    (t.tagName === 'BUTTON' || t.tagName === 'INPUT') && 
+                    submitKeywords.some(kw => t.text.includes(kw))
+                );
+
+                if (potentialButtons.length > 0) {
+                    // Find the closest button to the input field
+                    let closestButton = potentialButtons[0];
+                    let minDistance = Infinity;
+
+                    const inputCenterX = target.left + target.width / 2;
+                    const inputCenterY = target.top + target.height / 2;
+
+                    for (const btn of potentialButtons) {
+                        const btnCenterX = btn.left + btn.width / 2;
+                        const btnCenterY = btn.top + btn.height / 2;
+                        const distance = Math.sqrt(Math.pow(btnCenterX - inputCenterX, 2) + Math.pow(btnCenterY - inputCenterY, 2));
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestButton = btn;
+                        }
+                    }
+
+                    setActionText('Submitting...');
+                    setPosition({ top: closestButton.top + closestButton.height / 2, left: closestButton.left + closestButton.width / 2 });
+                    await wait(1200);
+
+                    if (!isActive.current) return;
+                    setIsClicking(true);
+                    iframeRef.current.contentWindow.postMessage({
+                        type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id }
+                    }, '*');
+                    await wait(300);
+                    setIsClicking(false);
+                }
+
             } else {
                 setActionText('Clicking!');
                 setIsClicking(true);
