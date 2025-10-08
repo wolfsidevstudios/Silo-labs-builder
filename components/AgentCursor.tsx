@@ -6,24 +6,10 @@ interface AgentCursorProps {
   targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; type: string; href?: string; selector: string; }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
   testPlan: TestStep[] | null;
+  onComplete: () => void;
 }
 
-const generateRandomText = () => {
-    const texts = [
-        'Hello World',
-        'Testing agent 1.03',
-        'Silo MAX',
-        'Gemini 3.0',
-        'Autonomous input test',
-        'San Francisco',
-        'How does this work?',
-        Math.random().toString(36).substring(7),
-    ];
-    return texts[Math.floor(Math.random() * texts.length)];
-};
-
-
-const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan }) => {
+const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan, onComplete }) => {
   const [position, setPosition] = useState({ top: 50, left: 50 });
   const [isClicking, setIsClicking] = useState(false);
   const [actionText, setActionText] = useState('Initializing...');
@@ -34,11 +20,11 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan 
   useEffect(() => {
     isActive.current = true;
 
-    const performLisaActions = async () => {
+    const performTestPlanActions = async () => {
         if (!iframeRef.current?.contentWindow || !testPlan) return;
 
         await wait(1500);
-        setActionText('Starting Lisa test plan...');
+        setActionText('Starting test plan...');
         await wait(1000);
 
         for (const step of testPlan) {
@@ -49,7 +35,7 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan 
             const target = targets.find(t => t.selector === step.targetSelector);
             
             if (!target) {
-                console.warn(`Lisa couldn't find target: ${step.targetSelector}`);
+                console.warn(`MAX couldn't find target: ${step.targetSelector}`);
                 setActionText(`Cannot find: ${step.targetSelector}`);
                 await wait(2000);
                 continue;
@@ -82,133 +68,36 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan 
             
             await wait(1500);
         }
-        setActionText('Lisa test plan complete!');
-        await wait(3000);
+        setActionText('Test plan complete!');
+        await wait(2000);
     };
     
-    const performOriginalMaxActions = async () => {
-      if (!iframeRef.current?.contentWindow) return;
-      await wait(1000);
-
-      while (isActive.current) {
-        if (targets.length === 0) {
-            setActionText('Scanning page...');
-            await wait(2000);
-            continue;
+    const runAgent = async () => {
+        // testPlan is null while the analysis is running.
+        if (testPlan === null) {
+            setActionText('Analyzing app...');
+            return; // Wait for useEffect to re-run when testPlan prop is updated.
         }
 
-        const actionRoll = Math.random();
-        
-        const navigationTargets = targets.filter(t => t.type === 'navigate');
-        const inputTargets = targets.filter(t => t.type === 'input');
-        const clickTargets = targets.filter(t => t.type === 'click');
-
-        if (actionRoll < 0.25 && navigationTargets.length > 0) {
-            const target = navigationTargets[Math.floor(Math.random() * navigationTargets.length)];
-            
-            setActionText(`Navigating to ${target.href}...`);
-            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
-            await wait(1200);
-            if (!isActive.current) return;
-            
-            setIsClicking(true);
-            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*');
-            await wait(300);
-            setIsClicking(false);
-            
-            setActionText('Loading page...');
+        if (testPlan.length > 0) {
+            await performTestPlanActions();
+        } else {
+            setActionText('No test steps found. Analysis complete.');
             await wait(3000);
-
-        } else if (actionRoll < 0.50) {
-          setActionText('Scrolling...');
-          const scrollAmount = (Math.random() - 0.5) * 800;
-          iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'scroll', payload: { amount: scrollAmount } }, '*');
-          await wait(1500);
-
-        } else if (actionRoll < 0.75 && inputTargets.length > 0) {
-            const target = inputTargets[Math.floor(Math.random() * inputTargets.length)];
-
-            setActionText('Moving to input...');
-            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
-            await wait(1200);
-            if (!isActive.current) return;
-
-            setActionText('Typing...');
-            const randomText = generateRandomText();
-
-            const typingPromise = new Promise<void>(resolve => {
-                const typingCompleteHandler = (event: MessageEvent) => {
-                    if (event.data.type === 'MAX_AGENT_EVENT' && event.data.event === 'typingComplete' && event.data.payload.id === target.id) {
-                        window.removeEventListener('message', typingCompleteHandler);
-                        resolve();
-                    }
-                };
-                window.addEventListener('message', typingCompleteHandler);
-            });
-
-            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: randomText } }, '*');
-            await typingPromise;
-            if (!isActive.current) return;
-
-            const submitKeywords = ['submit', 'search', 'go', 'add', 'post', 'ok', '>', '->', 'send'];
-            const potentialButtons = targets.filter(t => (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'INPUT') && submitKeywords.some(kw => t.text.includes(kw)));
-
-            if (potentialButtons.length > 0) {
-              let closestButton = potentialButtons[0];
-              let minDistance = Infinity;
-              const inputCenterX = target.left + target.width / 2;
-              const inputCenterY = target.top + target.height / 2;
-
-              for (const btn of potentialButtons) {
-                const btnCenterX = btn.left + btn.width / 2;
-                const btnCenterY = btn.top + btn.height / 2;
-                const distance = Math.sqrt(Math.pow(btnCenterX - inputCenterX, 2) + Math.pow(btnCenterY - inputCenterY, 2));
-                if (distance < minDistance) {
-                  minDistance = distance;
-                  closestButton = btn;
-                }
-              }
-
-              setActionText('Submitting...');
-              setPosition({ top: closestButton.top + closestButton.height / 2, left: closestButton.left + closestButton.width / 2 });
-              await wait(1200);
-
-              if (!isActive.current) return;
-              setIsClicking(true);
-              iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id } }, '*');
-              await wait(300);
-              setIsClicking(false);
-            }
-        } else if (clickTargets.length > 0) {
-            const target = clickTargets[Math.floor(Math.random() * clickTargets.length)];
-
-            setActionText('Clicking element...');
-            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
-            await wait(1200);
-            if (!isActive.current) return;
-
-            setIsClicking(true);
-            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*');
-            await wait(300);
-            setIsClicking(false);
         }
 
-        setActionText('Thinking...');
-        await wait(2000);
-        if (!isActive.current) return;
-      }
+        // If the component is still active, signal completion.
+        if (isActive.current) {
+            onComplete();
+        }
     };
 
-    if (testPlan && testPlan.length > 0) {
-        performLisaActions();
-    } else {
-        performOriginalMaxActions();
-    }
+    runAgent();
 
     return () => {
       isActive.current = false;
     };
-  }, [targets, iframeRef, testPlan]);
+  }, [targets, iframeRef, testPlan, onComplete]);
 
   return (
     <>

@@ -456,6 +456,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     }
   };
 
+  const handleMaxAgentComplete = () => {
+    updateActiveTab({ isMaxAgentRunning: false });
+  };
+
   const handleAutoFix = (issues: MaxIssue[]) => {
     const issuesString = issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
     const fixPrompt = `Please apply the following fixes to the application code. While implementing these changes, also take the opportunity to improve the overall UI/UX. Make the app look more modern, professional, and visually polished. Ensure the final result is both functional (with the issues resolved) and aesthetically pleasing.\n\nHere are the specific issues to address:\n${issuesString}`;
@@ -696,6 +700,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
                         agentTargets={activeTab?.agentTargets || []}
                         testPlan={activeTab?.testPlan || null}
+                        onMaxAgentComplete={handleMaxAgentComplete}
                     />
                 )}
             </div>

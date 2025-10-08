@@ -12,6 +12,7 @@ interface PreviewProps {
   isMaxAgentRunning: boolean;
   agentTargets: any[];
   testPlan: TestStep[] | null;
+  onMaxAgentComplete: () => void;
 }
 
 const visualEditScript = `
@@ -208,7 +209,7 @@ const maxAgentScript = `
 `;
 
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, testPlan }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, testPlan, onMaxAgentComplete }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
@@ -252,7 +253,7 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} testPlan={testPlan} />}
+                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} testPlan={testPlan} onComplete={onMaxAgentComplete} />}
                 {hasContentToDisplay ? (
                     <iframe
                         ref={iframeRef}
