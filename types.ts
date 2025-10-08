@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 
 export interface AppFile {
@@ -21,8 +19,15 @@ export interface SavedProject {
   summary: string[];
   createdAt: string;
   githubUrl?: string;
-  netlifySiteId?: string; // Add optional Netlify Site ID
+  netlifySiteId?: string;
   netlifyUrl?: string;
+  // New project settings
+  name?: string;
+  description?: string;
+  iconUrl?: string; // data URL
+  thumbnailUrl?: string; // data URL
+  model?: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+  secrets?: Secret[];
 }
 
 // New type for the image library

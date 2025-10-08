@@ -110,23 +110,32 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ onLoadProject }) => {
                     onClick={() => onLoadProject(project)}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="absolute inset-0 pointer-events-none">
-                      <iframe
-                        srcDoc={project.previewHtml}
-                        title={project.prompt}
-                        sandbox="allow-scripts"
-                        scrolling="no"
-                        className="w-[166.67%] h-[166.67%] transform scale-[0.6] origin-top-left bg-white"
-                      />
-                    </div>
+                    {project.thumbnailUrl ? (
+                        <img src={project.thumbnailUrl} alt={project.name || project.prompt} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                        <div className="absolute inset-0 pointer-events-none">
+                            <iframe
+                                srcDoc={project.previewHtml}
+                                title={project.prompt}
+                                sandbox="allow-scripts"
+                                scrolling="no"
+                                className="w-[166.67%] h-[166.67%] transform scale-[0.6] origin-top-left bg-white"
+                            />
+                        </div>
+                    )}
                     
                     <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
-                      <p className="font-semibold text-slate-100 truncate group-hover:text-indigo-300 transition-colors" title={project.prompt}>
-                        {project.prompt}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {new Date(project.createdAt).toLocaleString()}
-                      </p>
+                        <div className="flex items-center">
+                            {project.iconUrl && <img src={project.iconUrl} alt="App icon" className="w-8 h-8 rounded-md mr-3 flex-shrink-0" />}
+                            <div className="min-w-0">
+                                <p className="font-semibold text-slate-100 truncate group-hover:text-indigo-300 transition-colors" title={project.name || project.prompt}>
+                                    {project.name || project.prompt}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                    {new Date(project.createdAt).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                   </div>
                 ))}

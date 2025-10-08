@@ -15,7 +15,8 @@ import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import PublishModal from '../components/PublishModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto } from '../types';
+import ProjectSettingsModal from '../components/ProjectSettingsModal';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -43,7 +44,6 @@ interface UploadedImageState {
 
 interface ProjectTab {
     id: string;
-    name: string;
     chatHistory: ChatMessage[];
     isLoading: boolean;
     error: string | null;
@@ -56,6 +56,13 @@ interface ProjectTab {
     isVisualEditMode: boolean;
     selectedElementSelector: string | null;
     streamingPreviewHtml: string | null;
+    // Settings
+    name: string;
+    description?: string;
+    iconUrl?: string;
+    thumbnailUrl?: string;
+    model: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+    secrets: Secret[];
 }
 
 const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null): ProjectTab => {
@@ -69,7 +76,6 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
 
     return {
         id,
-        name,
         chatHistory,
         isLoading: false,
         error: null,
@@ -82,6 +88,13 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         isVisualEditMode: false,
         selectedElementSelector: null,
         streamingPreviewHtml: null,
+        // Settings
+        name: project?.name || name,
+        description: project?.description,
+        iconUrl: project?.iconUrl,
+        thumbnailUrl: project?.thumbnailUrl,
+        model: project?.model || 'gemini-2.5-flash',
+        secrets: project?.secrets || [],
     };
 };
 
@@ -95,6 +108,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
@@ -258,8 +272,13 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       const currentFiles = files.length > 0 ? files : null;
       
+      const projectSettings = {
+        model: activeTab.model,
+        secrets: activeTab.secrets,
+      };
+
       try {
-          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit);
+          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit, projectSettings);
           let finalResponse: GeminiResponse | null = null;
           
           for await (const update of stream) {
@@ -293,12 +312,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           };
 
           let finalProjectId = activeTab.lastSavedProjectId;
+          const projectDataToSave = {
+              prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || userMessageContent,
+              name: activeTab.name,
+              ...finalResponse
+          };
+
           if (finalProjectId) {
-              updateProject(finalProjectId, { ...finalResponse });
+              updateProject(finalProjectId, projectDataToSave);
           } else {
-              const firstUserMessage = activeTab.chatHistory.find(m => m.role === 'user') as UserMessage | undefined;
-              const projectPrompt = firstUserMessage ? firstUserMessage.content : userMessageContent;
-              const saved = saveProject({ prompt: projectPrompt, ...finalResponse });
+              const saved = saveProject(projectDataToSave);
               finalProjectId = saved.id;
           }
 
@@ -481,6 +504,19 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     }
   };
 
+  const handleSaveSettings = (settings: Partial<Omit<ProjectTab, 'id'>>) => {
+    if (!activeTab) return;
+    
+    // Create a new tab object with updated settings to ensure correct typing
+    const updatedTabData = { ...activeTab, ...settings };
+    updateActiveTab(updatedTabData);
+
+    if (activeTab.lastSavedProjectId) {
+      updateProject(activeTab.lastSavedProjectId, settings);
+    }
+    setIsProjectSettingsOpen(false);
+  };
+
 
   const toggleVisualEditMode = () => {
     const nextState = !activeTab?.isVisualEditMode;
@@ -512,7 +548,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     // Initialize tabs
     if (tabs.length === 0) {
         const firstTab = initialProject
-            ? createNewTab(initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject)
+            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject)
             : createNewTab("Project 1", initialPrompt);
         setTabs([firstTab]);
         setActiveTabId(firstTab.id);
@@ -546,6 +582,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
       <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
       <QuotaErrorModal isOpen={isQuotaErrorModalOpen} onClose={() => setIsQuotaErrorModalOpen(false)} />
+      {activeTab && <ProjectSettingsModal isOpen={isProjectSettingsOpen} onClose={() => setIsProjectSettingsOpen(false)} onSave={handleSaveSettings} project={activeTab} />}
       
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
@@ -595,6 +632,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 isPro={isTrialActive}
                 onDownloadClick={handleDownloadClick}
                 onPublishClick={() => setIsPublishModalOpen(true)}
+                onSettingsClick={() => setIsProjectSettingsOpen(true)}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (

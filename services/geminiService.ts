@@ -1,12 +1,8 @@
-
-
-
-
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppFile, GeminiResponse } from "../types";
+import { AppFile, GeminiResponse, Secret } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
-import { getSecrets } from './secretsService';
+import { getSecrets as getGlobalSecrets } from './secretsService';
 import { getApiKey as getGiphyApiKey } from './giphyService';
 import { getAccessKey as getUnsplashAccessKey } from './unsplashService';
 import { getApiKey as getOpenAiApiKey } from './openaiService';
@@ -31,6 +27,11 @@ import { getApiKey as getWordsApiKey } from './wordsApiService';
 interface UploadedImage {
     data: string;
     mimeType: string;
+}
+
+interface ProjectSettings {
+    model?: string;
+    secrets?: Secret[];
 }
 
 function getGeminiApiKey(): string {
@@ -88,9 +89,9 @@ function getThemeInstruction(): string { const themeId = localStorage.getItem('u
 Strictly use these theme properties in the generated code, primarily using Tailwind CSS classes that correspond to these styles. For example, if background is ${theme.colors.background}, use a dark gray class like bg-slate-900. If primary color is ${theme.colors.primary}, use a corresponding color class.
 ---
 `; }
-function getSecretsInstruction(): string { const secrets = getSecrets(); if (secrets.length === 0) { return ''; } const secretNames = secrets.map(s => `- ${s.name}`).join('\n'); return `
+function getSecretsInstruction(secrets: Secret[] | null, title: string): string { if (!secrets || secrets.length === 0) { return ''; } const secretNames = secrets.map(s => `- ${s.name}`).join('\n'); return `
 ---
-**CUSTOM SECRETS (MUST USE process.env):**
+**${title} (MUST USE process.env):**
 You have access to the following secrets. Use them in your code with \`process.env.SECRET_NAME\`.
 ${secretNames}
 ---
@@ -216,9 +217,9 @@ A WordsAPI key is available. For dictionary or thesaurus apps, follow the WordsA
 ---
 `; }
 
-function constructFullPrompt( prompt: string, existingFiles: AppFile[] | null, visualEditTarget?: { selector: string } | null ): string { const instructions = [ getThemeInstruction(), getSecretsInstruction(), getLogoDevInstruction(), getGiphyInstruction(), getGeminiInstruction(), getUnsplashInstruction(), getPexelsInstruction(), getFreeSoundInstruction(), getSpotifyInstruction(), getStreamlineInstruction(), getStabilityInstruction(), getOpenAiInstruction(), getWeatherApiInstruction(), getOpenWeatherMapInstruction(), getTmdbInstruction(), getYouTubeInstruction(), getMapboxInstruction(), getExchangeRateApiInstruction(), getFmpInstruction(), getNewsApiInstruction(), getRawgInstruction(), getWordsApiInstruction(), ].filter(Boolean).join('\n'); const filesString = existingFiles ? existingFiles .map(f => `// File: ${f.path}\n\n${f.content}`) .join('\n\n---\n\n') : ''; if (visualEditTarget && existingFiles) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`; } else if (existingFiles && existingFiles.length > 0) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`; } else { return `${instructions}\n\nPlease generate an application based on the following request: ${prompt}`; } }
+function constructFullPrompt( prompt: string, existingFiles: AppFile[] | null, visualEditTarget?: { selector: string } | null, projectSecrets?: Secret[] | null ): string { const instructions = [ getThemeInstruction(), getSecretsInstruction(getGlobalSecrets(), "GLOBAL CUSTOM SECRETS"), getSecretsInstruction(projectSecrets, "PROJECT-SPECIFIC SECRETS"), getLogoDevInstruction(), getGiphyInstruction(), getGeminiInstruction(), getUnsplashInstruction(), getPexelsInstruction(), getFreeSoundInstruction(), getSpotifyInstruction(), getStreamlineInstruction(), getStabilityInstruction(), getOpenAiInstruction(), getWeatherApiInstruction(), getOpenWeatherMapInstruction(), getTmdbInstruction(), getYouTubeInstruction(), getMapboxInstruction(), getExchangeRateApiInstruction(), getFmpInstruction(), getNewsApiInstruction(), getRawgInstruction(), getWordsApiInstruction(), ].filter(Boolean).join('\n'); const filesString = existingFiles ? existingFiles .map(f => `// File: ${f.path}\n\n${f.content}`) .join('\n\n---\n\n') : ''; if (visualEditTarget && existingFiles) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`; } else if (existingFiles && existingFiles.length > 0) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`; } else { return `${instructions}\n\nPlease generate an application based on the following request: ${prompt}`; } }
 
-function injectSecrets(html: string): string { const secrets = getSecrets(); if (secrets.length > 0) { const secretsObject = secrets.reduce((obj, secret) => { obj[secret.name] = secret.value; return obj; }, {} as Record<string, string>); const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`; return html.replace('</head>', `${secretScript}</head>`); } return html; }
+function injectSecrets(html: string, secrets: Secret[]): string { if (secrets.length > 0) { const secretsObject = secrets.reduce((obj, secret) => { obj[secret.name] = secret.value; return obj; }, {} as Record<string, string>); const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`; return html.replace('</head>', `${secretScript}</head>`); } return html; }
 
 function injectApiKeys(code: string): string { let injectedCode = code; const giphyKey = getGiphyApiKey(); if (giphyKey) injectedCode = injectedCode.replace(/'YOUR_GIPHY_API_KEY'/g, `'${giphyKey}'`); try { const geminiKey = getGeminiApiKey(); injectedCode = injectedCode.replace(/'YOUR_GEMINI_API_KEY'/g, `'${geminiKey}'`); } catch(e) { /* No Gemini key, do nothing */ } const unsplashKey = getUnsplashAccessKey(); if (unsplashKey) injectedCode = injectedCode.replace(/'YOUR_UNSPLASH_ACCESS_KEY'/g, `'${unsplashKey}'`); const pexelsKey = getPexelsApiKey(); if (pexelsKey) injectedCode = injectedCode.replace(/'YOUR_PEXELS_API_KEY'/g, `'${pexelsKey}'`); const freeSoundKey = getFreeSoundApiKey(); if (freeSoundKey) injectedCode = injectedCode.replace(/'YOUR_FREESOUND_API_KEY'/g, `'${freeSoundKey}'`); const spotifyCreds = getSpotifyCredentials(); if (spotifyCreds) { injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_ID'/g, `'${spotifyCreds.clientId}'`); injectedCode = injectedCode.replace(/'YOUR_SPOTIFY_CLIENT_SECRET'/g, `'${spotifyCreds.clientSecret}'`); } const openAiKey = getOpenAiApiKey(); if (openAiKey) injectedCode = injectedCode.replace(/'YOUR_OPENAI_API_KEY'/g, `'${openAiKey}'`); const stabilityKey = getStabilityApiKey(); if (stabilityKey) injectedCode = injectedCode.replace(/'YOUR_STABILITY_API_KEY'/g, `'${stabilityKey}'`); const streamlineKey = getStreamlineApiKey(); if (streamlineKey) injectedCode = injectedCode.replace(/'YOUR_STREAMLINE_API_KEY'/g, `'${streamlineKey}'`); const weatherApiKey = getWeatherApiKey(); if (weatherApiKey) injectedCode = injectedCode.replace(/'YOUR_WEATHERAPI_KEY'/g, `'${weatherApiKey}'`); const openWeatherMapKey = getOpenWeatherMapApiKey(); if (openWeatherMapKey) injectedCode = injectedCode.replace(/'YOUR_OPENWEATHERMAP_KEY'/g, `'${openWeatherMapKey}'`); const tmdbKey = getTmdbApiKey(); if (tmdbKey) injectedCode = injectedCode.replace(/'YOUR_TMDB_KEY'/g, `'${tmdbKey}'`); const youtubeKey = getYouTubeApiKey(); if (youtubeKey) injectedCode = injectedCode.replace(/'YOUR_YOUTUBE_KEY'/g, `'${youtubeKey}'`); const mapboxKey = getMapboxApiKey(); if (mapboxKey) injectedCode = injectedCode.replace(/'YOUR_MAPBOX_KEY'/g, `'${mapboxKey}'`); const exchangeRateKey = getExchangeRateApiKey(); if (exchangeRateKey) injectedCode = injectedCode.replace(/'YOUR_EXCHANGERATE_KEY'/g, `'${exchangeRateKey}'`); const fmpKey = getFmpApiKey(); if (fmpKey) injectedCode = injectedCode.replace(/'YOUR_FMP_KEY'/g, `'${fmpKey}'`); const newsApiKey = getNewsApiKey(); if (newsApiKey) injectedCode = injectedCode.replace(/'YOUR_NEWSAPI_KEY'/g, `'${newsApiKey}'`); const rawgKey = getRawgApiKey(); if (rawgKey) injectedCode = injectedCode.replace(/'YOUR_RAWG_KEY'/g, `'${rawgKey}'`); const wordsApiKey = getWordsApiKey(); if (wordsApiKey) injectedCode = injectedCode.replace(/'YOUR_WORDSAPI_KEY'/g, `'${wordsApiKey}'`); return injectedCode; }
 
@@ -259,13 +260,13 @@ async function _generateWithHuggingFace(fullPrompt: string): Promise<GeminiRespo
 }
 
 
-async function _generateWithGemini(fullPrompt: string, images?: UploadedImage[] | null): Promise<GeminiResponse> {
+async function _generateWithGemini(fullPrompt: string, images?: UploadedImage[] | null, projectSettings?: ProjectSettings): Promise<GeminiResponse> {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
         throw new Error("Gemini API key is missing. Please add it in the Settings page.");
     }
     const ai = new GoogleGenAI({ apiKey });
-    const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+    const model = projectSettings?.model || localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
 
     let contents: any;
     const textPart = { text: fullPrompt };
@@ -297,10 +298,11 @@ export async function generateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
-    images?: UploadedImage[] | null
+    images?: UploadedImage[] | null,
+    projectSettings?: ProjectSettings
 ): Promise<GeminiResponse> {
   try {
-    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets);
     const provider = localStorage.getItem('ai_provider') || 'gemini';
     
     let generatedApp: GeminiResponse;
@@ -311,7 +313,7 @@ export async function generateOrUpdateAppCode(
         }
         generatedApp = await _generateWithHuggingFace(fullPrompt);
     } else {
-        generatedApp = await _generateWithGemini(fullPrompt, images);
+        generatedApp = await _generateWithGemini(fullPrompt, images, projectSettings);
     }
 
     if (!generatedApp || typeof generatedApp.previewHtml !== 'string' || !Array.isArray(generatedApp.files) || generatedApp.files.length === 0 || !Array.isArray(generatedApp.summary)) {
@@ -320,7 +322,14 @@ export async function generateOrUpdateAppCode(
 
     generatedApp.files = generatedApp.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
     if (generatedApp.files[0]) {
-      generatedApp.previewHtml = injectSecrets(generatedApp.files[0].content);
+      const globalSecrets = getGlobalSecrets();
+      const projectSecrets = projectSettings?.secrets || [];
+      const secretsMap = new Map<string, string>();
+      globalSecrets.forEach(s => secretsMap.set(s.name, s.value));
+      projectSecrets.forEach(s => secretsMap.set(s.name, s.value));
+      const combinedSecrets: Secret[] = Array.from(secretsMap, ([name, value]) => ({ name, value }));
+
+      generatedApp.previewHtml = injectSecrets(generatedApp.files[0].content, combinedSecrets);
     }
     
     return generatedApp;
@@ -385,12 +394,12 @@ async function* _streamGenerateWithHuggingFace(fullPrompt: string): AsyncGenerat
     yield { finalResponse };
 }
 
-async function* _streamGenerateWithGemini(fullPrompt: string, images?: UploadedImage[] | null): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
+async function* _streamGenerateWithGemini(fullPrompt: string, images?: UploadedImage[] | null, projectSettings?: ProjectSettings): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
     const apiKey = getGeminiApiKey();
     if (!apiKey) throw new Error("Gemini API key is missing.");
     
     const ai = new GoogleGenAI({ apiKey });
-    const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+    const model = projectSettings?.model || localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
 
     let contents: any;
     const textPart = { text: fullPrompt };
@@ -436,15 +445,16 @@ export async function* streamGenerateOrUpdateAppCode(
     prompt: string, 
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
-    images?: UploadedImage[] | null
+    images?: UploadedImage[] | null,
+    projectSettings?: ProjectSettings,
 ): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
-    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget);
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets);
     const provider = localStorage.getItem('ai_provider') || 'gemini';
     const useStreaming = localStorage.getItem('experimental_live_preview') === 'true';
 
     if (!useStreaming) {
-        const finalResponse = await generateOrUpdateAppCode(prompt, existingFiles, visualEditTarget, images);
+        const finalResponse = await generateOrUpdateAppCode(prompt, existingFiles, visualEditTarget, images, projectSettings);
         yield { finalResponse };
         return;
     }
@@ -454,7 +464,7 @@ export async function* streamGenerateOrUpdateAppCode(
         if (images && images.length > 0) throw new Error("Image uploads are not supported with Hugging Face models.");
         stream = _streamGenerateWithHuggingFace(fullPrompt);
     } else {
-        stream = _streamGenerateWithGemini(fullPrompt, images);
+        stream = _streamGenerateWithGemini(fullPrompt, images, projectSettings);
     }
     
     let finalResponse: GeminiResponse | null = null;
@@ -483,7 +493,14 @@ export async function* streamGenerateOrUpdateAppCode(
     
     finalResponse.files = finalResponse.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
     if (finalResponse.files[0]) {
-      finalResponse.previewHtml = injectSecrets(finalResponse.files[0].content);
+      const globalSecrets = getGlobalSecrets();
+      const projectSecrets = projectSettings?.secrets || [];
+      const secretsMap = new Map<string, string>();
+      globalSecrets.forEach(s => secretsMap.set(s.name, s.value));
+      projectSecrets.forEach(s => secretsMap.set(s.name, s.value));
+      const combinedSecrets: Secret[] = Array.from(secretsMap, ([name, value]) => ({ name, value }));
+      
+      finalResponse.previewHtml = injectSecrets(finalResponse.files[0].content, combinedSecrets);
     }
 
     yield { finalResponse };
