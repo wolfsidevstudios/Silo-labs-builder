@@ -68,6 +68,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
 
   // States for keys and settings
   const [geminiKey, setGeminiKey] = useState('');
+  const [geminiModel, setGeminiModel] = useState<'gemini-2.5-flash' | 'gemini-2.5-pro'>('gemini-2.5-flash');
   const [githubPat, setGithubPat] = useState('');
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [netlifyPat, setNetlifyPat] = useState('');
@@ -85,6 +86,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     // Load AI Provider
     setAiProvider(localStorage.getItem('ai_provider') || 'gemini');
     setGeminiKey(localStorage.getItem('gemini_api_key') || '');
+    setGeminiModel((localStorage.getItem('gemini_model') as 'gemini-2.5-flash' | 'gemini-2.5-pro') || 'gemini-2.5-flash');
     const hfCreds = getHuggingFaceCreds();
     setHuggingFaceToken(hfCreds?.token || '');
     setHuggingFaceModelUrl(hfCreds?.modelUrl || '');
@@ -115,17 +117,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
-
-  const handleSaveGemini = () => {
-    localStorage.setItem('gemini_api_key', geminiKey);
-    alert('Gemini API Key saved!');
-  };
-
-  const handleSaveGitHub = () => {
-    saveGitHubPat(githubPat);
-    getGitHubUserInfo(githubPat).then(setGithubUser).catch(() => alert("Invalid GitHub PAT"));
-    alert('GitHub Token saved!');
-  };
 
   const handleDisconnectGitHub = () => {
     removeGitHubPat();
@@ -174,7 +165,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
 
   const handleSaveAiProvider = () => {
     localStorage.setItem('ai_provider', aiProvider);
-    if (aiProvider === 'huggingface') {
+    if (aiProvider === 'gemini') {
+        localStorage.setItem('gemini_api_key', geminiKey);
+        localStorage.setItem('gemini_model', geminiModel);
+    } else if (aiProvider === 'huggingface') {
         saveHuggingFaceCreds(huggingFaceToken, huggingFaceModelUrl);
     }
     alert('AI Provider settings saved!');
@@ -256,9 +250,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                          </div>
 
                         {aiProvider === 'gemini' && (
-                            <div>
-                                <label htmlFor="gemini-key" className="block text-sm font-medium text-slate-300 mb-2">Gemini API Key</label>
-                                <input id="gemini-key" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="gemini-key" className="block text-sm font-medium text-slate-300 mb-2">Gemini API Key</label>
+                                    <input id="gemini-key" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Default Generation Model</label>
+                                    <div className="relative bg-slate-800 p-1 rounded-full flex items-center border border-slate-700 max-w-xs text-center">
+                                        <div className="absolute top-1 left-1 h-8 w-[calc(50%-4px)] bg-indigo-600 rounded-full transition-transform duration-300 ease-in-out shadow-lg" style={{ transform: `translateX(${geminiModel === 'gemini-2.5-flash' ? '0' : 'calc(100% + 4px)'})` }} />
+                                        <button onClick={() => setGeminiModel('gemini-2.5-flash')} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Flash</button>
+                                        <button onClick={() => setGeminiModel('gemini-2.5-pro')} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Pro</button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -317,7 +321,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                     <div className="space-y-6">
                          <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
                             <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2"><GitHubIcon className="w-6 h-6"/> GitHub</h3>
-                            {githubUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={githubUser.avatar_url} alt={githubUser.login} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{githubUser.name || githubUser.login}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline">View Profile</a></div></div><button onClick={handleDisconnectGitHub} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : <div className="flex items-center gap-4"><input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-md"/><button onClick={handleSaveGitHub} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg">Connect</button></div>}
+                            {githubUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={githubUser.avatar_url} alt={githubUser.login} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{githubUser.name || githubUser.login}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline">View Profile</a></div></div><button onClick={handleDisconnectGitHub} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : <div className="flex items-center gap-4"><input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-md"/><button onClick={() => { saveGitHubPat(githubPat); getGitHubUserInfo(githubPat).then(setGithubUser).catch(() => alert("Invalid GitHub PAT")); alert('GitHub Token saved!'); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg">Connect</button></div>}
                          </div>
                           <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
                             <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2"><NetlifyIcon className="w-6 h-6"/> Netlify</h3>
