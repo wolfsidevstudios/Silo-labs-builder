@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import MousePointerClickIcon from './icons/MousePointerClickIcon';
+import CursorIcon from './icons/CursorIcon';
 
 interface AgentCursorProps {
   targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; }[];
@@ -149,15 +149,16 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
         </p>
       </div>
       <div
-        className="absolute w-8 h-8 pointer-events-none z-30 -translate-x-1/2 -translate-y-1/2"
+        className="absolute w-8 h-8 pointer-events-none z-30"
         style={{ 
           top: `${position.top}px`, 
           left: `${position.left}px`, 
           transform: `scale(${isClicking ? 0.8 : 1})`,
+          transformOrigin: 'top left',
           transition: 'top 1s ease-in-out, left 1s ease-in-out, transform 0.15s ease-in-out',
         }}
       >
-        <MousePointerClickIcon className="w-full h-full text-indigo-500" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}/>
+        <CursorIcon className="w-full h-full text-white" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}/>
       </div>
     </>
   );
