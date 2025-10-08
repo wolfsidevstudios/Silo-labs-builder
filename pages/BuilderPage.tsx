@@ -397,87 +397,62 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handleStartMaxAgent = async () => {
     if (!activeTab || files.length === 0 || activeTab.isLoading || activeTab.isMaxAgentRunning) return;
-  
-    if (activeTab.isLisaActive) {
-        updateActiveTab({ isLoading: true, error: null });
-        const thinkingMessageId = `assistant-lisa-plan-${Date.now()}`;
-        const thinkingMessage: AssistantMessage = {
-            id: thinkingMessageId,
-            role: 'assistant',
-            content: { summary: ["Lisa is generating a test plan..."] },
-            isGenerating: true,
-        };
-        updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
 
-        try {
-            const testPlan = await generateMaxTestPlan(files[0].content);
-            setTabs(prevTabs => prevTabs.map(tab => {
-                if (tab.id === activeTabId) {
-                    return {
-                        ...tab,
-                        testPlan,
-                        isLoading: false,
-                        chatHistory: tab.chatHistory.filter(m => m.id !== thinkingMessageId),
-                    };
-                }
-                return tab;
-            }));
-        } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : "Lisa failed to generate a test plan.";
-            updateActiveTab({ 
-                error: errorMessage, 
-                isLoading: false,
-                chatHistory: activeTab.chatHistory.filter(m => m.id !== thinkingMessageId),
-            });
-            return;
-        }
-    }
+    // Start loading and set agent to running state
+    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [], testPlan: null });
 
-    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [] });
-  
-    const tempAssistantId = `assistant-max-${Date.now()}`;
-  
+    const thinkingMessageId = `assistant-max-analysis-${Date.now()}`;
     const thinkingMessage: AssistantMessage = {
-      id: tempAssistantId,
-      role: 'assistant',
-      content: { summary: ["MAX is analyzing your app..."] },
-      isGenerating: true,
-    };
-  
-    updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
-  
-    try {
-      const currentCode = files[0].content;
-      const projectSettings = { model: activeTab.model, secrets: activeTab.secrets };
-      
-      const [report] = await Promise.all([
-        analyzeAppCode(currentCode, projectSettings),
-        new Promise(resolve => setTimeout(resolve, 5000)) // Ensure animation plays for a bit
-      ]);
-
-      const lastAssistantMessageWithContent = activeTab.chatHistory
-        .slice()
-        .reverse()
-        .find(m => m.role === 'assistant' && m.content?.files?.length) as AssistantMessage | undefined;
-      
-      const reportMessage: AssistantMessage = {
-        id: `assistant-max-report-${Date.now()}`,
+        id: thinkingMessageId,
         role: 'assistant',
-        content: lastAssistantMessageWithContent?.content || {},
-        isGenerating: false,
-        maxReport: report,
-      };
+        content: { summary: ["MAX is generating a test plan and analyzing your app..."] },
+        isGenerating: true,
+    };
+    updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
 
-      setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
-          ...t,
-          chatHistory: [...t.chatHistory.filter(m => m.id !== tempAssistantId), reportMessage],
-      } : t));
+    try {
+        const currentCode = files[0].content;
+        const projectSettings = { model: activeTab.model, secrets: activeTab.secrets };
+        
+        // Run plan generation and code analysis in parallel
+        const [testPlan, report] = await Promise.all([
+            generateMaxTestPlan(currentCode),
+            analyzeAppCode(currentCode, projectSettings),
+        ]);
+
+        const lastAssistantMessageWithContent = activeTab.chatHistory
+            .slice().reverse()
+            .find(m => m.role === 'assistant' && m.content?.files?.length) as AssistantMessage | undefined;
+        
+        const reportMessage: AssistantMessage = {
+            id: `assistant-max-report-${Date.now()}`,
+            role: 'assistant',
+            content: lastAssistantMessageWithContent?.content || {},
+            isGenerating: false,
+            maxReport: report,
+        };
+
+        // Update tab state with both results
+        setTabs(prevTabs => prevTabs.map(tab => {
+            if (tab.id === activeTabId) {
+                return {
+                    ...tab,
+                    testPlan, // This enables the AgentCursor to run the plan
+                    isLoading: false, // Stop the main loading spinner; agent is now running visually
+                    chatHistory: [...tab.chatHistory.filter(m => m.id !== thinkingMessageId), reportMessage],
+                };
+            }
+            return tab;
+        }));
 
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "MAX analysis failed.";
-        updateActiveTab({ error: errorMessage, chatHistory: activeTab.chatHistory.filter(m => m.id !== tempAssistantId) });
-    } finally {
-        updateActiveTab({ isLoading: false, isMaxAgentRunning: false });
+        updateActiveTab({ 
+            error: errorMessage, 
+            isLoading: false, 
+            isMaxAgentRunning: false, // Stop everything on failure
+            chatHistory: activeTab.chatHistory.filter(m => m.id !== thinkingMessageId) 
+        });
     }
   };
 
