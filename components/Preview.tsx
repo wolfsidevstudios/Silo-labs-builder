@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import EyeIcon from './icons/EyeIcon';
 import AgentCursor from './AgentCursor';
+import { TestStep } from '../types';
 
 interface PreviewProps {
   htmlContent: string;
@@ -10,6 +11,7 @@ interface PreviewProps {
   isVisualEditMode: boolean;
   isMaxAgentRunning: boolean;
   agentTargets: any[];
+  testPlan: TestStep[] | null;
 }
 
 const visualEditScript = `
@@ -82,6 +84,38 @@ const visualEditScript = `
 
 const maxAgentScript = `
   try {
+    const getCssSelector = (el) => {
+        if (!(el instanceof Element)) return;
+        const path = [];
+        while (el.nodeType === Node.ELEMENT_NODE) {
+            let selector = el.nodeName.toLowerCase();
+            if (el.id) {
+                selector = '#' + el.id;
+                path.unshift(selector);
+                break; // ID is unique
+            } else {
+                let sib = el, nth = 1;
+                while (sib = sib.previousElementSibling) {
+                    if (sib.nodeName.toLowerCase() === selector) {
+                       nth++;
+                    }
+                }
+                const classNames = Array.from(el.classList);
+                const parent = el.parentElement;
+                const uniqueClassName = parent ? classNames.find(cn => parent.querySelectorAll('.' + cn).length === 1) : null;
+
+                if (uniqueClassName) {
+                    selector += '.' + uniqueClassName;
+                } else if (nth !== 1) {
+                    selector += \`:nth-of-type(\${nth})\`;
+                }
+            }
+            path.unshift(selector);
+            el = el.parentNode;
+        }
+        return path.join(' > ').replace('html > body > ', '');
+    };
+
     // Action listener for commands from the parent window
     window.addEventListener('message', (event) => {
         if (event.data.type === 'MAX_AGENT_ACTION') {
@@ -131,6 +165,7 @@ const maxAgentScript = `
         .map((el, index) => {
           el.setAttribute('data-max-agent-id', String(index));
           const rect = el.getBoundingClientRect();
+          const selector = getCssSelector(el);
           
           let type = 'click'; // default
           let href = null;
@@ -149,6 +184,7 @@ const maxAgentScript = `
 
           return {
             id: index, // Send ID back to parent
+            selector: selector,
             top: rect.top,
             left: rect.left,
             width: rect.width,
@@ -172,7 +208,7 @@ const maxAgentScript = `
 `;
 
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, testPlan }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
@@ -216,7 +252,7 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} />}
+                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} testPlan={testPlan} />}
                 {hasContentToDisplay ? (
                     <iframe
                         ref={iframeRef}

@@ -23,6 +23,7 @@ type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'm
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
+  const [builderIsLisaActive, setBuilderIsLisaActive] = useState<boolean>(false);
   const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
   const [isPro, setIsPro] = useState<boolean>(false);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
@@ -103,8 +104,9 @@ const App: React.FC = () => {
     setShowOnboarding(false);
   };
 
-  const handleStartBuilding = (prompt: string) => {
+  const handleStartBuilding = (prompt: string, isLisaActive: boolean) => {
     setBuilderPrompt(prompt);
+    setBuilderIsLisaActive(isLisaActive);
     setProjectToLoad(null); // Ensure we're not loading an old project
     setCurrentPage('builder');
   };
@@ -112,6 +114,7 @@ const App: React.FC = () => {
   const handleLoadProject = (project: SavedProject) => {
     setProjectToLoad(project);
     setBuilderPrompt(''); // Clear any prompt from home page
+    setBuilderIsLisaActive(project.isLisaActive || false);
     setCurrentPage('builder');
   };
 
@@ -137,7 +140,7 @@ const App: React.FC = () => {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} initialIsLisaActive={builderIsLisaActive} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} user={user} />;
       case 'plans':

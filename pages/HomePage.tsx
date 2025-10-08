@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import ArrowUpIcon from '../components/icons/ArrowUpIcon';
+import BrainCircuitIcon from '../components/icons/BrainCircuitIcon';
 
 interface HomePageProps {
-  onGenerate: (prompt: string) => void;
+  onGenerate: (prompt: string, isLisaActive: boolean) => void;
 }
 
 const suggestionPrompts = [
@@ -57,11 +58,12 @@ const BackgroundSvg = () => (
 
 const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
   const [prompt, setPrompt] = useState('');
+  const [isLisaActive, setIsLisaActive] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
-      onGenerate(prompt);
+      onGenerate(prompt, isLisaActive);
     }
   };
 
@@ -70,10 +72,25 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate }) => {
       <BackgroundSvg />
       <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
         <main className="flex flex-col items-center justify-center w-full flex-grow text-center">
-          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12 animate-fade-in-down">
+          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-6 animate-fade-in-down">
             From Prompt to App
           </h1>
           
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setIsLisaActive(prev => !prev)}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
+                isLisaActive
+                  ? 'bg-white border-white text-black shadow-lg shadow-white/20'
+                  : 'bg-white/5 border-white/10 text-indigo-300'
+              }`}
+            >
+              <BrainCircuitIcon className={`w-5 h-5 transition-colors ${isLisaActive ? 'text-indigo-500' : ''}`} />
+              Lisa Agent {isLisaActive ? 'Active' : 'Inactive'}
+            </button>
+          </div>
+
           <form 
             onSubmit={handleSubmit} 
             className="relative w-full max-w-2xl animate-fade-in-up"

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppFile, GeminiResponse, Secret, MaxReport } from "../types";
+import { AppFile, GeminiResponse, Secret, MaxReport, TestStep, GeminiModelId } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets as getGlobalSecrets } from './secretsService';
@@ -568,5 +568,115 @@ export async function analyzeAppCode(code: string, projectSettings?: ProjectSett
         console.error("Error analyzing app code with MAX:", error);
         if (error instanceof Error) { throw new Error(`MAX analysis failed: ${error.message}`); }
         throw new Error("An unknown error occurred during MAX analysis.");
+    }
+}
+
+
+export async function determineModelForPrompt(prompt: string): Promise<GeminiModelId> {
+    const systemInstruction = `Analyze the user's web app prompt. Determine if it requires a simple model ('gemini-2.5-flash') for basic tasks or a more advanced model ('gemini-2.5-pro') for complex requests.
+- Simple tasks include: to-do lists, calculators, simple forms, a basic landing page, a personal portfolio with static content.
+- Complex tasks include: apps with API integrations, real-time data, complex state management, multiple interactive components, or highly stylized/animated UIs.
+Respond ONLY with a JSON object in the format: { "model": "model_name" }`;
+
+    const modelSchema = {
+        type: Type.OBJECT,
+        properties: { model: { type: Type.STRING } },
+        required: ["model"],
+    };
+
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash', // Use flash for this simple classification task
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: modelSchema,
+          },
+        });
+
+        const jsonString = response.text;
+        const result = JSON.parse(jsonString) as { model: string };
+        
+        if (result.model === 'gemini-2.5-pro' || result.model === 'gemini-2.5-flash') {
+            return result.model as GeminiModelId;
+        }
+        // Fallback if the model returns an unexpected string
+        return 'gemini-2.5-flash';
+
+    } catch (error) {
+        console.error("Error determining model:", error);
+        // Fallback on error
+        return 'gemini-2.5-flash';
+    }
+}
+
+export async function generateMaxTestPlan(code: string): Promise<TestStep[]> {
+    const testStepSchema = {
+      type: Type.OBJECT,
+      properties: {
+        action: { type: Type.STRING, enum: ['type', 'click', 'scroll', 'navigate'] },
+        targetSelector: { type: Type.STRING, description: "A unique and valid CSS selector for the target element." },
+        payload: {
+          type: Type.OBJECT,
+          properties: { 
+              text: { type: Type.STRING, description: "Text to type for 'type' actions." },
+              amount: { type: Type.NUMBER, description: "Pixel amount to scroll for 'scroll' actions." },
+          },
+          nullable: true,
+        },
+        description: { type: Type.STRING, description: "A user-friendly description of the test step." },
+      },
+      required: ["action", "targetSelector", "description"],
+    };
+
+    const testPlanSchema = {
+        type: Type.OBJECT,
+        properties: {
+            plan: {
+                type: Type.ARRAY,
+                items: testStepSchema
+            }
+        },
+        required: ["plan"]
+    };
+
+    const systemInstruction = `You are "MAX", a world-class QA automation engineer. Your task is to analyze the provided HTML application code and generate a logical, step-by-step test plan in JSON format.
+- The plan should test the application's core functionality from top to bottom, as a user would.
+- For each step, provide a precise CSS selector for the target element.
+- The plan should be an array of test step objects.
+- Example for a to-do app:
+  1. Type "Buy milk" into the input field.
+  2. Click the "Add" button.
+  3. Click the checkbox of the first to-do item.
+  4. Click the "Delete" button of the first to-do item.
+- Ensure the selectors are robust (e.g., use IDs, unique classes, or attribute selectors if possible).
+- Respond ONLY with a JSON object in the format: { "plan": [...] }`;
+
+    const prompt = `Here is the application code:\n\n\`\`\`html\n${code}\n\`\`\`\n\nPlease generate the test plan.`;
+
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash', // Flash is sufficient for this
+          contents: prompt,
+          config: {
+            systemInstruction: systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: testPlanSchema,
+          },
+        });
+
+        const jsonString = response.text;
+        const result = JSON.parse(jsonString) as { plan: TestStep[] };
+        return result.plan;
+    } catch (error) {
+        console.error("Error generating MAX test plan:", error);
+        throw new Error("Failed to generate test plan for MAX.");
     }
 }

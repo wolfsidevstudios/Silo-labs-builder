@@ -14,8 +14,8 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue } from '../types';
-import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode } from '../services/geminiService';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep } from '../types';
+import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
@@ -31,6 +31,7 @@ interface BuilderPageProps {
   initialPrompt?: string;
   initialProject?: SavedProject | null;
   isPro: boolean;
+  initialIsLisaActive?: boolean;
 }
 
 interface UploadedImageState {
@@ -55,6 +56,8 @@ interface ProjectTab {
     streamingPreviewHtml: string | null;
     isMaxAgentRunning: boolean;
     agentTargets: any[];
+    testPlan: TestStep[] | null;
+    isLisaActive: boolean;
     // Settings
     name: string;
     description?: string;
@@ -64,7 +67,7 @@ interface ProjectTab {
     secrets: Secret[];
 }
 
-const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null): ProjectTab => {
+const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null, isLisaActive: boolean = false): ProjectTab => {
     const id = `tab-${Date.now()}`;
     let chatHistory: ChatMessage[] = [];
     if (project) {
@@ -89,6 +92,8 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         streamingPreviewHtml: null,
         isMaxAgentRunning: false,
         agentTargets: [],
+        testPlan: null,
+        isLisaActive: project?.isLisaActive ?? isLisaActive,
         // Settings
         name: project?.name || name,
         description: project?.description,
@@ -100,7 +105,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
 };
 
 
-const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isPro }) => {
+const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isPro, initialIsLisaActive = false }) => {
   const [tabs, setTabs] = useState<ProjectTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   
@@ -277,8 +282,17 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         secrets: activeTab.secrets,
       };
 
+      let finalModel = projectSettings.model;
+      if (activeTab.isLisaActive) {
+          try {
+              finalModel = await determineModelForPrompt(promptToSubmit);
+          } catch (e) {
+              console.error("Lisa failed to determine model, falling back to default.", e);
+          }
+      }
+
       try {
-          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit, projectSettings);
+          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit, { ...projectSettings, model: finalModel });
           let finalResponse: GeminiResponse | null = null;
           
           for await (const update of stream) {
@@ -312,16 +326,19 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           };
 
           let finalProjectId = activeTab.lastSavedProjectId;
-          const projectDataToSave = {
+          const projectDataToSave: Partial<SavedProject> = {
               prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || userMessageContent,
               name: activeTab.name,
+              isLisaActive: activeTab.isLisaActive,
               ...finalResponse
           };
+          
+          delete projectDataToSave.id; // Ensure we don't pass an old ID if it exists on finalResponse somehow
 
           if (finalProjectId) {
               updateProject(finalProjectId, projectDataToSave);
           } else {
-              const saved = saveProject(projectDataToSave);
+              const saved = saveProject(projectDataToSave as any);
               finalProjectId = saved.id;
           }
 
@@ -381,6 +398,41 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const handleStartMaxAgent = async () => {
     if (!activeTab || files.length === 0 || activeTab.isLoading || activeTab.isMaxAgentRunning) return;
   
+    if (activeTab.isLisaActive) {
+        updateActiveTab({ isLoading: true, error: null });
+        const thinkingMessageId = `assistant-lisa-plan-${Date.now()}`;
+        const thinkingMessage: AssistantMessage = {
+            id: thinkingMessageId,
+            role: 'assistant',
+            content: { summary: ["Lisa is generating a test plan..."] },
+            isGenerating: true,
+        };
+        updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
+
+        try {
+            const testPlan = await generateMaxTestPlan(files[0].content);
+            setTabs(prevTabs => prevTabs.map(tab => {
+                if (tab.id === activeTabId) {
+                    return {
+                        ...tab,
+                        testPlan,
+                        isLoading: false,
+                        chatHistory: tab.chatHistory.filter(m => m.id !== thinkingMessageId),
+                    };
+                }
+                return tab;
+            }));
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : "Lisa failed to generate a test plan.";
+            updateActiveTab({ 
+                error: errorMessage, 
+                isLoading: false,
+                chatHistory: activeTab.chatHistory.filter(m => m.id !== thinkingMessageId),
+            });
+            return;
+        }
+    }
+
     updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [] });
   
     const tempAssistantId = `assistant-max-${Date.now()}`;
@@ -575,7 +627,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     if (tabs.length === 0) {
         const firstTab = initialProject
             ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject)
-            : createNewTab("Project 1", initialPrompt);
+            : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive);
         setTabs([firstTab]);
         setActiveTabId(firstTab.id);
     }
@@ -589,7 +641,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const pexKey = getPexelsKey(); if (pexKey) setIsPexelsConnected(true);
     const fsKey = getFreeSoundKey(); if (fsKey) setIsFreeSoundConnected(true);
 
-  }, [initialProject, initialPrompt]);
+  }, [initialProject, initialPrompt, initialIsLisaActive]);
   
   useEffect(() => {
     if (activeTab?.prompt && !initialGenerationDone.current.has(activeTab.id) && activeTab.chatHistory.length === 0) {
@@ -668,6 +720,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
                         isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
                         agentTargets={activeTab?.agentTargets || []}
+                        testPlan={activeTab?.testPlan || null}
                     />
                 )}
             </div>

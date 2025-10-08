@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CursorIcon from './icons/CursorIcon';
+import { TestStep } from '../types';
 
 interface AgentCursorProps {
-  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; type: string; href?: string; }[];
+  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; type: string; href?: string; selector: string; }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
+  testPlan: TestStep[] | null;
 }
 
 const generateRandomText = () => {
@@ -21,7 +23,7 @@ const generateRandomText = () => {
 };
 
 
-const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
+const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, testPlan }) => {
   const [position, setPosition] = useState({ top: 50, left: 50 });
   const [isClicking, setIsClicking] = useState(false);
   const [actionText, setActionText] = useState('Initializing...');
@@ -32,16 +34,67 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
   useEffect(() => {
     isActive.current = true;
 
-    const performActions = async () => {
-      if (!iframeRef.current?.contentWindow) return;
+    const performLisaActions = async () => {
+        if (!iframeRef.current?.contentWindow || !testPlan) return;
 
+        await wait(1500);
+        setActionText('Starting Lisa test plan...');
+        await wait(1000);
+
+        for (const step of testPlan) {
+            if (!isActive.current) return;
+            
+            setActionText(step.description);
+
+            const target = targets.find(t => t.selector === step.targetSelector);
+            
+            if (!target) {
+                console.warn(`Lisa couldn't find target: ${step.targetSelector}`);
+                setActionText(`Cannot find: ${step.targetSelector}`);
+                await wait(2000);
+                continue;
+            }
+            
+            setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
+            await wait(1200);
+            if (!isActive.current) return;
+
+            if (step.action === 'click' || step.action === 'navigate') {
+                setIsClicking(true);
+                iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*');
+                await wait(300);
+                setIsClicking(false);
+            } else if (step.action === 'type' && step.payload?.text) {
+                 const typingPromise = new Promise<void>(resolve => {
+                    const handler = (event: MessageEvent) => {
+                        if (event.data.type === 'MAX_AGENT_EVENT' && event.data.event === 'typingComplete' && event.data.payload.id === target.id) {
+                            window.removeEventListener('message', handler);
+                            resolve();
+                        }
+                    };
+                    window.addEventListener('message', handler);
+                });
+                iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: step.payload.text } }, '*');
+                await typingPromise;
+            } else if (step.action === 'scroll' && step.payload?.amount) {
+                iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'scroll', payload: { amount: step.payload.amount } }, '*');
+            }
+            
+            await wait(1500);
+        }
+        setActionText('Lisa test plan complete!');
+        await wait(3000);
+    };
+    
+    const performOriginalMaxActions = async () => {
+      if (!iframeRef.current?.contentWindow) return;
       await wait(1000);
 
       while (isActive.current) {
         if (targets.length === 0) {
             setActionText('Scanning page...');
             await wait(2000);
-            continue; // Wait for targets to appear from the iframe
+            continue;
         }
 
         const actionRoll = Math.random();
@@ -50,40 +103,34 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
         const inputTargets = targets.filter(t => t.type === 'input');
         const clickTargets = targets.filter(t => t.type === 'click');
 
-        if (actionRoll < 0.25 && navigationTargets.length > 0) { // 25% chance to navigate
+        if (actionRoll < 0.25 && navigationTargets.length > 0) {
             const target = navigationTargets[Math.floor(Math.random() * navigationTargets.length)];
             
             setActionText(`Navigating to ${target.href}...`);
             setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
             await wait(1200);
-
             if (!isActive.current) return;
             
             setIsClicking(true);
-            iframeRef.current.contentWindow.postMessage({
-                type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id },
-            }, '*');
+            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*');
             await wait(300);
             setIsClicking(false);
             
             setActionText('Loading page...');
-            await wait(3000); // Wait for page to potentially load
+            await wait(3000);
 
-        } else if (actionRoll < 0.50) { // 25% chance to scroll
+        } else if (actionRoll < 0.50) {
           setActionText('Scrolling...');
-          const scrollAmount = (Math.random() - 0.5) * 800; // Scroll up or down
-          iframeRef.current.contentWindow.postMessage(
-            { type: 'MAX_AGENT_ACTION', action: 'scroll', payload: { amount: scrollAmount } }, '*'
-          );
+          const scrollAmount = (Math.random() - 0.5) * 800;
+          iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'scroll', payload: { amount: scrollAmount } }, '*');
           await wait(1500);
 
-        } else if (actionRoll < 0.75 && inputTargets.length > 0) { // 25% chance to type
+        } else if (actionRoll < 0.75 && inputTargets.length > 0) {
             const target = inputTargets[Math.floor(Math.random() * inputTargets.length)];
 
             setActionText('Moving to input...');
             setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
             await wait(1200);
-
             if (!isActive.current) return;
 
             setActionText('Typing...');
@@ -91,11 +138,7 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
 
             const typingPromise = new Promise<void>(resolve => {
                 const typingCompleteHandler = (event: MessageEvent) => {
-                    if (
-                        event.data.type === 'MAX_AGENT_EVENT' &&
-                        event.data.event === 'typingComplete' &&
-                        event.data.payload.id === target.id
-                    ) {
+                    if (event.data.type === 'MAX_AGENT_EVENT' && event.data.event === 'typingComplete' && event.data.payload.id === target.id) {
                         window.removeEventListener('message', typingCompleteHandler);
                         resolve();
                     }
@@ -103,22 +146,14 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
                 window.addEventListener('message', typingCompleteHandler);
             });
 
-            iframeRef.current.contentWindow.postMessage(
-              { type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: randomText } }, '*'
-            );
-            
+            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: randomText } }, '*');
             await typingPromise;
-
             if (!isActive.current) return;
 
-            // Look for and click a submit button near the input
             const submitKeywords = ['submit', 'search', 'go', 'add', 'post', 'ok', '>', '->', 'send'];
-            const potentialButtons = targets.filter(
-              (t) => (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'INPUT') && submitKeywords.some((kw) => t.text.includes(kw))
-            );
+            const potentialButtons = targets.filter(t => (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'INPUT') && submitKeywords.some(kw => t.text.includes(kw)));
 
             if (potentialButtons.length > 0) {
-              // Find the button geometrically closest to the input field
               let closestButton = potentialButtons[0];
               let minDistance = Infinity;
               const inputCenterX = target.left + target.width / 2;
@@ -140,25 +175,20 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
 
               if (!isActive.current) return;
               setIsClicking(true);
-              iframeRef.current.contentWindow.postMessage(
-                { type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id } }, '*'
-              );
+              iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id } }, '*');
               await wait(300);
               setIsClicking(false);
             }
-        } else if (clickTargets.length > 0) { // 25% chance to click a generic element
+        } else if (clickTargets.length > 0) {
             const target = clickTargets[Math.floor(Math.random() * clickTargets.length)];
 
             setActionText('Clicking element...');
             setPosition({ top: target.top + target.height / 2, left: target.left + target.width / 2 });
             await wait(1200);
-
             if (!isActive.current) return;
 
             setIsClicking(true);
-            iframeRef.current.contentWindow.postMessage(
-              { type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*'
-            );
+            iframeRef.current.contentWindow.postMessage({ type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: target.id } }, '*');
             await wait(300);
             setIsClicking(false);
         }
@@ -169,12 +199,16 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
       }
     };
 
-    performActions();
+    if (testPlan && testPlan.length > 0) {
+        performLisaActions();
+    } else {
+        performOriginalMaxActions();
+    }
 
     return () => {
       isActive.current = false;
     };
-  }, [targets, iframeRef]);
+  }, [targets, iframeRef, testPlan]);
 
   return (
     <>
