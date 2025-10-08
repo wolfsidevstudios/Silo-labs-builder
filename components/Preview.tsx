@@ -131,7 +131,7 @@ const maxAgentScript = `
           el.setAttribute('data-max-agent-id', String(index));
           const rect = el.getBoundingClientRect();
           return {
-            id: index,
+            id: index, // Send ID back to parent
             top: rect.top,
             left: rect.left,
             width: rect.width,

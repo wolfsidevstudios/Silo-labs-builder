@@ -54,7 +54,7 @@ interface ProjectTab {
     selectedElementSelector: string | null;
     streamingPreviewHtml: string | null;
     isMaxAgentRunning: boolean;
-    agentTargets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; }[];
+    agentTargets: any[];
     // Settings
     name: string;
     description?: string;
