@@ -14,7 +14,7 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep } from '../types';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -57,6 +57,8 @@ interface ProjectTab {
     isMaxAgentRunning: boolean;
     agentTargets: any[];
     testPlan: TestStep[] | null;
+    pendingMaxReport?: MaxReport | null;
+    testingMessageId?: string | null;
     isLisaActive: boolean;
     // Settings
     name: string;
@@ -93,6 +95,8 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         isMaxAgentRunning: false,
         agentTargets: [],
         testPlan: null,
+        pendingMaxReport: null,
+        testingMessageId: null,
         isLisaActive: project?.isLisaActive ?? isLisaActive,
         // Settings
         name: project?.name || name,
@@ -398,14 +402,13 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const handleStartMaxAgent = async () => {
     if (!activeTab || files.length === 0 || activeTab.isLoading || activeTab.isMaxAgentRunning) return;
 
-    // Start loading and set agent to running state
-    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [], testPlan: null });
+    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [], testPlan: null, pendingMaxReport: null });
 
     const thinkingMessageId = `assistant-max-analysis-${Date.now()}`;
     const thinkingMessage: AssistantMessage = {
         id: thinkingMessageId,
         role: 'assistant',
-        content: { summary: ["MAX is generating a test plan and analyzing your app..."] },
+        content: { summary: ["MAX is analyzing your app and generating a test plan..."] },
         isGenerating: true,
     };
     updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
@@ -414,32 +417,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         const currentCode = files[0].content;
         const projectSettings = { model: activeTab.model, secrets: activeTab.secrets };
         
-        // Run plan generation and code analysis in parallel
         const [testPlan, report] = await Promise.all([
             generateMaxTestPlan(currentCode),
             analyzeAppCode(currentCode, projectSettings),
         ]);
-
-        const lastAssistantMessageWithContent = activeTab.chatHistory
-            .slice().reverse()
-            .find(m => m.role === 'assistant' && m.content?.files?.length) as AssistantMessage | undefined;
         
-        const reportMessage: AssistantMessage = {
-            id: `assistant-max-report-${Date.now()}`,
+        const testingMessageId = `assistant-max-testing-${Date.now()}`;
+        const testingMessage: AssistantMessage = {
+            id: testingMessageId,
             role: 'assistant',
-            content: lastAssistantMessageWithContent?.content || {},
-            isGenerating: false,
-            maxReport: report,
+            content: { summary: [`Executing ${testPlan.length}-step test plan...`] },
+            isGenerating: true,
         };
 
-        // Update tab state with both results
         setTabs(prevTabs => prevTabs.map(tab => {
             if (tab.id === activeTabId) {
                 return {
                     ...tab,
-                    testPlan, // This enables the AgentCursor to run the plan
-                    isLoading: false, // Stop the main loading spinner; agent is now running visually
-                    chatHistory: [...tab.chatHistory.filter(m => m.id !== thinkingMessageId), reportMessage],
+                    testPlan,
+                    pendingMaxReport: report,
+                    testingMessageId: testingMessageId,
+                    isLoading: false,
+                    chatHistory: [...tab.chatHistory.filter(m => m.id !== thinkingMessageId), testingMessage],
                 };
             }
             return tab;
@@ -450,14 +449,44 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         updateActiveTab({ 
             error: errorMessage, 
             isLoading: false, 
-            isMaxAgentRunning: false, // Stop everything on failure
+            isMaxAgentRunning: false,
             chatHistory: activeTab.chatHistory.filter(m => m.id !== thinkingMessageId) 
         });
     }
   };
 
   const handleMaxAgentComplete = () => {
-    updateActiveTab({ isMaxAgentRunning: false });
+    if (!activeTab?.pendingMaxReport) {
+        updateActiveTab({ isMaxAgentRunning: false, pendingMaxReport: null, testingMessageId: null });
+        return;
+    }
+
+    const report = activeTab.pendingMaxReport;
+    const lastAssistantMessageWithContent = activeTab.chatHistory
+        .slice().reverse()
+        .find(m => m.role === 'assistant' && m.content?.files?.length) as AssistantMessage | undefined;
+
+    const reportMessage: AssistantMessage = {
+        id: `assistant-max-report-${Date.now()}`,
+        role: 'assistant',
+        content: lastAssistantMessageWithContent?.content || {},
+        isGenerating: false,
+        maxReport: report,
+    };
+
+    setTabs(prevTabs => prevTabs.map(tab => {
+        if (tab.id === activeTabId) {
+            const newChatHistory = tab.chatHistory.filter(m => m.id !== tab.testingMessageId);
+            return {
+                ...tab,
+                isMaxAgentRunning: false,
+                pendingMaxReport: null,
+                testingMessageId: null,
+                chatHistory: [...newChatHistory, reportMessage],
+            };
+        }
+        return tab;
+    }));
   };
 
   const handleAutoFix = (issues: MaxIssue[]) => {
