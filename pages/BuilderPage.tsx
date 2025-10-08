@@ -14,8 +14,8 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId } from '../types';
-import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue } from '../types';
+import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
 import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
@@ -53,6 +53,7 @@ interface ProjectTab {
     isVisualEditMode: boolean;
     selectedElementSelector: string | null;
     streamingPreviewHtml: string | null;
+    isMaxAgentRunning: boolean;
     // Settings
     name: string;
     description?: string;
@@ -85,6 +86,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         isVisualEditMode: false,
         selectedElementSelector: null,
         streamingPreviewHtml: null,
+        isMaxAgentRunning: false,
         // Settings
         name: project?.name || name,
         description: project?.description,
@@ -373,6 +375,59 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         handleSubmit(boostPrompt, { isBoost: true });
     }
   };
+
+  const handleStartMaxAgent = async () => {
+    if (!activeTab || files.length === 0 || activeTab.isLoading || activeTab.isMaxAgentRunning) return;
+  
+    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null });
+  
+    const tempUserId = `user-max-${Date.now()}`;
+    const tempAssistantId = `assistant-max-${Date.now()}`;
+  
+    const thinkingMessage: AssistantMessage = {
+      id: tempAssistantId,
+      role: 'assistant',
+      content: { summary: ["MAX is analyzing your app..."] },
+      isGenerating: true,
+    };
+  
+    updateActiveTab({ chatHistory: [...activeTab.chatHistory, thinkingMessage] });
+  
+    try {
+      const currentCode = files[0].content;
+      const projectSettings = { model: activeTab.model, secrets: activeTab.secrets };
+      
+      const [report] = await Promise.all([
+        analyzeAppCode(currentCode, projectSettings),
+        new Promise(resolve => setTimeout(resolve, 5000)) // Ensure animation plays for a bit
+      ]);
+      
+      const reportMessage: AssistantMessage = {
+        id: `assistant-max-report-${Date.now()}`,
+        role: 'assistant',
+        content: {},
+        isGenerating: false,
+        maxReport: report,
+      };
+
+      setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
+          ...t,
+          chatHistory: [...t.chatHistory.filter(m => m.id !== tempAssistantId), reportMessage],
+      } : t));
+
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "MAX analysis failed.";
+        updateActiveTab({ error: errorMessage, chatHistory: activeTab.chatHistory.filter(m => m.id !== tempAssistantId) });
+    } finally {
+        updateActiveTab({ isLoading: false, isMaxAgentRunning: false });
+    }
+  };
+
+  const handleAutoFix = (issues: MaxIssue[]) => {
+    const fixPrompt = "Please fix the following issues in the application code:\n" + 
+      issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
+    handleSubmit(fixPrompt);
+  };
   
   const handleGitHubSave = async (details: { repoName?: string, description?: string, commitMessage: string }) => {
     const token = getGitHubPat();
@@ -553,7 +608,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <div className="flex flex-grow overflow-hidden">
         <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
             <div className="flex-grow flex flex-col overflow-hidden">
-                <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} />
+                <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} onAutoFix={handleAutoFix} />
             </div>
             <div className="flex-shrink-0">
                 {activeTab && (
@@ -572,6 +627,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
                         isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
                         isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
+                        onStartMaxAgent={handleStartMaxAgent}
+                        isMaxAgentRunning={activeTab.isMaxAgentRunning}
+                        hasFiles={files.length > 0}
                     />
                 )}
             </div>
@@ -600,6 +658,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         hasFiles={files.length > 0} 
                         isLoading={activeTab?.isLoading || false}
                         isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
+                        isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
                     />
                 )}
             </div>

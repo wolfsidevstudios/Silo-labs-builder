@@ -15,7 +15,7 @@ const suggestionPrompts = [
 ];
 
 const BackgroundSvg = () => (
-    <svg viewBox="0 0 1920 1920" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full object-cover z-0 opacity-70">
+    <svg viewBox="0 0 1920 1920" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full object-fill z-0 opacity-70">
       <defs>
         <filter id="new_blur_1" x="-800" y="-800" width="3000" height="3000" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
           <feFlood floodOpacity="0" result="BackgroundImageFix" />

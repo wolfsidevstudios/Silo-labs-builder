@@ -72,11 +72,25 @@ export interface UserMessage {
   imagePreviewUrls?: string[];
 }
 
+export interface MaxIssue {
+    type: 'UI/UX' | 'Accessibility' | 'Bug' | 'Performance' | 'Best Practice';
+    description: string;
+    suggestion: string;
+}
+
+export interface MaxReport {
+    score: number;
+    summary: string;
+    issues: MaxIssue[];
+    isPerfect: boolean;
+}
+
 export interface AssistantMessage {
   id: string;
   role: 'assistant';
   content: Partial<GeminiResponse>;
   isGenerating?: boolean;
+  maxReport?: MaxReport;
 }
 
 export type ChatMessage = UserMessage | AssistantMessage;

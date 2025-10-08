@@ -1,5 +1,6 @@
 import React from 'react';
 import EyeIcon from './icons/EyeIcon';
+import AgentCursor from './AgentCursor';
 
 interface PreviewProps {
   htmlContent: string;
@@ -7,6 +8,7 @@ interface PreviewProps {
   hasFiles: boolean;
   isLoading: boolean;
   isVisualEditMode: boolean;
+  isMaxAgentRunning: boolean;
 }
 
 const visualEditScript = `
@@ -77,7 +79,7 @@ const visualEditScript = `
 }, true);
 `;
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning }) => {
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
   const convertBbcodeToHtml = (html: string): string => {
@@ -112,6 +114,7 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
+                {isMaxAgentRunning && <AgentCursor />}
                 {hasContentToDisplay ? (
                     <iframe
                         srcDoc={enhancedHtmlContent}

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppFile, GeminiResponse, Secret } from "../types";
+import { AppFile, GeminiResponse, Secret, MaxReport } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets as getGlobalSecrets } from './secretsService';
@@ -71,6 +71,29 @@ const geminiSchema = {
   },
   required: ["previewHtml", "files", "summary"],
 };
+
+const maxReportSchema = {
+    type: Type.OBJECT,
+    properties: {
+        score: { type: Type.NUMBER },
+        summary: { type: Type.STRING },
+        isPerfect: { type: Type.BOOLEAN },
+        issues: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    suggestion: { type: Type.STRING },
+                },
+                required: ["type", "description", "suggestion"],
+            },
+        },
+    },
+    required: ["score", "summary", "isPerfect", "issues"],
+};
+
 
 function getThemeInstruction(): string { const themeId = localStorage.getItem('ui_theme_template'); if (!themeId || themeId === 'none') { return ''; } const theme = THEMES.find(t => t.id === themeId); if (!theme) return ''; return `
 ---
@@ -510,4 +533,40 @@ export async function* streamGenerateOrUpdateAppCode(
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     yield { error: `Failed to generate app code: ${errorMessage}` };
   }
+}
+
+
+export async function analyzeAppCode(code: string, projectSettings?: ProjectSettings): Promise<MaxReport> {
+    const systemInstruction = `You are "MAX", an expert AI quality assurance engineer. Your task is to analyze the user's single-file HTML application code.
+- Provide a score from 0-100 based on code quality, UI/UX, accessibility, and potential bugs.
+- Give a brief, one-sentence summary of your findings.
+- Identify specific issues and categorize them as "UI/UX", "Accessibility", "Bug", "Performance", or "Best Practice".
+- For each issue, provide a concise description and a clear suggestion for how to fix it.
+- If the code is perfect and has no issues, set "isPerfect" to true, score to 100, and leave the issues array empty.
+- You MUST respond in the specified JSON format.`;
+
+    const prompt = `Here is the application code:\n\n\`\`\`html\n${code}\n\`\`\`\n\nPlease analyze it and provide your report.`;
+    
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        const model = projectSettings?.model || localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: prompt,
+          config: {
+            systemInstruction: systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: maxReportSchema,
+          },
+        });
+
+        const jsonString = response.text;
+        return JSON.parse(jsonString) as MaxReport;
+    } catch (error) {
+        console.error("Error analyzing app code with MAX:", error);
+        if (error instanceof Error) { throw new Error(`MAX analysis failed: ${error.message}`); }
+        throw new Error("An unknown error occurred during MAX analysis.");
+    }
 }

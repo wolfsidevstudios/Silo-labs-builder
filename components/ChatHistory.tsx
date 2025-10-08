@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import CheckIcon from './icons/CheckIcon';
-import { ChatMessage } from '../types';
+import MaxReportCard from './MaxReportCard';
+import { ChatMessage, MaxIssue } from '../types';
 
 interface ChatHistoryProps {
   messages: ChatMessage[];
   error: string | null;
+  onAutoFix: (issues: MaxIssue[]) => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error, onAutoFix }) => {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,33 +44,37 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error }) => {
             </div>
           ) : (
             <div className="flex flex-col items-start w-full">
-              <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl w-full max-w-xl animate-fade-in-up shadow-2xl shadow-black/20">
-                <p className="font-semibold text-sm mb-2 text-indigo-300">AI Plan</p>
-                {message.content.summary && (
-                  <ul className="list-disc list-inside space-y-1 text-slate-300 mb-4 pl-2">
-                    {message.content.summary.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-                {message.content.files && message.content.files.length > 0 && (
-                  <div className="bg-black/20 border border-white/10 rounded-md p-3">
-                    <p className="font-semibold text-sm mb-3 text-slate-400">Files to be updated</p>
-                    <div className="space-y-2">
-                      {message.content.files.map((file) => (
-                        <div key={file.path} className="flex items-center gap-3 text-sm">
-                          {message.isGenerating ? (
-                            <div className="w-5 h-5 border-2 border-t-transparent border-indigo-400 rounded-full animate-spin flex-shrink-0"></div>
-                          ) : (
-                            <CheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                          )}
-                          <span className="font-mono text-slate-300">{file.path}</span>
+                {message.maxReport ? (
+                    <MaxReportCard report={message.maxReport} onAutoFix={onAutoFix} />
+                ) : (
+                    <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl w-full max-w-xl animate-fade-in-up shadow-2xl shadow-black/20">
+                        <p className="font-semibold text-sm mb-2 text-indigo-300">AI Plan</p>
+                        {message.content.summary && (
+                        <ul className="list-disc list-inside space-y-1 text-slate-300 mb-4 pl-2">
+                            {message.content.summary.map((item, index) => (
+                            <li key={index}>{item}</li>
+                            ))}
+                        </ul>
+                        )}
+                        {message.content.files && message.content.files.length > 0 && (
+                        <div className="bg-black/20 border border-white/10 rounded-md p-3">
+                            <p className="font-semibold text-sm mb-3 text-slate-400">Files to be updated</p>
+                            <div className="space-y-2">
+                            {message.content.files.map((file) => (
+                                <div key={file.path} className="flex items-center gap-3 text-sm">
+                                {message.isGenerating ? (
+                                    <div className="w-5 h-5 border-2 border-t-transparent border-indigo-400 rounded-full animate-spin flex-shrink-0"></div>
+                                ) : (
+                                    <CheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                )}
+                                <span className="font-mono text-slate-300">{file.path}</span>
+                                </div>
+                            ))}
+                            </div>
                         </div>
-                      ))}
+                        )}
                     </div>
-                  </div>
                 )}
-              </div>
             </div>
           )}
         </div>
