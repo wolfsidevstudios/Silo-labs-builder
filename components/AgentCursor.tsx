@@ -34,97 +34,145 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
 
     const performActions = async () => {
       if (!iframeRef.current?.contentWindow) return;
-      
+
       await wait(1000);
 
       while (isActive.current) {
-        // Decide on an action: 40% chance to scroll, 60% to click/type (if targets exist)
-        const shouldScroll = Math.random() < 0.4;
+        // Decide on an action: scroll, type, or click
+        const actionRoll = Math.random();
 
-        if (shouldScroll) {
+        if (actionRoll < 0.33) { // ~33% chance to scroll
           setActionText('Scrolling...');
           const scrollAmount = (Math.random() - 0.5) * 800; // Scroll up or down
-          iframeRef.current.contentWindow.postMessage({
-            type: 'MAX_AGENT_ACTION',
-            action: 'scroll',
-            payload: { amount: scrollAmount }
-          }, '*');
+          iframeRef.current.contentWindow.postMessage(
+            {
+              type: 'MAX_AGENT_ACTION',
+              action: 'scroll',
+              payload: { amount: scrollAmount },
+            },
+            '*'
+          );
           await wait(1500); // Wait for scroll to complete
-        }
+        } else if (actionRoll < 0.66) { // ~33% chance to type
+          const inputTargets = targets.filter(
+            (t) => t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'
+          );
+          if (inputTargets.length > 0) {
+            const target =
+              inputTargets[Math.floor(Math.random() * inputTargets.length)];
 
-        if (targets.length > 0) {
-            const target = targets[Math.floor(Math.random() * targets.length)];
-            
-            setActionText('Moving to element...');
-            const targetX = target.left + target.width / 2;
-            const targetY = target.top + target.height / 2;
-            setPosition({ top: targetY, left: targetX });
-            await wait(1200); // Wait for cursor travel
-            
+            setActionText('Moving to input...');
+            setPosition({
+              top: target.top + target.height / 2,
+              left: target.left + target.width / 2,
+            });
+            await wait(1200);
+
             if (!isActive.current) return;
-            
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-                setActionText('Typing...');
-                const randomText = generateRandomText();
-                iframeRef.current.contentWindow.postMessage({
-                    type: 'MAX_AGENT_ACTION',
-                    action: 'type',
-                    payload: { id: target.id, text: randomText }
-                }, '*');
-                // Wait for typing animation to finish
-                await wait(randomText.length * 50 + 500);
 
-                // --- MAX 1.02 Logic: Find and click a submit button ---
-                if (!isActive.current) return;
+            setActionText('Typing...');
+            const randomText = generateRandomText();
+            iframeRef.current.contentWindow.postMessage(
+              {
+                type: 'MAX_AGENT_ACTION',
+                action: 'type',
+                payload: { id: target.id, text: randomText },
+              },
+              '*'
+            );
+            await wait(randomText.length * 50 + 500);
 
-                const submitKeywords = ['send', 'submit', 'search', 'go', 'add', 'post', 'ok', '>', '->'];
-                const potentialButtons = targets.filter(t => 
-                    (t.tagName === 'BUTTON' || t.tagName === 'INPUT') && 
-                    submitKeywords.some(kw => t.text.includes(kw))
+            if (!isActive.current) return;
+
+            // Look for and click a submit button
+            const submitKeywords = [
+              'send',
+              'submit',
+              'search',
+              'go',
+              'add',
+              'post',
+              'ok',
+              '>',
+              '->',
+            ];
+            const potentialButtons = targets.filter(
+              (t) =>
+                (t.tagName === 'BUTTON' || t.tagName === 'INPUT') &&
+                submitKeywords.some((kw) => t.text.includes(kw))
+            );
+
+            if (potentialButtons.length > 0) {
+              let closestButton = potentialButtons[0];
+              let minDistance = Infinity;
+
+              const inputCenterX = target.left + target.width / 2;
+              const inputCenterY = target.top + target.height / 2;
+
+              for (const btn of potentialButtons) {
+                const btnCenterX = btn.left + btn.width / 2;
+                const btnCenterY = btn.top + btn.height / 2;
+                const distance = Math.sqrt(
+                  Math.pow(btnCenterX - inputCenterX, 2) +
+                    Math.pow(btnCenterY - inputCenterY, 2)
                 );
-
-                if (potentialButtons.length > 0) {
-                    // Find the closest button to the input field
-                    let closestButton = potentialButtons[0];
-                    let minDistance = Infinity;
-
-                    const inputCenterX = target.left + target.width / 2;
-                    const inputCenterY = target.top + target.height / 2;
-
-                    for (const btn of potentialButtons) {
-                        const btnCenterX = btn.left + btn.width / 2;
-                        const btnCenterY = btn.top + btn.height / 2;
-                        const distance = Math.sqrt(Math.pow(btnCenterX - inputCenterX, 2) + Math.pow(btnCenterY - inputCenterY, 2));
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestButton = btn;
-                        }
-                    }
-
-                    setActionText('Submitting...');
-                    setPosition({ top: closestButton.top + closestButton.height / 2, left: closestButton.left + closestButton.width / 2 });
-                    await wait(1200);
-
-                    if (!isActive.current) return;
-                    setIsClicking(true);
-                    iframeRef.current.contentWindow.postMessage({
-                        type: 'MAX_AGENT_ACTION', action: 'click', payload: { id: closestButton.id }
-                    }, '*');
-                    await wait(300);
-                    setIsClicking(false);
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestButton = btn;
                 }
+              }
 
-            } else {
-                setActionText('Clicking!');
-                setIsClicking(true);
-                iframeRef.current.contentWindow.postMessage({
-                    type: 'MAX_AGENT_ACTION',
-                    action: 'click',
-                    payload: { id: target.id }
-                }, '*');
-                await wait(300); // Click duration
-                setIsClicking(false);
+              setActionText('Submitting...');
+              setPosition({
+                top: closestButton.top + closestButton.height / 2,
+                left: closestButton.left + closestButton.width / 2,
+              });
+              await wait(1200);
+
+              if (!isActive.current) return;
+              setIsClicking(true);
+              iframeRef.current.contentWindow.postMessage(
+                {
+                  type: 'MAX_AGENT_ACTION',
+                  action: 'click',
+                  payload: { id: closestButton.id },
+                },
+                '*'
+              );
+              await wait(300);
+              setIsClicking(false);
             }
+          }
+        } else { // ~33% chance to click a non-input element
+          const clickTargets = targets.filter(
+            (t) => t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA'
+          );
+          if (clickTargets.length > 0) {
+            const target =
+              clickTargets[Math.floor(Math.random() * clickTargets.length)];
+
+            setActionText('Moving to interactive element...');
+            setPosition({
+              top: target.top + target.height / 2,
+              left: target.left + target.width / 2,
+            });
+            await wait(1200);
+
+            if (!isActive.current) return;
+
+            setActionText('Clicking!');
+            setIsClicking(true);
+            iframeRef.current.contentWindow.postMessage(
+              {
+                type: 'MAX_AGENT_ACTION',
+                action: 'click',
+                payload: { id: target.id },
+              },
+              '*'
+            );
+            await wait(300);
+            setIsClicking(false);
+          }
         }
 
         setActionText('Thinking...');
@@ -132,13 +180,12 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
         if (!isActive.current) return;
       }
     };
-    
+
     performActions();
-    
+
     return () => {
       isActive.current = false;
     };
-
   }, [targets, iframeRef]);
 
   return (
