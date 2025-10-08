@@ -54,7 +54,7 @@ interface ProjectTab {
     selectedElementSelector: string | null;
     streamingPreviewHtml: string | null;
     isMaxAgentRunning: boolean;
-    agentTargets: any[];
+    agentTargets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; selector: string; }[];
     // Settings
     name: string;
     description?: string;
@@ -429,6 +429,14 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     }
   };
 
+  const handleMaxAgentEdit = (selector: string, prompt: string) => {
+    if (!activeTab) return;
+    // Stop the agent visually and prevent further actions
+    updateActiveTab({ isMaxAgentRunning: false, agentTargets: [] });
+    // Use the existing handleSubmit logic for visual edits
+    handleSubmit(prompt, { visualEditTarget: { selector } });
+  };
+
   const handleAutoFix = (issues: MaxIssue[]) => {
     const issuesString = issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
     const fixPrompt = `Please apply the following fixes to the application code. While implementing these changes, also take the opportunity to improve the overall UI/UX. Make the app look more modern, professional, and visually polished. Ensure the final result is both functional (with the issues resolved) and aesthetically pleasing.\n\nHere are the specific issues to address:\n${issuesString}`;
@@ -668,6 +676,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
                         isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
                         agentTargets={activeTab?.agentTargets || []}
+                        onPerformEdit={handleMaxAgentEdit}
                     />
                 )}
             </div>

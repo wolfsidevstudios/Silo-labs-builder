@@ -169,9 +169,20 @@ const Part7Content = () => (
    </div>
 );
 
+const Part8Content = () => (
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-indigo-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
+       <BrainCircuitIcon className="w-12 h-12 text-indigo-300 mb-4 animate-pulse" />
+       <h3 className="font-bold text-white text-xl">Silo MAX 1.5: Early Release!</h3>
+       <p className="text-indigo-300 font-semibold mt-1">Now Live</p>
+       <p className="text-slate-400 mt-4 max-w-md">
+           The future is here, ahead of schedule! MAX 1.5 is now live. Experience the most powerful AI agent ever built, capable of performing live, autonomous edits as it tests your application. Watch as it decides to restyle a button or improve a layout, then executes the change on the spot.
+       </p>
+   </div>
+);
+
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6' | 'part7'>('part7');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6' | 'part7' | 'part8'>('part8');
 
   if (!isOpen) return null;
 
@@ -208,7 +219,8 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
              : activePart === 'part4' ? 'Part IV: The Next Generation'
              : activePart === 'part5' ? 'Part V: The MAX Revolution'
              : activePart === 'part6' ? 'Part VI: MAX 1.01'
-             : 'Part VII: MAX 1.02'}
+             : activePart === 'part7' ? 'Part VII: MAX 1.02'
+             : 'Part VIII: MAX 1.5 Live!'}
         </p>
 
         {activePart === 'part1' ? <Part1Content /> 
@@ -217,7 +229,8 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
          : activePart === 'part4' ? <Part4Content />
          : activePart === 'part5' ? <Part5Content />
          : activePart === 'part6' ? <Part6Content />
-         : <Part7Content />}
+         : activePart === 'part7' ? <Part7Content />
+         : <Part8Content />}
         
         <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50 flex-wrap justify-center">
             <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
@@ -227,6 +240,7 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             <button onClick={() => setActivePart('part5')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part5' ? 'bg-white text-black' : 'text-slate-300'}`}>Part V</button>
             <button onClick={() => setActivePart('part6')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part6' ? 'bg-white text-black' : 'text-slate-300'}`}>Part VI</button>
             <button onClick={() => setActivePart('part7')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part7' ? 'bg-white text-black' : 'text-slate-300'}`}>Part VII</button>
+            <button onClick={() => setActivePart('part8')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part8' ? 'bg-white text-black' : 'text-slate-300'}`}>Part VIII</button>
         </div>
       </div>
       <style>{`

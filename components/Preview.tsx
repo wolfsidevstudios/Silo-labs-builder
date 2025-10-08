@@ -10,6 +10,7 @@ interface PreviewProps {
   isVisualEditMode: boolean;
   isMaxAgentRunning: boolean;
   agentTargets: any[];
+  onPerformEdit: (selector: string, prompt: string) => void;
 }
 
 const visualEditScript = `
@@ -81,6 +82,43 @@ const visualEditScript = `
 `;
 
 const maxAgentScript = `
+  const getCssSelector = (el) => {
+    if (!(el instanceof Element) || !el.parentElement) return 'body';
+    const path = [];
+    while (el.nodeType === Node.ELEMENT_NODE) {
+        let selector = el.nodeName.toLowerCase();
+        if (el.id) {
+            selector = '#' + el.id;
+            path.unshift(selector);
+            break; // ID is unique
+        } else {
+            let sib = el, nth = 1;
+            while (sib = sib.previousElementSibling) {
+                if (sib.nodeName.toLowerCase() === selector) {
+                   nth++;
+                }
+            }
+            const classNames = Array.from(el.classList);
+            const uniqueClassName = classNames.find(cn => {
+                try {
+                    return el.parentElement.querySelectorAll('.' + cn).length === 1;
+                } catch(e) {
+                    return false;
+                }
+            });
+
+            if (uniqueClassName) {
+                selector += '.' + uniqueClassName;
+            } else if (nth !== 1) {
+                selector += \`:nth-of-type(\${nth})\`;
+            }
+        }
+        path.unshift(selector);
+        el = el.parentNode;
+    }
+    return path.join(' > ').replace('html > body > ', '');
+  };
+
   try {
     // Action listener for commands from the parent window
     window.addEventListener('message', (event) => {
@@ -131,7 +169,8 @@ const maxAgentScript = `
           el.setAttribute('data-max-agent-id', String(index));
           const rect = el.getBoundingClientRect();
           return {
-            id: index, // Send ID back to parent
+            id: index,
+            selector: getCssSelector(el),
             top: rect.top,
             left: rect.left,
             width: rect.width,
@@ -153,7 +192,7 @@ const maxAgentScript = `
 `;
 
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, onPerformEdit }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
@@ -197,7 +236,7 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} />}
+                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} onPerformEdit={onPerformEdit} />}
                 {hasContentToDisplay ? (
                     <iframe
                         ref={iframeRef}

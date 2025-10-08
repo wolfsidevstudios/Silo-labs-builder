@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import CursorIcon from './icons/CursorIcon';
 
 interface AgentCursorProps {
-  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; }[];
+  targets: { id: number; top: number; left: number; width: number; height: number; tagName: string; text: string; selector: string; }[];
   iframeRef: React.RefObject<HTMLIFrameElement>;
+  onPerformEdit: (selector: string, prompt: string) => void;
 }
 
 const generateRandomText = () => {
@@ -21,7 +22,7 @@ const generateRandomText = () => {
 };
 
 
-const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
+const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef, onPerformEdit }) => {
   const [position, setPosition] = useState({ top: 50, left: 50 });
   const [isClicking, setIsClicking] = useState(false);
   const [actionText, setActionText] = useState('Initializing...');
@@ -62,6 +63,28 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
             await wait(1200); // Wait for cursor travel
             
             if (!isActive.current) return;
+
+            // --- NEW MAX 1.5 LOGIC ---
+            const shouldEdit = Math.random() < 0.25; // 25% chance to perform a live edit
+            if (shouldEdit && target.selector) {
+                setActionText('Thinking about an edit...');
+                await wait(1500);
+                
+                let editPrompt = 'Improve the design of this element to make it more modern and visually appealing.';
+                if (target.tagName === 'BUTTON') {
+                    editPrompt = 'Improve the design of this button to make it more prominent and fit a modern aesthetic.';
+                } else if (target.tagName.startsWith('H')) {
+                    editPrompt = 'Make this heading more impactful and improve its styling.';
+                }
+
+                setActionText('Applying live edit!');
+                await wait(500);
+
+                onPerformEdit(target.selector, editPrompt);
+                isActive.current = false; // Stop the agent after triggering an edit
+                return; // Exit the loop
+            }
+            // --- END NEW LOGIC ---
             
             if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
                 setActionText('Typing...');
@@ -139,7 +162,7 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
       isActive.current = false;
     };
 
-  }, [targets, iframeRef]);
+  }, [targets, iframeRef, onPerformEdit]);
 
   return (
     <>
