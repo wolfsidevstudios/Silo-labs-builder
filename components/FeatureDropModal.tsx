@@ -17,6 +17,7 @@ import ZapIcon from './icons/ZapIcon';
 import GiftIcon from './icons/GiftIcon';
 import GoogleIcon from './icons/GoogleIcon';
 import BeakerIcon from './icons/BeakerIcon';
+import DiamondIcon from './icons/DiamondIcon';
 
 
 interface FeatureDropModalProps {
@@ -98,9 +99,22 @@ const Part3Content = () => (
    </div>
 );
 
+const Part4Content = () => (
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-slate-700 animate-fade-in flex flex-col items-center justify-center text-center py-12">
+       <div className="flex items-center gap-4 mb-4">
+            <DiamondIcon className="w-12 h-12 text-purple-400" />
+            <ZapIcon className="w-12 h-12 text-cyan-400" />
+       </div>
+       <h3 className="font-bold text-white text-xl">The Future is Coming: Gemini 3.0</h3>
+       <p className="text-slate-400 mt-2 max-w-md">
+           We are committed to providing the most powerful tools. We're already preparing to integrate the next generation of AI, including Gemini 3.0 Pro and regular models, as soon as they are released.
+       </p>
+   </div>
+);
+
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3'>('part3');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4'>('part4');
 
   if (!isOpen) return null;
 
@@ -131,15 +145,22 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             </h2>
         </div>
         <p className="font-semibold text-slate-300 mb-8">
-            {activePart === 'part1' ? 'Part I: The Foundation' : activePart === 'part2' ? 'Part II: The API Update' : 'Part III: The AI Revolution'}
+            {activePart === 'part1' ? 'Part I: The Foundation' 
+             : activePart === 'part2' ? 'Part II: The API Update' 
+             : activePart === 'part3' ? 'Part III: The AI Revolution'
+             : 'Part IV: The Next Generation'}
         </p>
 
-        {activePart === 'part1' ? <Part1Content /> : activePart === 'part2' ? <Part2Content /> : <Part3Content />}
+        {activePart === 'part1' ? <Part1Content /> 
+         : activePart === 'part2' ? <Part2Content /> 
+         : activePart === 'part3' ? <Part3Content />
+         : <Part4Content />}
         
         <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50">
             <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
             <button onClick={() => setActivePart('part2')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part2' ? 'bg-white text-black' : 'text-slate-300'}`}>Part II</button>
             <button onClick={() => setActivePart('part3')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part3' ? 'bg-white text-black' : 'text-slate-300'}`}>Part III</button>
+            <button onClick={() => setActivePart('part4')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part4' ? 'bg-white text-black' : 'text-slate-300'}`}>Part IV</button>
         </div>
       </div>
       <style>{`

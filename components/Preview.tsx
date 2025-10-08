@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import EyeIcon from './icons/EyeIcon';
 import AgentCursor from './AgentCursor';
 
@@ -82,6 +82,22 @@ const visualEditScript = `
 
 const maxAgentScript = `
   try {
+    // Action listener for commands from the parent window
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'MAX_AGENT_ACTION') {
+            const { action, payload } = event.data;
+            if (action === 'click') {
+                const el = document.querySelector('[data-max-agent-id="' + payload.id + '"]');
+                if (el && typeof el.click === 'function') {
+                  el.focus();
+                  el.click();
+                }
+            } else if (action === 'scroll') {
+                window.scrollBy({ top: payload.amount, left: 0, behavior: 'smooth' });
+            }
+        }
+    });
+
     const getInteractiveElements = () => {
       const selectors = 'a, button, input:not([type="hidden"]), [role="button"], [onclick]';
       const elements = Array.from(document.querySelectorAll(selectors));
@@ -91,9 +107,11 @@ const maxAgentScript = `
           const style = window.getComputedStyle(el);
           return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' && style.pointerEvents !== 'none';
         })
-        .map(el => {
+        .map((el, index) => {
+          el.setAttribute('data-max-agent-id', String(index));
           const rect = el.getBoundingClientRect();
           return {
+            id: index, // Send ID back to parent
             top: rect.top,
             left: rect.left,
             width: rect.width,
@@ -101,11 +119,12 @@ const maxAgentScript = `
           };
         });
     };
+    
     // Use a timeout to ensure the DOM is fully rendered before scanning
     setTimeout(() => {
         const elements = getInteractiveElements();
         window.parent.postMessage({ type: 'MAX_AGENT_ELEMENTS', elements: elements }, '*');
-    }, 100);
+    }, 500); // Increased timeout to be safer
   } catch(e) {
     window.parent.postMessage({ type: 'MAX_AGENT_ELEMENTS', elements: [] }, '*');
   }
@@ -113,6 +132,7 @@ const maxAgentScript = `
 
 
 const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
   const convertBbcodeToHtml = (html: string): string => {
@@ -155,9 +175,10 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor targets={agentTargets} />}
+                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} />}
                 {hasContentToDisplay ? (
                     <iframe
+                        ref={iframeRef}
                         srcDoc={finalHtmlContent}
                         title="App Preview"
                         sandbox="allow-scripts allow-modals allow-forms allow-same-origin"

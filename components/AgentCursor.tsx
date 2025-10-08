@@ -2,65 +2,86 @@ import React, { useState, useEffect, useRef } from 'react';
 import MousePointerClickIcon from './icons/MousePointerClickIcon';
 
 interface AgentCursorProps {
-  targets: { top: number; left: number; width: number; height: number }[];
+  targets: { id: number; top: number; left: number; width: number; height: number }[];
+  iframeRef: React.RefObject<HTMLIFrameElement>;
 }
 
-const AgentCursor: React.FC<AgentCursorProps> = ({ targets }) => {
-  const [position, setPosition] = useState({ top: -50, left: -50 });
+const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
+  const [position, setPosition] = useState({ top: 50, left: 50 });
   const [isClicking, setIsClicking] = useState(false);
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const currentTargetIndex = useRef(0);
+  const [actionText, setActionText] = useState('Initializing...');
+  const isActive = useRef(true);
+
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   useEffect(() => {
-    if (targets.length === 0) {
-        // Hide cursor if no targets
-        setPosition({ top: -50, left: -50 });
-        return;
-    };
+    isActive.current = true;
 
-    let timeoutId: number;
-
-    const moveToNextTarget = () => {
-      // Pick a random target to make it less predictable
-      currentTargetIndex.current = Math.floor(Math.random() * targets.length);
-      const target = targets[currentTargetIndex.current];
-
-      if (!target || !cursorRef.current) return;
+    const performActions = async () => {
+      if (!iframeRef.current?.contentWindow) return;
       
-      const targetX = target.left + target.width / 2;
-      const targetY = target.top + target.height / 2;
-      
-      setPosition({ top: targetY, left: targetX });
+      await wait(1000);
 
-      // After arriving, simulate a click
-      timeoutId = window.setTimeout(() => {
-        setIsClicking(true);
-        timeoutId = window.setTimeout(() => {
-          setIsClicking(false);
-          // Schedule the next move
-          timeoutId = window.setTimeout(moveToNextTarget, 700); // Wait before moving again
-        }, 300); // Click duration
-      }, 1200); // Travel time (from transition) + pause
+      while (isActive.current) {
+        // Decide on an action: 50% chance to scroll, 50% to click (if targets exist)
+        const shouldScroll = Math.random() < 0.5;
+
+        if (shouldScroll) {
+          setActionText('Scrolling...');
+          const scrollAmount = (Math.random() - 0.5) * 800; // Scroll up or down
+          iframeRef.current.contentWindow.postMessage({
+            type: 'MAX_AGENT_ACTION',
+            action: 'scroll',
+            payload: { amount: scrollAmount }
+          }, '*');
+          await wait(1500); // Wait for scroll to complete
+        }
+
+        if (targets.length > 0) {
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            
+            setActionText('Moving to element...');
+            const targetX = target.left + target.width / 2;
+            const targetY = target.top + target.height / 2;
+            setPosition({ top: targetY, left: targetX });
+            await wait(1200); // Wait for cursor travel
+            
+            if (!isActive.current) return;
+
+            setActionText('Clicking!');
+            setIsClicking(true);
+            iframeRef.current.contentWindow.postMessage({
+                type: 'MAX_AGENT_ACTION',
+                action: 'click',
+                payload: { id: target.id }
+            }, '*');
+            await wait(300); // Click duration
+
+            setIsClicking(false);
+        }
+
+        setActionText('Thinking...');
+        await wait(2000); // Wait before next action
+        if (!isActive.current) return;
+      }
     };
-
-    // Start the first move after a short delay
-    const startTimeout = setTimeout(moveToNextTarget, 500);
-
+    
+    performActions();
+    
     return () => {
-      clearTimeout(startTimeout);
-      clearTimeout(timeoutId);
+      isActive.current = false;
     };
-  }, [targets]);
+
+  }, [targets, iframeRef]);
 
   return (
     <>
       <div className="absolute inset-0 bg-black/30 pointer-events-none z-20 flex items-center justify-center">
         <p className="bg-black/50 text-white px-4 py-2 rounded-full font-semibold">
-            MAX is testing your app...
+            MAX: {actionText}
         </p>
       </div>
       <div
-        ref={cursorRef}
         className="absolute w-8 h-8 pointer-events-none z-30 -translate-x-1/2 -translate-y-1/2"
         style={{ 
           top: `${position.top}px`, 
