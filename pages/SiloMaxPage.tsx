@@ -38,7 +38,7 @@ const SiloMaxPage: React.FC = () => {
       
       <main className="relative z-10 flex flex-col items-center pt-20 md:pt-24 animate-fade-in-up">
         <h1 
-          className="text-8xl md:text-9xl font-['Poller_One'] bg-gradient-to-r from-slate-200 via-white to-slate-400 text-transparent bg-clip-text"
+          className="text-8xl md:text-9xl font-['Orbitron'] bg-gradient-to-r from-slate-200 via-white to-slate-400 text-transparent bg-clip-text"
           style={{ textShadow: '0 0 20px rgba(255, 255, 255, 0.2)' }}
         >
           SILO MAX

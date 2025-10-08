@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   ];
 
   return (
-    <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">
+    <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2">
       {navItems.map((item) => (
         <button
           key={item.id}
