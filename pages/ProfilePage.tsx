@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getUserId, getProfile, createOrUpdateProfile, getUserApps, uploadProfileImage } from '../services/supabaseService';
+import { getUserId, getProfile, createOrUpdateProfile, getUserApps, uploadProfileImage, auth as supabaseAuth } from '../services/supabaseService';
 import { Profile, PublishedApp, SavedProject } from '../types';
 import UserIcon from '../components/icons/UserIcon';
 import RocketIcon from '../components/icons/RocketIcon';
@@ -16,6 +16,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userApps, setUserApps] = useState<PublishedApp[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -24,9 +25,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  const userId = getUserId();
+  useEffect(() => {
+    getUserId().then(setUserId);
+  }, []);
 
   const fetchProfileData = useCallback(async () => {
+    if (!userId) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -47,8 +51,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   }, [userId]);
 
   useEffect(() => {
-    fetchProfileData();
-  }, [fetchProfileData]);
+    if(userId) {
+        fetchProfileData();
+    }
+  }, [fetchProfileData, userId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
     const file = e.target.files?.[0];
@@ -67,6 +73,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const handleSaveProfile = async () => {
     if (!username.trim()) {
       setError("Username cannot be empty.");
+      return;
+    }
+    if (!userId) {
+      setError("User not identified.");
       return;
     }
     setIsLoading(true);
@@ -113,6 +123,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
     };
     onLoadProject(project);
   };
+  
+  const handleSignOut = async () => {
+    await supabaseAuth.signOut();
+    setProfile(null);
+    setUsername('');
+    setUserApps([]);
+    setIsEditing(false);
+    // Let the auth listener in App.tsx handle the rest
+  };
+
 
   return (
     <div className="min-h-screen w-screen bg-black flex flex-col p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white">
@@ -120,7 +140,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
         {isLoading && !profile && <div className="text-center text-slate-400">Loading profile...</div>}
         {error && <div className="text-center text-red-400 p-4 bg-red-900/50 border border-red-800 rounded-lg">{error}</div>}
         
-        {!isLoading && !error && (
+        {!isLoading && !error && userId && (
             <>
                 <div 
                   className="relative mb-12 rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/50 bg-cover bg-center min-h-[250px] flex flex-col justify-end"
@@ -165,15 +185,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
                           ) : (
                               <h1 className="text-4xl font-bold text-white">{profile?.username}</h1>
                           )}
-                          <p className="text-slate-400 mt-1">Unique ID: <span className="font-mono text-xs">{userId}</span></p>
+                          <p className="text-slate-400 mt-1">User ID: <span className="font-mono text-xs">{userId}</span></p>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 flex items-center gap-4">
                           {isEditing || !profile ? (
                                <button onClick={handleSaveProfile} disabled={isLoading} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full transition-colors disabled:bg-slate-500">
                                 {isLoading ? 'Saving...' : 'Save Profile'}
                                </button>
                           ) : (
                                <button onClick={() => setIsEditing(true)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full transition-colors">Edit Profile</button>
+                          )}
+                          {profile && !isEditing && (
+                              <button onClick={handleSignOut} className="px-6 py-2 bg-red-900/50 hover:bg-red-900/80 text-red-300 font-semibold rounded-full transition-colors">Sign Out</button>
                           )}
                       </div>
                   </div>

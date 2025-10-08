@@ -6,15 +6,17 @@ import ZapIcon from './icons/ZapIcon';
 import BellIcon from './icons/BellIcon';
 import StoreIcon from './icons/StoreIcon';
 import UserIcon from './icons/UserIcon';
+import { Session } from '../types';
 
 export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
 interface SidebarProps {
   activePage: SidebarPage | null;
   onNavigate: (page: SidebarPage) => void;
+  session: Session | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, session }) => {
   const navItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'projects', icon: ProjectsIcon, label: 'Projects' },
@@ -23,6 +25,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
     { id: 'plans', icon: ZapIcon, label: 'Plans' },
     { id: 'settings', icon: SettingsIcon, label: 'Settings' },
   ];
+
+  const profileAvatarUrl = session?.user?.user_metadata?.avatar_url;
 
   return (
     <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">
@@ -52,7 +56,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
             : 'text-white bg-slate-900/50 backdrop-blur-md border border-slate-700/50 hover:bg-white/20'
         }`}
       >
-        <UserIcon className="w-6 h-6" />
+        {profileAvatarUrl ? (
+            <img src={profileAvatarUrl} alt="User avatar" className="w-6 h-6 rounded-full" />
+        ) : (
+            <UserIcon className="w-6 h-6" />
+        )}
       </button>
     </div>
   );

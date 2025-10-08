@@ -15,9 +15,9 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, AppFile } from './types';
+import { SavedProject, AppFile, Session, Profile } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
-import { getUserId } from './services/supabaseService';
+import { getUserId, supabase, getProfile, createOrUpdateProfile } from './services/supabaseService';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
@@ -32,24 +32,53 @@ const App: React.FC = () => {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
 
+  // Auth & Profile state
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
   // State for new onboarding flow
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ensure user has a persistent ID for Supabase interactions
-    getUserId();
+    // --- Auth Setup ---
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+        setSession(session);
+        const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
 
-    // Onboarding check
-    const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
-    if (!onboardingCompleted) {
-      setShowOnboarding(true);
-    } else {
-      const storedName = localStorage.getItem('userName');
-      if (storedName) {
-        setUserName(storedName);
-      }
-    }
+        if (session) {
+            const profileData = await getProfile(session.user.id);
+            setProfile(profileData);
+            if (profileData) {
+                setUserName(profileData.username);
+            } else if (!onboardingCompleted) {
+                setShowOnboarding(true);
+            }
+        } else {
+            if (!onboardingCompleted) {
+                setShowOnboarding(true);
+            } else {
+                setUserName(localStorage.getItem('userName'));
+            }
+        }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        setSession(session);
+        if (session) {
+            const profileData = await getProfile(session.user.id);
+            setProfile(profileData);
+            if (profileData) {
+                setUserName(profileData.username);
+            }
+        } else {
+            setProfile(null);
+            setUserName(localStorage.getItem('userName')); // Fallback to guest name
+        }
+    });
+
+    // --- Other Initializations ---
+    getUserId(); // Ensure anonymous user ID is created if needed.
 
     // Feature Drop Modal check
     const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v3_seen') === 'true';
@@ -57,12 +86,11 @@ const App: React.FC = () => {
         setIsFeatureDropModalOpen(true);
     }
 
-    // Check for permanent Pro status first. This is the highest priority.
+    // Check for permanent Pro status first.
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
     if (permanentProStatus) {
       setIsPro(true);
     } else {
-      // Grant the one-time 7-day trial if it hasn't been granted before.
       const freeWeekGranted = localStorage.getItem('proTrialFreeWeekGranted') === 'true';
       if (!freeWeekGranted) {
         const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
@@ -72,7 +100,6 @@ const App: React.FC = () => {
         setProTrialEndTime(endTime);
         setIsPro(true);
       } else {
-        // If the free week was already granted, check if the trial is still active.
         const trialEndTimeStr = localStorage.getItem('proTrialEndTime');
         if (trialEndTimeStr) {
           const endTime = parseInt(trialEndTimeStr, 10);
@@ -82,40 +109,39 @@ const App: React.FC = () => {
           } else {
             setIsPro(false);
             setProTrialEndTime(null);
-            localStorage.removeItem('proTrialEndTime'); // Clean up expired trial
+            localStorage.removeItem('proTrialEndTime');
           }
         }
       }
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    
-    // Check for referral
     const refCode = urlParams.get('ref');
     const referralSeen = localStorage.getItem('referralSeen') === 'true';
-
     if (refCode && !referralSeen && !permanentProStatus) {
       setReferrerId(refCode);
       setIsReferralModalOpen(true);
-      trackAffiliateClick(refCode); // Track the click
+      trackAffiliateClick(refCode);
       localStorage.setItem('referralSeen', 'true');
     }
 
-    // Handle payment redirect
     if (urlParams.has('upgraded')) {
       localStorage.setItem('isPro', 'true');
       setIsPro(true);
       setProTrialEndTime(null);
       localStorage.removeItem('proTrialEndTime');
-      // Clean up URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('upgraded');
-      newUrl.searchParams.delete('ref'); // also clean ref
+      newUrl.searchParams.delete('ref');
       window.history.replaceState(null, '', newUrl.toString());
     }
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
   
-  const handleOnboardingFinish = (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => {
+  const handleOnboardingFinish = async (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => {
     localStorage.setItem('onboardingCompleted', 'true');
     localStorage.setItem('userName', data.name);
     
@@ -125,6 +151,11 @@ const App: React.FC = () => {
     
     setUserName(data.name);
     setShowOnboarding(false);
+
+    if (session) {
+        const updatedProfile = await createOrUpdateProfile(session.user.id, { username: data.name });
+        setProfile(updatedProfile);
+    }
   };
 
   const handleStartTrial = () => {
@@ -216,7 +247,7 @@ const App: React.FC = () => {
           </button>
           {currentPage === 'home' && <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />}
       </header>
-      <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} />
+      <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} session={session} />
       {userName && currentPage === 'home' && <UserGreeting name={userName} />}
        <ReferralModal
         isOpen={isReferralModalOpen}
@@ -235,6 +266,7 @@ const App: React.FC = () => {
       <Sidebar
         activePage={getActivePageForSidebar()}
         onNavigate={handleNavigate}
+        session={session}
       />
       <div className="font-sans antialiased">
         {renderPage()}

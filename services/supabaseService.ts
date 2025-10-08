@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 import { PublishedApp } from '../types';
 
 const SUPABASE_URL = 'https://dgbrdmccaxgsknluxcre.supabase.co';
@@ -8,8 +8,82 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const USER_ID_KEY = 'silo_user_id';
 
+// --- Auth ---
+
+async function linkAnonymousProfile(newAuthUserId: string) {
+    const anonymousId = localStorage.getItem(USER_ID_KEY);
+    if (!anonymousId) return;
+
+    // Check if a profile exists for the anonymous ID
+    const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', anonymousId)
+        .single();
+
+    if (existingProfile) {
+        // Profile exists, update its user_id to the new authenticated user ID
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ user_id: newAuthUserId })
+            .eq('id', existingProfile.id);
+        
+        if (updateError) {
+            console.error("Error linking anonymous profile:", updateError);
+        } else {
+            // Success, remove the old anonymous ID
+            localStorage.removeItem(USER_ID_KEY);
+        }
+    }
+}
+
+export const auth = {
+  onAuthStateChange: supabase.auth.onAuthStateChange,
+  
+  async getUser(): Promise<User | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  },
+  
+  async getSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+  },
+
+  async signUp(credentials: {email: string, password: string}) {
+    const { data, error } = await supabase.auth.signUp(credentials);
+    if (error) throw error;
+    if (data.user) {
+        await linkAnonymousProfile(data.user.id);
+    }
+    return data;
+  },
+
+  async signInWithPassword(credentials: {email: string, password: string}) {
+    const { data, error } = await supabase.auth.signInWithPassword(credentials);
+    if (error) throw error;
+    return data;
+  },
+
+  async signInWithOAuth(provider: 'google' | 'github') {
+    const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: {
+            redirectTo: window.location.origin
+        }
+    });
+    if (error) throw error;
+  },
+
+  async signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  }
+};
+
+
 // --- User Management ---
-export function getUserId(): string {
+function getAnonymousUserId(): string {
   let userId = localStorage.getItem(USER_ID_KEY);
   if (!userId) {
     userId = crypto.randomUUID();
@@ -17,6 +91,15 @@ export function getUserId(): string {
   }
   return userId;
 }
+
+export async function getUserId(): Promise<string> {
+  const user = await auth.getUser();
+  if (user) {
+    return user.id;
+  }
+  return getAnonymousUserId();
+}
+
 
 export async function getProfile(userId: string) {
     const { data, error } = await supabase

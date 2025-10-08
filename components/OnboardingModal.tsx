@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import UserIcon from './icons/UserIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
+import GoogleIcon from './icons/GoogleIcon';
+import GitHubIcon from './icons/GitHubIcon';
+import { Session } from '../types';
+import { auth as supabaseAuth } from '../services/supabaseService';
+
 
 interface OnboardingModalProps {
   isOpen: boolean;
   onFinish: (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => void;
+  session: Session | null;
 }
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) => {
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, session }) => {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState(session?.user?.user_metadata?.full_name || '');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [businessProfile, setBusinessProfile] = useState({
     businessName: '',
@@ -18,8 +24,51 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) =
     secondaryColor: '#EC4899', // pink-500
     goals: '',
   });
+  
+  // Auth state
+  const [authView, setAuthView] = useState<'main' | 'signin' | 'signup'>('main');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   if (!isOpen) return null;
+  
+  const handleAuthAction = async (action: 'signup' | 'signin') => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+        if (action === 'signup') {
+            await supabaseAuth.signUp({ email, password });
+        } else {
+            await supabaseAuth.signInWithPassword({ email, password });
+        }
+        // onAuthStateChange in App.tsx will handle session update.
+        // After auth, we proceed to the next step.
+        setStep(1);
+    } catch (e) {
+        setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
+    } finally {
+        setIsAuthLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+        await supabaseAuth.signInWithOAuth(provider);
+        // Supabase redirects, so no further action needed here.
+    } catch (e) {
+        setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
+        setIsAuthLoading(false);
+    }
+  };
+  
+  const handleContinueAsGuest = () => {
+    setStep(1);
+  };
+
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,6 +88,53 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) =
 
   const renderStep = () => {
     switch (step) {
+      case 0: // Auth
+        return (
+          <>
+            <h1 className="text-4xl font-bold text-white mb-4">Join the Community</h1>
+            <p className="text-slate-400 mb-8 max-w-md">Sign up or log in to publish apps, save your profile, and connect with other builders. Or, continue as a guest.</p>
+            
+            {authView === 'main' && (
+                <div className="w-full max-w-sm space-y-4 animate-fade-in">
+                    <button onClick={() => handleOAuthSignIn('google')} disabled={isAuthLoading} className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/[0.05] border border-white/10 rounded-full font-semibold hover:bg-white/10 transition-colors">
+                        <GoogleIcon className="w-5 h-5" /> Continue with Google
+                    </button>
+                    <button onClick={() => handleOAuthSignIn('github')} disabled={isAuthLoading} className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/[0.05] border border-white/10 rounded-full font-semibold hover:bg-white/10 transition-colors">
+                        <GitHubIcon className="w-5 h-5" /> Continue with GitHub
+                    </button>
+                    <div className="flex items-center gap-4">
+                        <hr className="w-full border-slate-700" />
+                        <span className="text-slate-500 text-sm">OR</span>
+                        <hr className="w-full border-slate-700" />
+                    </div>
+                    <button onClick={() => setAuthView('signup')} className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-colors">
+                        Sign up with Email
+                    </button>
+                    <p className="text-sm text-slate-400">
+                        Already have an account? <button onClick={() => setAuthView('signin')} className="font-semibold text-indigo-400 hover:underline">Log in</button>
+                    </p>
+                    <button onClick={handleContinueAsGuest} className="mt-4 text-sm text-slate-500 hover:text-slate-300">
+                        Continue as guest &rarr;
+                    </button>
+                </div>
+            )}
+            
+            {(authView === 'signin' || authView === 'signup') && (
+                <form onSubmit={e => {e.preventDefault(); handleAuthAction(authView);}} className="w-full max-w-sm space-y-4 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-white">{authView === 'signin' ? 'Log In' : 'Sign Up'}</h2>
+                    {authError && <p className="text-red-400 bg-red-900/50 p-3 rounded-lg text-sm">{authError}</p>}
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <button type="submit" disabled={isAuthLoading} className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-colors disabled:bg-slate-500">
+                        {isAuthLoading ? 'Loading...' : (authView === 'signin' ? 'Log In' : 'Sign Up')}
+                    </button>
+                    <button type="button" onClick={() => { setAuthView('main'); setAuthError(null); }} className="text-sm text-slate-500 hover:text-slate-300">
+                        &larr; Back to all options
+                    </button>
+                </form>
+            )}
+          </>
+        );
       case 1: // Name
         return (
           <>
@@ -48,7 +144,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish }) =
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Enter your name or username"
               className="w-full max-w-sm p-3 bg-white/[0.05] border border-white/10 rounded-full text-center text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button

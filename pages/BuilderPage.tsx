@@ -450,7 +450,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handlePublish = async () => {
     if (!activeTab) return;
-    const userId = getUserId();
+    // FIX: getUserId returns a promise, so it needs to be awaited.
+    const userId = await getUserId();
     const profile = await getProfile(userId);
     if (!profile) {
         // Here you might want to redirect to the profile page or show a modal

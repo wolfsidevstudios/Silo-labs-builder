@@ -68,7 +68,7 @@ export type StudioChatMessage = StudioUserMessage | StudioAssistantMessage;
 // --- Supabase Types ---
 export interface Profile {
   id: string; // uuid
-  user_id: string; // text (client-side generated)
+  user_id: string; // text (client-side generated or auth id)
   username: string;
   avatar_url?: string;
   banner_url?: string;
@@ -89,6 +89,27 @@ export interface PublishedApp {
     username: string;
     avatar_url?: string;
   }
+}
+
+// --- Supabase Auth Types ---
+export interface UserMetadata {
+  avatar_url?: string;
+  full_name?: string;
+  [key: string]: any;
+}
+
+export interface User {
+  id: string;
+  email?: string;
+  user_metadata: UserMetadata;
+  [key: string]: any;
+}
+
+export interface Session {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+  [key: string]: any;
 }
 
 

@@ -14,9 +14,15 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, { count: number; userHasLiked: boolean }>>({});
-  const userId = getUserId();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    getUserId().then(setUserId);
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
     const fetchApps = async () => {
       try {
         setIsLoading(true);
@@ -40,6 +46,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
   }, [userId]);
   
   const handleLikeClick = async (appId: string) => {
+    if (!userId) return;
+
     const currentLikeStatus = likes[appId] || { count: 0, userHasLiked: false };
     
     // Optimistic UI update
@@ -110,7 +118,11 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
                         {app.prompt}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                        <UserIcon className="w-4 h-4" />
+                        {app.profiles?.avatar_url ? (
+                            <img src={app.profiles.avatar_url} alt={app.profiles.username} className="w-4 h-4 rounded-full" />
+                        ) : (
+                            <UserIcon className="w-4 h-4" />
+                        )}
                         <span>{app.profiles?.username || 'Anonymous'}</span>
                     </div>
                 </div>
