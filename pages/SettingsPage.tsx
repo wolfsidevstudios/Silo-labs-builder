@@ -55,6 +55,7 @@ import NewsApiIcon from '../components/icons/NewsApiIcon';
 import OpenWeatherMapIcon from '../components/icons/OpenWeatherMapIcon';
 import RawgIcon from '../components/icons/RawgIcon';
 import WordsApiIcon from '../components/icons/WordsApiIcon';
+import TrashIcon from '../components/icons/TrashIcon';
 
 interface SettingsPageProps {
   isPro: boolean;

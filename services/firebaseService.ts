@@ -11,7 +11,7 @@ import {
   linkWithCredential,
   EmailAuthProvider,
   User,
-} from 'firebase/firebase-auth.js';
+} from 'firebase/auth';
 import {
   getFirestore,
   doc,
@@ -28,13 +28,13 @@ import {
   Timestamp,
   deleteDoc,
   updateDoc,
-} from 'firebase/firebase-firestore.js';
+} from 'firebase/firestore';
 import {
   getStorage,
   ref,
   uploadBytes,
   getDownloadURL,
-} from 'firebase/firebase-storage.js';
+} from 'firebase/storage';
 import { FirebaseUser, Profile, PublishedApp } from '../types';
 
 // Initialize Firebase services

@@ -1,5 +1,6 @@
-import { Timestamp } from 'firebase/firebase-firestore.js';
-import { User } from 'firebase/firebase-auth.js';
+import type * as React from 'react';
+import { Timestamp } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 
 // A simplified version of React.CSSProperties to avoid React dependency in a .ts file
 type CSSProperties = {
