@@ -6,17 +6,17 @@ import ZapIcon from './icons/ZapIcon';
 import BellIcon from './icons/BellIcon';
 import StoreIcon from './icons/StoreIcon';
 import UserIcon from './icons/UserIcon';
-import { Session } from '../types';
+import { Profile } from '../types';
 
 export type SidebarPage = 'home' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
 interface SidebarProps {
   activePage: SidebarPage | null;
   onNavigate: (page: SidebarPage) => void;
-  session: Session | null;
+  profile: Profile | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, session }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, profile }) => {
   const navItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'projects', icon: ProjectsIcon, label: 'Projects' },
@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, session }) =>
     { id: 'settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
-  const profileAvatarUrl = session?.user?.user_metadata?.avatar_url;
+  const profileAvatarUrl = profile?.avatarUrl;
 
   return (
     <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">

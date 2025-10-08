@@ -3,19 +3,19 @@ import UserIcon from './icons/UserIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import GoogleIcon from './icons/GoogleIcon';
 import GitHubIcon from './icons/GitHubIcon';
-import { Session } from '../types';
-import { auth as supabaseAuth } from '../services/supabaseService';
+import { FirebaseUser } from '../types';
+import { auth } from '../services/firebaseService';
 
 
 interface OnboardingModalProps {
   isOpen: boolean;
   onFinish: (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => void;
-  session: Session | null;
+  user: FirebaseUser | null;
 }
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, session }) => {
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, user }) => {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState(session?.user?.user_metadata?.full_name || '');
+  const [name, setName] = useState(user?.displayName || '');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [businessProfile, setBusinessProfile] = useState({
     businessName: '',
@@ -39,12 +39,12 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, ses
     setAuthError(null);
     try {
         if (action === 'signup') {
-            await supabaseAuth.signUp({ email, password });
+            await auth.signUp({ email, password });
         } else {
-            await supabaseAuth.signInWithPassword({ email, password });
+            await auth.signInWithPassword({ email, password });
         }
-        // onAuthStateChange in App.tsx will handle session update.
-        // After auth, we proceed to the next step.
+        // onAuthStateChanged in App.tsx will see the new user is not anonymous
+        // and doesn't have a profile, so it will keep this modal open and we can proceed.
         setStep(1);
     } catch (e) {
         setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
@@ -57,8 +57,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, ses
     setIsAuthLoading(true);
     setAuthError(null);
     try {
-        await supabaseAuth.signInWithOAuth(provider);
-        // Supabase redirects, so no further action needed here.
+        await auth.signInWithOAuth(provider);
+        // Firebase redirects for OAuth, so the app will reload.
+        // onAuthStateChanged will then handle the newly logged-in user.
     } catch (e) {
         setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
         setIsAuthLoading(false);
@@ -66,6 +67,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, ses
   };
   
   const handleContinueAsGuest = () => {
+    // The user is already an anonymous user, so just proceed with onboarding.
     setStep(1);
   };
 
@@ -87,6 +89,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, ses
   };
 
   const renderStep = () => {
+    // If a user becomes non-anonymous while this modal is open, move to the next step.
+    if (step === 0 && user && !user.isAnonymous) {
+        setStep(1);
+    }
+      
     switch (step) {
       case 0: // Auth
         return (

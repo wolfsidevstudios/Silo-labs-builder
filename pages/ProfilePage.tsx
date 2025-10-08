@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getUserId, getProfile, createOrUpdateProfile, getUserApps, uploadProfileImage, auth as supabaseAuth } from '../services/supabaseService';
+import { getUserId, getProfile, createOrUpdateProfile, getUserApps, uploadProfileImage, auth } from '../services/firebaseService';
 import { Profile, PublishedApp, SavedProject } from '../types';
 import UserIcon from '../components/icons/UserIcon';
 import RocketIcon from '../components/icons/RocketIcon';
@@ -17,6 +17,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const [error, setError] = useState<string | null>(null);
   const [userApps, setUserApps] = useState<PublishedApp[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -26,7 +28,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    getUserId().then(setUserId);
+    const currentUserId = getUserId();
+    setUserId(currentUserId);
+    setIsAuthenticated(!!(auth.currentUser && !auth.currentUser.isAnonymous));
   }, []);
 
   const fetchProfileData = useCallback(async () => {
@@ -40,15 +44,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
         setUsername(profileData.username);
         const apps = await getUserApps(profileData.id);
         setUserApps(apps);
-      } else {
-        setIsEditing(true); // Force editing if no profile exists
+      } else if (isAuthenticated) {
+        setIsEditing(true); // Force editing if authenticated but no profile exists
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile.");
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, isAuthenticated]);
 
   useEffect(() => {
     if(userId) {
@@ -71,19 +75,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
   };
 
   const handleSaveProfile = async () => {
-    if (!username.trim()) {
-      setError("Username cannot be empty.");
-      return;
-    }
-    if (!userId) {
-      setError("User not identified.");
-      return;
-    }
+    if (!username.trim()) { setError("Username cannot be empty."); return; }
+    if (!userId) { setError("User not identified."); return; }
+    
     setIsLoading(true);
     setError(null);
+    
     try {
-      let avatarUrl = profile?.avatar_url;
-      let bannerUrl = profile?.banner_url;
+      let avatarUrl = profile?.avatarUrl;
+      let bannerUrl = profile?.bannerUrl;
 
       if (avatarFile) {
         avatarUrl = await uploadProfileImage(avatarFile, userId, 'avatar');
@@ -92,7 +92,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
         bannerUrl = await uploadProfileImage(bannerFile, userId, 'banner');
       }
 
-      const updatedProfile = await createOrUpdateProfile(userId, { username, avatar_url: avatarUrl, banner_url: bannerUrl });
+      const updatedProfile = await createOrUpdateProfile(userId, { username, avatarUrl, bannerUrl });
       
       setProfile(updatedProfile);
       setAvatarFile(null);
@@ -101,6 +101,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
       setBannerPreview(null);
       setIsEditing(false);
 
+      // Refresh apps if this was the first time creating the profile
       if (!profile) {
           const apps = await getUserApps(updatedProfile.id);
           setUserApps(apps);
@@ -116,21 +117,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
     const project: SavedProject = {
       id: `published-${app.id}`,
       prompt: app.prompt,
-      files: [{ path: 'index.html', content: app.html_content }],
-      previewHtml: app.preview_html,
+      files: [{ path: 'index.html', content: app.htmlContent }],
+      previewHtml: app.previewHtml,
       summary: app.summary,
-      createdAt: app.created_at,
+      createdAt: app.createdAt.toDate().toISOString(),
     };
     onLoadProject(project);
   };
   
   const handleSignOut = async () => {
-    await supabaseAuth.signOut();
-    setProfile(null);
-    setUsername('');
-    setUserApps([]);
-    setIsEditing(false);
-    // Let the auth listener in App.tsx handle the rest
+    await auth.signOut();
+    // The auth listener in App.tsx will handle the state change to an anonymous user
+    window.location.reload(); // Force reload to reset state cleanly
   };
 
 
@@ -140,11 +138,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
         {isLoading && !profile && <div className="text-center text-slate-400">Loading profile...</div>}
         {error && <div className="text-center text-red-400 p-4 bg-red-900/50 border border-red-800 rounded-lg">{error}</div>}
         
-        {!isLoading && !error && userId && (
+        {!isLoading && !error && !isAuthenticated && !profile && (
+             <div className="text-center py-20 border-2 border-dashed border-slate-800 rounded-2xl">
+                <UserIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+                <h2 className="text-2xl font-semibold text-slate-300">Join the Community</h2>
+                <p className="text-slate-500 mt-2">
+                Sign up or log in to create a profile and publish your apps.
+                </p>
+            </div>
+        )}
+        
+        {!isLoading && !error && (isAuthenticated || profile) && (
             <>
                 <div 
                   className="relative mb-12 rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/50 bg-cover bg-center min-h-[250px] flex flex-col justify-end"
-                  style={{ backgroundImage: `url(${bannerPreview || profile?.banner_url || ''})` }}
+                  style={{ backgroundImage: `url(${bannerPreview || profile?.bannerUrl || ''})` }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
                   
@@ -159,8 +167,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
                   
                   <div className="relative p-6 flex flex-col md:flex-row items-center gap-6">
                       <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 -mb-16 md:mb-0 border-4 border-slate-800">
-                          {(avatarPreview || profile?.avatar_url) ? (
-                            <img src={avatarPreview || profile.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                          {(avatarPreview || profile?.avatarUrl) ? (
+                            <img src={avatarPreview || profile.avatarUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
                           ) : (
                             <UserIcon className="w-14 h-14 text-white" />
                           )}
@@ -195,7 +203,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
                           ) : (
                                <button onClick={() => setIsEditing(true)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full transition-colors">Edit Profile</button>
                           )}
-                          {profile && !isEditing && (
+                          {isAuthenticated && profile && !isEditing && (
                               <button onClick={handleSignOut} className="px-6 py-2 bg-red-900/50 hover:bg-red-900/80 text-red-300 font-semibold rounded-full transition-colors">Sign Out</button>
                           )}
                       </div>
@@ -221,7 +229,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
                     >
                         <div className="aspect-[16/10] bg-slate-800 cursor-pointer" onClick={() => handleLoadApp(app)}>
                         <iframe
-                            srcDoc={app.preview_html}
+                            srcDoc={app.previewHtml}
                             title={app.prompt}
                             sandbox="allow-scripts"
                             scrolling="no"
@@ -233,7 +241,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadProject }) => {
                                 {app.prompt}
                             </p>
                             <p className="text-xs text-slate-500 mt-1">
-                                {new Date(app.created_at).toLocaleString()}
+                                {app.createdAt.toDate().toLocaleString()}
                             </p>
                         </div>
                     </div>

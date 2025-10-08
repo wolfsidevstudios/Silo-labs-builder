@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { PublishedApp } from '../types';
-import { getMarketplaceApps, getUserId, toggleLike, hasUserLikedApp } from '../services/supabaseService';
+import { getMarketplaceApps, getUserId, toggleLike, hasUserLikedApp } from '../services/firebaseService';
 import HeartIcon from '../components/icons/HeartIcon';
 import RocketIcon from '../components/icons/RocketIcon';
 import UserIcon from '../components/icons/UserIcon';
 
 interface MarketplacePageProps {
-  onForkApp: (prompt: string, html_content: string, summary: string[]) => void;
+  onForkApp: (prompt: string, htmlContent: string, summary: string[]) => void;
 }
 
 const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
@@ -17,7 +17,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    getUserId().then(setUserId);
+    setUserId(getUserId());
   }, []);
 
   useEffect(() => {
@@ -46,7 +46,10 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
   }, [userId]);
   
   const handleLikeClick = async (appId: string) => {
-    if (!userId) return;
+    if (!userId) {
+      alert("Please sign in to like apps.");
+      return;
+    }
 
     const currentLikeStatus = likes[appId] || { count: 0, userHasLiked: false };
     
@@ -104,7 +107,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
             >
               <div className="aspect-[16/10] bg-slate-800">
                 <iframe
-                  srcDoc={app.preview_html}
+                  srcDoc={app.previewHtml}
                   title={app.prompt}
                   sandbox="allow-scripts"
                   scrolling="no"
@@ -118,18 +121,18 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
                         {app.prompt}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                        {app.profiles?.avatar_url ? (
-                            <img src={app.profiles.avatar_url} alt={app.profiles.username} className="w-4 h-4 rounded-full" />
+                        {app.authorAvatarUrl ? (
+                            <img src={app.authorAvatarUrl} alt={app.authorUsername} className="w-4 h-4 rounded-full" />
                         ) : (
                             <UserIcon className="w-4 h-4" />
                         )}
-                        <span>{app.profiles?.username || 'Anonymous'}</span>
+                        <span>{app.authorUsername || 'Anonymous'}</span>
                     </div>
                 </div>
                 
                 <div className="flex justify-between items-center mt-4">
                     <button 
-                        onClick={() => onForkApp(app.prompt, app.html_content, app.summary)}
+                        onClick={() => onForkApp(app.prompt, app.htmlContent, app.summary)}
                         className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-indigo-300 hover:bg-white/10 transition-colors"
                     >
                         <RocketIcon className="w-4 h-4" />

@@ -15,9 +15,9 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, AppFile, Session, Profile } from './types';
+import { SavedProject, AppFile, FirebaseUser, Profile } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
-import { getUserId, supabase, getProfile, createOrUpdateProfile } from './services/supabaseService';
+import { auth, getProfile, createOrUpdateProfile } from './services/firebaseService';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
 
@@ -33,7 +33,7 @@ const App: React.FC = () => {
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
 
   // Auth & Profile state
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   // State for new onboarding flow
@@ -42,44 +42,36 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // --- Auth Setup ---
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-        setSession(session);
-        const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
-
-        if (session) {
-            const profileData = await getProfile(session.user.id);
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+        if (firebaseUser) {
+            setUser(firebaseUser as FirebaseUser);
+            const profileData = await getProfile(firebaseUser.uid);
             setProfile(profileData);
+            const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
+
             if (profileData) {
                 setUserName(profileData.username);
-            } else if (!onboardingCompleted) {
-                setShowOnboarding(true);
+                // Ensure onboarding is marked complete if a profile exists
+                if (!onboardingCompleted) localStorage.setItem('onboardingCompleted', 'true');
+                setShowOnboarding(false);
+            } else { // No profile exists
+                if (!onboardingCompleted) {
+                    setShowOnboarding(true); // New user (anonymous or signed up)
+                } else {
+                    // This case handles a user who completed onboarding as a guest
+                    // but hasn't created a profile in the DB yet.
+                    setUserName(localStorage.getItem('userName'));
+                }
             }
         } else {
-            if (!onboardingCompleted) {
-                setShowOnboarding(true);
-            } else {
-                setUserName(localStorage.getItem('userName'));
-            }
-        }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        setSession(session);
-        if (session) {
-            const profileData = await getProfile(session.user.id);
-            setProfile(profileData);
-            if (profileData) {
-                setUserName(profileData.username);
-            }
-        } else {
+            // No user is signed in, so we start an anonymous session.
+            setUser(null);
             setProfile(null);
-            setUserName(localStorage.getItem('userName')); // Fallback to guest name
+            auth.signInAnonymously().catch(err => console.error("Anonymous sign-in failed:", err));
         }
     });
 
     // --- Other Initializations ---
-    getUserId(); // Ensure anonymous user ID is created if needed.
-
     // Feature Drop Modal check
     const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v3_seen') === 'true';
     if (!featureDropSeen) {
@@ -137,7 +129,7 @@ const App: React.FC = () => {
     }
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
   
@@ -152,8 +144,9 @@ const App: React.FC = () => {
     setUserName(data.name);
     setShowOnboarding(false);
 
-    if (session) {
-        const updatedProfile = await createOrUpdateProfile(session.user.id, { username: data.name });
+    if (user) {
+        // Create a profile for the user in Firestore
+        const updatedProfile = await createOrUpdateProfile(user.uid, { username: data.name });
         setProfile(updatedProfile);
     }
   };
@@ -187,13 +180,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoadAppFromMarketplace = (prompt: string, html_content: string, summary: string[]) => {
-      const files: AppFile[] = [{ path: 'index.html', content: html_content }];
+  const handleLoadAppFromMarketplace = (prompt: string, htmlContent: string, summary: string[]) => {
+      const files: AppFile[] = [{ path: 'index.html', content: htmlContent }];
       const project: SavedProject = {
           id: `marketplace-${Date.now()}`,
           prompt,
           files,
-          previewHtml: html_content,
+          previewHtml: htmlContent,
           summary,
           createdAt: new Date().toISOString(),
       };
@@ -247,7 +240,7 @@ const App: React.FC = () => {
           </button>
           {currentPage === 'home' && <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />}
       </header>
-      <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} session={session} />
+      <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} user={user} />
       {userName && currentPage === 'home' && <UserGreeting name={userName} />}
        <ReferralModal
         isOpen={isReferralModalOpen}
@@ -266,7 +259,7 @@ const App: React.FC = () => {
       <Sidebar
         activePage={getActivePageForSidebar()}
         onNavigate={handleNavigate}
-        session={session}
+        profile={profile}
       />
       <div className="font-sans antialiased">
         {renderPage()}

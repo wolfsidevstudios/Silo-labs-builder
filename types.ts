@@ -70,53 +70,39 @@ export interface StudioAssistantMessage {
 
 export type StudioChatMessage = StudioUserMessage | StudioAssistantMessage;
 
-// --- Supabase Types ---
+// --- Firebase Auth Types ---
+export interface FirebaseUser {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+  isAnonymous: boolean;
+  [key: string]: any;
+}
+
+
+// --- Firestore Types ---
 export interface Profile {
-  id: string; // uuid
-  user_id: string; // text (client-side generated or auth id)
+  id: string; // uuid, same as user's UID
+  userId: string; // The user's UID
   username: string;
-  avatar_url?: string;
-  banner_url?: string;
-  created_at: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  createdAt: string; // ISO string
 }
 
 export interface PublishedApp {
-  id: string; // uuid
-  author_id: string; // uuid
+  id: string; // firestore doc id
+  authorId: string; // uuid of author profile
+  authorUsername: string;
+  authorAvatarUrl?: string;
   prompt: string;
   summary: string[];
-  html_content: string;
-  preview_html: string;
-  created_at: string;
+  htmlContent: string;
+  previewHtml: string;
+  createdAt: any; // Firestore Timestamp
   likes: number;
-  // Joined data
-  profiles?: {
-    username: string;
-    avatar_url?: string;
-  }
 }
-
-// --- Supabase Auth Types ---
-export interface UserMetadata {
-  avatar_url?: string;
-  full_name?: string;
-  [key: string]: any;
-}
-
-export interface User {
-  id: string;
-  email?: string;
-  user_metadata: UserMetadata;
-  [key: string]: any;
-}
-
-export interface Session {
-  access_token: string;
-  refresh_token: string;
-  user: User;
-  [key: string]: any;
-}
-
 
 export interface Theme {
   id:string;

@@ -27,7 +27,7 @@ import { getApiKey as getYouTubeKey } from '../services/youtubeService';
 import { getApiKey as getPexelsKey } from '../services/pexelsService';
 import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
-import { getUserId, getProfile, publishApp } from '../services/supabaseService';
+import { getUserId, getProfile, publishApp } from '../services/firebaseService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -473,16 +473,19 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handlePublish = async () => {
     if (!activeTab) return;
-    // FIX: getUserId returns a promise, so it needs to be awaited.
-    const userId = await getUserId();
+    const userId = getUserId();
+    if (!userId) {
+        alert("Please sign in or create an account before publishing.");
+        return;
+    }
     const profile = await getProfile(userId);
     if (!profile) {
-        // Here you might want to redirect to the profile page or show a modal
         alert("Please create a profile before publishing.");
         return;
     }
+
     const lastMessage = activeTab.chatHistory[activeTab.chatHistory.length - 1];
-    if (lastMessage?.role !== 'assistant' || !lastMessage.content.files) {
+    if (lastMessage?.role !== 'assistant' || !lastMessage.content.files || lastMessage.content.files.length === 0) {
         updateActiveTab({error: "No app content to publish."});
         return;
     }
@@ -490,8 +493,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const appData = {
         prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || 'Untitled App',
         summary: lastMessage.content.summary || [],
-        html_content: lastMessage.content.files[0].content,
-        preview_html: lastMessage.content.previewHtml || lastMessage.content.files[0].content,
+        htmlContent: lastMessage.content.files[0].content,
+        previewHtml: lastMessage.content.previewHtml || lastMessage.content.files[0].content,
     };
     
     try {
