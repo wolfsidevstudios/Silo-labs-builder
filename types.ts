@@ -253,3 +253,5 @@ export interface PublishedApp {
   createdAt: Timestamp;
   likes: number;
 }
+
+export type DataCategory = 'projects' | 'images' | 'keys' | 'settings';

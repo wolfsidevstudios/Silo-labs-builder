@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId } from '../types';
+import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId, DataCategory } from '../types';
 import { THEMES } from '../data/themes';
 import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
 import { getPat as getGitHubPat, savePat as saveGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo } from '../services/githubService';
@@ -26,7 +26,7 @@ import { getApiKey as getWordsApiKey, saveApiKey as saveWordsApiKey, removeApiKe
 
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import DeleteDataModal from '../components/DeleteDataModal';
-import { deleteAllData } from '../services/dataService';
+import { deleteSelectedAppData } from '../services/dataService';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import PaintBrushIcon from '../components/icons/PaintBrushIcon';
 import KeyIcon from '../components/icons/KeyIcon';
@@ -181,6 +181,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     }
     alert('AI Provider settings saved!');
   };
+  
+  const handleDeleteData = (categories: DataCategory[]) => {
+    if (categories.length > 0) {
+      deleteSelectedAppData(categories);
+    }
+    setIsDeleteModalOpen(false);
+  };
 
   const sections = [
     { id: 'ai', name: 'AI Settings', icon: SparklesIcon },
@@ -213,7 +220,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
 
   return (
     <>
-      <DeleteDataModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={deleteAllData} />
+      <DeleteDataModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteData} />
       <div className="min-h-screen w-screen bg-black flex p-4 pl-[4.5rem] selection:bg-indigo-500 selection:text-white">
         <main className="w-full max-w-7xl mx-auto px-4 py-8 animate-fade-in-up">
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12">
@@ -367,9 +374,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                 <div>
                   <h2 className="text-2xl font-bold text-red-400 mb-4">Danger Zone</h2>
                   <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-red-300">Delete All Data</h3>
-                    <p className="text-red-300/80 mt-2 mb-4">This will permanently delete all your saved projects, images, API keys, and settings from this browser. This action cannot be undone.</p>
-                    <button onClick={() => setIsDeleteModalOpen(true)} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg">Delete All Data</button>
+                    <h3 className="text-lg font-bold text-red-300">Manage & Delete App Data</h3>
+                    <p className="text-red-300/80 mt-2 mb-4">Selectively delete local data like projects, API keys, or settings. This action cannot be undone.</p>
+                    <button onClick={() => setIsDeleteModalOpen(true)} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg">Manage & Delete Data</button>
                   </div>
                 </div>
               )}
