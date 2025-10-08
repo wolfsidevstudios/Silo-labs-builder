@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Secret, Theme, GitHubUser, NetlifyUser } from '../types';
+import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId } from '../types';
 import { THEMES } from '../data/themes';
 import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
 import { getPat as getGitHubPat, savePat as saveGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo } from '../services/githubService';
@@ -62,13 +62,21 @@ interface SettingsPageProps {
   onUpgradeClick: () => void;
 }
 
+const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
+    { id: 'gemini-2.5-pro', name: '2.5 Pro', description: 'Most capable model for complex tasks.' },
+    { id: 'gemini-2.5-flash', name: '2.5 Flash', description: 'Fast and efficient for general tasks.' },
+    { id: 'gemini-2.0-pro', name: '2.0 Pro', description: 'A powerful, high-context model from the 2.0 family.' },
+    { id: 'gemini-1.5-pro', name: '1.5 Pro', description: 'Previous generation, balanced performance.' },
+    { id: 'gemini-1.5-flash', name: '1.5 Flash', description: 'Fast and cost-effective legacy model.' },
+];
+
 const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) => {
   const [activeSection, setActiveSection] = useState('ai');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // States for keys and settings
   const [geminiKey, setGeminiKey] = useState('');
-  const [geminiModel, setGeminiModel] = useState<'gemini-2.5-flash' | 'gemini-2.5-pro'>('gemini-2.5-flash');
+  const [geminiModel, setGeminiModel] = useState<GeminiModelId>('gemini-2.5-flash');
   const [githubPat, setGithubPat] = useState('');
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
   const [netlifyPat, setNetlifyPat] = useState('');
@@ -86,7 +94,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
     // Load AI Provider
     setAiProvider(localStorage.getItem('ai_provider') || 'gemini');
     setGeminiKey(localStorage.getItem('gemini_api_key') || '');
-    setGeminiModel((localStorage.getItem('gemini_model') as 'gemini-2.5-flash' | 'gemini-2.5-pro') || 'gemini-2.5-flash');
+    setGeminiModel((localStorage.getItem('gemini_model') as GeminiModelId) || 'gemini-2.5-flash');
     const hfCreds = getHuggingFaceCreds();
     setHuggingFaceToken(hfCreds?.token || '');
     setHuggingFaceModelUrl(hfCreds?.modelUrl || '');
@@ -250,17 +258,37 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
                          </div>
 
                         {aiProvider === 'gemini' && (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div>
                                     <label htmlFor="gemini-key" className="block text-sm font-medium text-slate-300 mb-2">Gemini API Key</label>
                                     <input id="gemini-key" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-2">Default Generation Model</label>
-                                    <div className="relative bg-slate-800 p-1 rounded-full flex items-center border border-slate-700 max-w-xs text-center">
-                                        <div className="absolute top-1 left-1 h-8 w-[calc(50%-4px)] bg-indigo-600 rounded-full transition-transform duration-300 ease-in-out shadow-lg" style={{ transform: `translateX(${geminiModel === 'gemini-2.5-flash' ? '0' : 'calc(100% + 4px)'})` }} />
-                                        <button onClick={() => setGeminiModel('gemini-2.5-flash')} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Flash</button>
-                                        <button onClick={() => setGeminiModel('gemini-2.5-pro')} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Pro</button>
+                                    <div className="space-y-2">
+                                        {MODELS.map((model) => (
+                                            <div
+                                                key={model.id}
+                                                onClick={() => setGeminiModel(model.id)}
+                                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                                    geminiModel === model.id
+                                                        ? 'bg-indigo-900/50 border-indigo-500'
+                                                        : 'border-slate-700 hover:bg-slate-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-white">{model.name}</span>
+                                                    <div
+                                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                                            geminiModel === model.id ? 'border-indigo-400' : 'border-slate-600'
+                                                        }`}
+                                                    >
+                                                        {geminiModel === model.id && <div className="w-2.5 h-2.5 rounded-full bg-indigo-400"></div>}
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm text-slate-400 mt-1">{model.description}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

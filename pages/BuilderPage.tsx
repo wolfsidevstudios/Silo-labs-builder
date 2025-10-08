@@ -16,7 +16,7 @@ import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import PublishModal from '../components/PublishModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret } from '../types';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -61,7 +61,7 @@ interface ProjectTab {
     description?: string;
     iconUrl?: string;
     thumbnailUrl?: string;
-    model: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+    model: GeminiModelId;
     secrets: Secret[];
 }
 

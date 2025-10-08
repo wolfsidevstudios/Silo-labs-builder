@@ -23,6 +23,9 @@ export interface Secret {
   value: string;
 }
 
+export type GeminiModelId = 'gemini-2.5-pro' | 'gemini-2.5-flash' | 'gemini-2.0-pro' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+
+
 export interface SavedProject extends GeminiResponse {
   id: string;
   prompt: string;
@@ -31,7 +34,7 @@ export interface SavedProject extends GeminiResponse {
   description?: string;
   iconUrl?: string;
   thumbnailUrl?: string;
-  model?: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+  model?: GeminiModelId;
   secrets?: Secret[];
   githubUrl?: string;
   netlifySiteId?: string;

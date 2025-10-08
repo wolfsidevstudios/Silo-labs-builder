@@ -7,14 +7,14 @@ import ZapIcon from './icons/ZapIcon';
 import TrashIcon from './icons/TrashIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeOffIcon from './icons/EyeOffIcon';
-import { Secret } from '../types';
+import { Secret, GeminiModelId } from '../types';
 
 type ProjectSettings = {
   name: string;
   description?: string;
   iconUrl?: string;
   thumbnailUrl?: string;
-  model: 'gemini-2.5-flash' | 'gemini-2.5-pro';
+  model: GeminiModelId;
   secrets: Secret[];
 }
 
@@ -24,6 +24,14 @@ interface ProjectSettingsModalProps {
   onSave: (settings: ProjectSettings) => void;
   project: ProjectSettings;
 }
+
+const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
+    { id: 'gemini-2.5-pro', name: '2.5 Pro', description: 'Most capable model for complex tasks.' },
+    { id: 'gemini-2.5-flash', name: '2.5 Flash', description: 'Fast and efficient for general tasks.' },
+    { id: 'gemini-2.0-pro', name: '2.0 Pro', description: 'A powerful, high-context model from the 2.0 family.' },
+    { id: 'gemini-1.5-pro', name: '1.5 Pro', description: 'Previous generation, balanced performance.' },
+    { id: 'gemini-1.5-flash', name: '1.5 Flash', description: 'Fast and cost-effective legacy model.' },
+];
 
 const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onClose, onSave, project }) => {
   const [activeSection, setActiveSection] = useState('customization');
@@ -120,10 +128,30 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             <div>
                 <h3 className="text-xl font-bold text-white mb-6">AI Settings</h3>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Generation Model</label>
-                <div className="relative bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50 max-w-xs text-center">
-                    <div className="absolute top-1 left-1 h-8 w-[calc(50%-4px)] bg-indigo-600 rounded-full transition-transform duration-300 ease-in-out shadow-lg" style={{ transform: `translateX(${settings.model === 'gemini-2.5-flash' ? '0' : 'calc(100% + 4px)'})` }} />
-                    <button onClick={() => setSettings(p => ({...p, model: 'gemini-2.5-flash'}))} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Flash</button>
-                    <button onClick={() => setSettings(p => ({...p, model: 'gemini-2.5-pro'}))} className="relative z-10 w-1/2 py-1.5 text-sm font-semibold rounded-full text-white">2.5 Pro</button>
+                <div className="space-y-2">
+                    {MODELS.map((model) => (
+                        <div
+                            key={model.id}
+                            onClick={() => setSettings(p => ({...p, model: model.id}))}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                settings.model === model.id
+                                    ? 'bg-indigo-900/50 border-indigo-500'
+                                    : 'border-slate-700 hover:bg-slate-800'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-white">{model.name}</span>
+                                <div
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                        settings.model === model.id ? 'border-indigo-400' : 'border-slate-600'
+                                    }`}
+                                >
+                                    {settings.model === model.id && <div className="w-2.5 h-2.5 rounded-full bg-indigo-400"></div>}
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-1">{model.description}</p>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
