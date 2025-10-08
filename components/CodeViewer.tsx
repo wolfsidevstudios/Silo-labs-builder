@@ -38,6 +38,8 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ files }) => {
             position: relative;
             padding-left: 3.8em;
             counter-reset: linenumber;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         .line-numbers .line-numbers-rows {
             border-right: 1px solid #2d3748; /* slate-700 */

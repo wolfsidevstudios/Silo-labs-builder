@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import BotIcon from '../components/icons/BotIcon';
 import EyeIcon from '../components/icons/EyeIcon';
 import AccessibilityIcon from '../components/icons/AccessibilityIcon';
 import BugIcon from '../components/icons/BugIcon';
+import BrainCircuitIcon from '../components/icons/BrainCircuitIcon';
+import ZapIcon from '../components/icons/ZapIcon';
 
-const features = [
+const features1 = [
   {
     icon: BotIcon,
     title: 'Autonomous Navigation',
@@ -27,6 +29,29 @@ const features = [
   },
 ];
 
+const features2 = [
+  {
+    icon: BrainCircuitIcon,
+    title: 'Full Application Awareness',
+    description: 'MAX 2.0 will understand multi-page flows and user context, enabling true end-to-end testing from login to logout.',
+  },
+  {
+    icon: ZapIcon,
+    title: 'Generative Test Creation',
+    description: 'Describe a user story, and MAX will write, execute, and report on the test case autonomously. No more manual test scripting.',
+  },
+  {
+    icon: EyeIcon,
+    title: 'Predictive UX Analysis',
+    description: 'Goes beyond finding bugs to suggest UX improvements based on common user behavior patterns and heuristic analysis.',
+  },
+  {
+    icon: BotIcon,
+    title: 'Autonomous Feature Prototyping',
+    description: "Tell MAX to 'add a search bar to the homepage', and it will navigate, analyze the code, and implement a working prototype.",
+  },
+];
+
 
 const SiloMaxPage: React.FC = () => {
   return (
@@ -43,15 +68,12 @@ const SiloMaxPage: React.FC = () => {
         >
           SILO MAX
         </h1>
-        <h2 className="mt-4 text-3xl font-bold tracking-[0.3em] text-indigo-400 animate-pulse">
-          COMING SOON
-        </h2>
         <p className="mt-8 max-w-2xl text-lg text-slate-300">
           An advanced AI agent that can see, understand, and navigate your web applications to perform end-to-end testing, identify bugs, and ensure flawless user experiences.
         </p>
 
         <div className="mt-20 w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8">
-            {features.map((feature, index) => (
+            {features1.map((feature, index) => (
                 <div 
                     key={feature.title}
                     className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-left flex items-start gap-6 shadow-2xl shadow-black/20 animate-fade-in-up"
@@ -67,6 +89,28 @@ const SiloMaxPage: React.FC = () => {
                 </div>
             ))}
         </div>
+        
+        <div className="mt-24 w-full max-w-5xl">
+            <h2 className="text-3xl font-bold tracking-[0.2em] text-cyan-400 animate-pulse text-center">TEASING: SILO MAX 2.0</h2>
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {features2.map((feature, index) => (
+                    <div 
+                        key={feature.title}
+                        className="bg-cyan-900/10 backdrop-blur-md border border-cyan-500/20 rounded-2xl p-6 text-left flex items-start gap-6 shadow-2xl shadow-black/20 animate-fade-in-up"
+                        style={{ animationDelay: `${600 + index * 100}ms` }}
+                    >
+                        <div className="flex-shrink-0 w-12 h-12 bg-cyan-900/50 border border-cyan-500/30 rounded-lg flex items-center justify-center">
+                            <feature.icon className="w-7 h-7 text-cyan-300" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">{feature.title}</h3>
+                            <p className="mt-2 text-slate-400">{feature.description}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+        <div className="h-24"></div>
       </main>
 
       <style>{`

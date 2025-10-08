@@ -59,7 +59,7 @@ const App: React.FC = () => {
 
     // --- Other Initializations ---
     // Feature Drop Modal check
-    const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v4_seen') === 'true';
+    const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v5_seen') === 'true';
     if (!featureDropSeen) {
         setIsFeatureDropModalOpen(true);
     }
@@ -129,7 +129,7 @@ const App: React.FC = () => {
 
   const handleCloseFeatureDropModal = () => {
     setIsFeatureDropModalOpen(false);
-    localStorage.setItem('featureDrop_oct2025_v4_seen', 'true');
+    localStorage.setItem('featureDrop_oct2025_v5_seen', 'true');
   };
 
   const renderPage = () => {

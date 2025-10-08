@@ -20,6 +20,7 @@ import BeakerIcon from './icons/BeakerIcon';
 import DiamondIcon from './icons/DiamondIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ArrowUpIcon from './icons/ArrowUpIcon';
+import BugIcon from './icons/BugIcon';
 
 
 interface FeatureDropModalProps {
@@ -170,12 +171,12 @@ const Part7Content = () => (
 );
 
 const Part8Content = () => (
-    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-indigo-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
-       <BrainCircuitIcon className="w-12 h-12 text-indigo-300 mb-4 animate-pulse" />
-       <h3 className="font-bold text-white text-xl">Silo MAX 1.5: Early Release!</h3>
-       <p className="text-indigo-300 font-semibold mt-1">Now Live</p>
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-yellow-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
+       <BugIcon className="w-12 h-12 text-yellow-300 mb-4" />
+       <h3 className="font-bold text-white text-xl">Update on Silo MAX 1.5</h3>
+       <p className="text-yellow-300 font-semibold mt-1">Returning to Stable</p>
        <p className="text-slate-400 mt-4 max-w-md">
-           The future is here, ahead of schedule! MAX 1.5 is now live. Experience the most powerful AI agent ever built, capable of performing live, autonomous edits as it tests your application. Watch as it decides to restyle a button or improve a layout, then executes the change on the spot.
+           We've rolled back the early release of MAX 1.5. While the live-editing feature is exciting, it didn't meet our stability standards. We are committed to quality and will bring it back, better than ever, on its originally scheduled date of November 1st. For now, please enjoy the robust testing capabilities of MAX 1.02.
        </p>
    </div>
 );
@@ -220,7 +221,7 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
              : activePart === 'part5' ? 'Part V: The MAX Revolution'
              : activePart === 'part6' ? 'Part VI: MAX 1.01'
              : activePart === 'part7' ? 'Part VII: MAX 1.02'
-             : 'Part VIII: MAX 1.5 Live!'}
+             : 'Part VIII: An Update on MAX 1.5'}
         </p>
 
         {activePart === 'part1' ? <Part1Content /> 
