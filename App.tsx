@@ -217,9 +217,9 @@ const App: React.FC = () => {
       case 'news':
         return <NewsPage />;
       case 'marketplace':
-        return <MarketplacePage onForkApp={handleLoadAppFromMarketplace} />;
+        return <MarketplacePage onForkApp={handleLoadAppFromMarketplace} user={user} />;
       case 'profile':
-        return <ProfilePage onLoadProject={handleLoadProject} />;
+        return <ProfilePage onLoadProject={handleLoadProject} user={user} />;
       default:
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
     }

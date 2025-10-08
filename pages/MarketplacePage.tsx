@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { PublishedApp } from '../types';
-import { getMarketplaceApps, getUserId, toggleLike, hasUserLikedApp } from '../services/firebaseService';
+import { PublishedApp, FirebaseUser } from '../types';
+import { getMarketplaceApps, toggleLike, hasUserLikedApp } from '../services/firebaseService';
 import HeartIcon from '../components/icons/HeartIcon';
 import RocketIcon from '../components/icons/RocketIcon';
 import UserIcon from '../components/icons/UserIcon';
 
 interface MarketplacePageProps {
   onForkApp: (prompt: string, htmlContent: string, summary: string[]) => void;
+  user: FirebaseUser | null;
 }
 
-const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
+const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp, user }) => {
   const [apps, setApps] = useState<PublishedApp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, { count: number; userHasLiked: boolean }>>({});
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    setUserId(getUserId());
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
+    if (!user) {
+        // Wait for user session to be initialized
+        return;
+    }
+    const userId = user.uid;
 
     const fetchApps = async () => {
       try {
@@ -43,11 +43,11 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
       }
     };
     fetchApps();
-  }, [userId]);
+  }, [user]);
   
   const handleLikeClick = async (appId: string) => {
-    if (!userId) {
-      alert("Please sign in to like apps.");
+    if (!user) {
+      alert("Please sign up or log in to like apps.");
       return;
     }
 
@@ -63,7 +63,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({ onForkApp }) => {
     }));
 
     try {
-        const newLikesCount = await toggleLike(appId, userId, currentLikeStatus.userHasLiked);
+        const newLikesCount = await toggleLike(appId, user.uid, currentLikeStatus.userHasLiked);
         // Sync with server state
         setLikes(prev => ({ ...prev, [appId]: { ...prev[appId], count: newLikesCount } }));
     } catch (error) {
