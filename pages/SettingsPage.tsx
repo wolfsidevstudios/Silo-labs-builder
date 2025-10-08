@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId, DataCategory } from '../types';
+import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId, DataCategory, FirebaseUser } from '../types';
 import { THEMES } from '../data/themes';
+import { auth } from '../services/firebaseService';
 import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
 import { getPat as getGitHubPat, savePat as saveGitHubPat, removePat as removeGitHubPat, getUserInfo as getGitHubUserInfo } from '../services/githubService';
 import { getPat as getNetlifyPat, savePat as saveNetlifyPat, removePat as removeNetlifyPat, getUserInfo as getNetlifyUserInfo } from '../services/netlifyService';
@@ -56,10 +57,12 @@ import OpenWeatherMapIcon from '../components/icons/OpenWeatherMapIcon';
 import RawgIcon from '../components/icons/RawgIcon';
 import WordsApiIcon from '../components/icons/WordsApiIcon';
 import TrashIcon from '../components/icons/TrashIcon';
+import UserIcon from '../components/icons/UserIcon';
 
 interface SettingsPageProps {
   isPro: boolean;
   onUpgradeClick: () => void;
+  user: FirebaseUser | null;
 }
 
 const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
@@ -70,8 +73,8 @@ const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
     { id: 'gemini-1.5-flash', name: '1.5 Flash', description: 'Fast and cost-effective legacy model.' },
 ];
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) => {
-  const [activeSection, setActiveSection] = useState('ai');
+const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user }) => {
+  const [activeSection, setActiveSection] = useState('account');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // States for keys and settings
@@ -89,6 +92,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   const [aiProvider, setAiProvider] = useState('gemini');
   const [huggingFaceToken, setHuggingFaceToken] = useState('');
   const [huggingFaceModelUrl, setHuggingFaceModelUrl] = useState('');
+
+  // Account section states
+  const [authView, setAuthView] = useState<'main' | 'signin' | 'signup'>('main');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   const loadSettings = useCallback(() => {
     // Load AI Provider
@@ -125,6 +135,46 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    if (activeSection !== 'account') {
+      setAuthView('main');
+      setAuthError(null);
+      setEmail('');
+      setPassword('');
+    }
+  }, [activeSection]);
+  
+  const handleAuthAction = async (action: 'signup' | 'signin') => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+        if (action === 'signup') {
+            await auth.signUp({ email, password });
+        } else {
+            await auth.signInWithPassword({ email, password });
+        }
+    } catch (e) {
+        setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
+    } finally {
+        setIsAuthLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+        await auth.signInWithOAuth(provider);
+    } catch (e) {
+        setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
+        setIsAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await auth.signOut();
+  };
 
   const handleDisconnectGitHub = () => {
     removeGitHubPat();
@@ -190,6 +240,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   };
 
   const sections = [
+    { id: 'account', name: 'Account', icon: UserIcon },
     { id: 'ai', name: 'AI Settings', icon: SparklesIcon },
     { id: 'themes', name: 'UI Themes', icon: PaintBrushIcon },
     { id: 'secrets', name: 'Global Secrets', icon: KeyIcon },
@@ -248,6 +299,67 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
             </aside>
 
             <div className="flex-grow">
+              {activeSection === 'account' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Account</h2>
+                   <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
+                      {user && !user.isAnonymous ? (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-white">{user.email || 'Authenticated User'}</p>
+                                <p className="text-sm text-slate-400">You are signed in.</p>
+                            </div>
+                            <button onClick={handleSignOut} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">
+                                Sign Out
+                            </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 className="font-bold text-lg text-white mb-2">Create an Account or Log In</h3>
+                          <p className="text-slate-400 mb-6 text-sm">
+                            Sign up or log in to publish apps, save your profile, and connect with other builders.
+                          </p>
+                          {authView === 'main' && (
+                              <div className="w-full space-y-3 animate-fade-in">
+                                  <button onClick={() => handleOAuthSignIn('google')} disabled={isAuthLoading} className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white/[0.05] border border-white/10 rounded-full font-semibold hover:bg-white/10 transition-colors">
+                                      <GoogleIcon className="w-5 h-5" /> Continue with Google
+                                  </button>
+                                  <button onClick={() => handleOAuthSignIn('github')} disabled={isAuthLoading} className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white/[0.05] border border-white/10 rounded-full font-semibold hover:bg-white/10 transition-colors">
+                                      <GitHubIcon className="w-5 h-5" /> Continue with GitHub
+                                  </button>
+                                  <div className="flex items-center gap-4 py-2">
+                                      <hr className="w-full border-slate-700" />
+                                      <span className="text-slate-500 text-xs">OR</span>
+                                      <hr className="w-full border-slate-700" />
+                                  </div>
+                                  <button onClick={() => setAuthView('signup')} className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-colors">
+                                      Sign up with Email
+                                  </button>
+                                  <p className="text-sm text-center text-slate-400">
+                                      Already have an account? <button onClick={() => setAuthView('signin')} className="font-semibold text-indigo-400 hover:underline">Log in</button>
+                                  </p>
+                              </div>
+                          )}
+                          {(authView === 'signin' || authView === 'signup') && (
+                              <form onSubmit={e => {e.preventDefault(); handleAuthAction(authView === 'signup' ? 'signup' : 'signin');}} className="w-full space-y-4 animate-fade-in">
+                                  <h2 className="text-xl font-bold text-white">{authView === 'signin' ? 'Log In' : 'Sign Up'}</h2>
+                                  {authError && <p className="text-red-400 bg-red-900/50 p-3 rounded-lg text-sm">{authError}</p>}
+                                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                  <button type="submit" disabled={isAuthLoading} className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-full font-semibold transition-colors disabled:bg-slate-500">
+                                      {isAuthLoading ? 'Loading...' : (authView === 'signin' ? 'Log In' : 'Sign Up')}
+                                  </button>
+                                  <button type="button" onClick={() => { setAuthView('main'); setAuthError(null); }} className="text-sm text-slate-500 hover:text-slate-300">
+                                      &larr; Back to all options
+                                  </button>
+                              </form>
+                          )}
+                        </>
+                      )}
+                   </div>
+                </div>
+              )}
+
               {activeSection === 'ai' && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">AI Settings</h2>

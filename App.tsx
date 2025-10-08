@@ -209,7 +209,7 @@ const App: React.FC = () => {
       case 'builder':
         return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isTrialActive={isPro} trialEndTime={proTrialEndTime} />;
       case 'settings':
-        return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} />;
+        return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} user={user} />;
       case 'plans':
         return <PlansPage />;
       case 'projects':
