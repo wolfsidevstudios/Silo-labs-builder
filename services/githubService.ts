@@ -1,4 +1,4 @@
-import { GitHubUser, GitHubRepo } from '../types';
+import { GitHubUser, GitHubRepo, GitHubTree } from '../types';
 
 const GITHUB_PAT_KEY = 'github_personal_access_token';
 const GITHUB_API_URL = 'https://api.github.com';
@@ -81,4 +81,18 @@ export async function createOrUpdateFile(token: string, owner: string, repo: str
         method: 'PUT',
         body: JSON.stringify(body),
     });
+}
+
+export async function getRepoTree(token: string, owner: string, repo: string): Promise<GitHubTree> {
+  const repoDetails = await githubApiRequest<GitHubRepo>(`/repos/${owner}/${repo}`, token);
+  const branch = repoDetails.default_branch || 'main';
+  return githubApiRequest<GitHubTree>(`/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, token);
+}
+
+export async function getFileContent(token: string, owner: string, repo: string, path: string): Promise<string> {
+  const response = await githubApiRequest<{ content: string, encoding: string }>(`/repos/${owner}/${repo}/contents/${path}`, token);
+  if (response.encoding !== 'base64') {
+    throw new Error(`Unsupported file encoding: ${response.encoding}`);
+  }
+  return decodeURIComponent(escape(atob(response.content)));
 }

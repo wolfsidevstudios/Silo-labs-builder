@@ -73,6 +73,28 @@ const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
     { id: 'gemini-1.5-flash', name: '1.5 Flash', description: 'Fast and cost-effective legacy model.' },
 ];
 
+const apiDocsLinks: Record<string, string> = {
+  'Giphy': 'https://developers.giphy.com/dashboard/',
+  'Unsplash': 'https://unsplash.com/oauth/applications',
+  'OpenAI': 'https://platform.openai.com/api-keys',
+  'Pexels': 'https://www.pexels.com/api/',
+  'FreeSound': 'https://freesound.org/home/app_new/',
+  'Spotify': 'https://developer.spotify.com/dashboard',
+  'Stability AI': 'https://platform.stability.ai/account/keys',
+  'Streamline': 'https://www.streamlinehq.com/account/my-api-keys',
+  'WeatherAPI': 'https://www.weatherapi.com/my/',
+  'OpenWeatherMap': 'https://home.openweathermap.org/api_keys',
+  'TMDB': 'https://www.themoviedb.org/settings/api',
+  'YouTube': 'https://console.cloud.google.com/apis/credentials',
+  'Mapbox': 'https://account.mapbox.com/access-tokens',
+  'ExchangeRate-API': 'https://www.exchangerate-api.com/user/api-keys',
+  'Financial Modeling Prep': 'https://site.financialmodelingprep.com/developer/docs/dashboard',
+  'NewsAPI': 'https://newsapi.org/account',
+  'RAWG': 'https://rawg.io/apidocs',
+  'WordsAPI': 'https://rapidapi.com/dpventures/api/wordsapi',
+};
+
+
 const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user }) => {
   const [activeSection, setActiveSection] = useState('account');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -380,7 +402,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                             <div className="space-y-6">
                                 <div>
                                     <label htmlFor="gemini-key" className="block text-sm font-medium text-slate-300 mb-2">Gemini API Key</label>
-                                    <input id="gemini-key" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
+                                    <input id="gemini-key" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-full px-4" />
+                                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline mt-2 inline-block ml-2">
+                                        Get your Gemini API Key
+                                    </a>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-2">Default Generation Model</label>
@@ -417,15 +442,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                              <div className="space-y-4">
                                 <div>
                                     <label htmlFor="hf-token" className="block text-sm font-medium text-slate-300 mb-2">Hugging Face Access Token</label>
-                                    <input id="hf-token" type="password" value={huggingFaceToken} onChange={e => setHuggingFaceToken(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
+                                    <input id="hf-token" type="password" value={huggingFaceToken} onChange={e => setHuggingFaceToken(e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-full px-4" />
+                                    <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline mt-2 inline-block ml-2">
+                                        Get your Hugging Face Token
+                                    </a>
                                 </div>
                                  <div>
                                     <label htmlFor="hf-model" className="block text-sm font-medium text-slate-300 mb-2">Model URL (Inference API)</label>
-                                    <input id="hf-model" type="text" value={huggingFaceModelUrl} onChange={e => setHuggingFaceModelUrl(e.target.value)} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md" />
+                                    <input id="hf-model" type="text" value={huggingFaceModelUrl} onChange={e => setHuggingFaceModelUrl(e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-full px-4" />
                                 </div>
                              </div>
                         )}
-                        <button onClick={handleSaveAiProvider} className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg">Save AI Settings</button>
+                        <button onClick={handleSaveAiProvider} className="mt-6 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full">Save AI Settings</button>
                    </div>
                 </div>
               )}
@@ -448,11 +476,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                   <p className="text-slate-400 mb-6">Add secret keys that the AI can use in your generated apps via `process.env.SECRET_NAME`. These are stored securely in your browser's local storage.</p>
                     <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                            <input value={newSecretName} onChange={e => setNewSecretName(e.target.value)} placeholder="Secret Name (e.g., MY_API_KEY)" className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md"/>
-                            <input type="password" value={newSecretValue} onChange={e => setNewSecretValue(e.target.value)} placeholder="Secret Value" className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md"/>
+                            <input value={newSecretName} onChange={e => setNewSecretName(e.target.value)} placeholder="Secret Name (e.g., MY_API_KEY)" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-full px-4"/>
+                            <input type="password" value={newSecretValue} onChange={e => setNewSecretValue(e.target.value)} placeholder="Secret Value" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-full px-4"/>
                         </div>
                         {secretError && <p className="text-red-400 text-sm mt-3">{secretError}</p>}
-                        <div className="text-right mt-4"><button onClick={handleAddSecret} className="px-5 py-2 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">Add Secret</button></div>
+                        <div className="text-right mt-4"><button onClick={handleAddSecret} className="px-5 py-2 font-semibold rounded-full bg-indigo-600 hover:bg-indigo-500 text-white">Add Secret</button></div>
 
                         {secrets.length > 0 && <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                             {secrets.map(secret => <div key={secret.name} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg"><p className="font-mono text-sm text-slate-200">{secret.name}</p><button onClick={() => handleRemoveSecret(secret.name)} className="p-2 text-slate-500 hover:text-red-400"><TrashIcon className="w-5 h-5"/></button></div>)}
@@ -468,11 +496,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                     <div className="space-y-6">
                          <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
                             <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2"><GitHubIcon className="w-6 h-6"/> GitHub</h3>
-                            {githubUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={githubUser.avatar_url} alt={githubUser.login} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{githubUser.name || githubUser.login}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline">View Profile</a></div></div><button onClick={handleDisconnectGitHub} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : <div className="flex items-center gap-4"><input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-md"/><button onClick={() => { saveGitHubPat(githubPat); getGitHubUserInfo(githubPat).then(setGithubUser).catch(() => alert("Invalid GitHub PAT")); alert('GitHub Token saved!'); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg">Connect</button></div>}
+                            {githubUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={githubUser.avatar_url} alt={githubUser.login} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{githubUser.name || githubUser.login}</p><a href={githubUser.html_url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline">View Profile</a></div></div><button onClick={handleDisconnectGitHub} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : (
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-grow">
+                                        <div className="flex items-center gap-4">
+                                            <input type="password" value={githubPat} onChange={e => setGithubPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-3 bg-slate-800 border border-slate-700 rounded-full px-4"/>
+                                            <button onClick={() => { saveGitHubPat(githubPat); getGitHubUserInfo(githubPat).then(setGithubUser).catch(() => alert("Invalid GitHub PAT")); alert('GitHub Token saved!'); }} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full">Connect</button>
+                                        </div>
+                                        <a href="https://github.com/settings/tokens/new?description=Silo%20Build&scopes=repo,read:user" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline mt-2 ml-2 inline-block">
+                                            Get your GitHub PAT (repo & read:user scopes pre-selected)
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                          </div>
                           <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
                             <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2"><NetlifyIcon className="w-6 h-6"/> Netlify</h3>
-                            {netlifyUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={netlifyUser.avatar_url} alt={netlifyUser.full_name} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{netlifyUser.full_name}</p><p className="text-sm text-slate-400">{netlifyUser.email}</p></div></div><button onClick={handleDisconnectNetlify} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : <div className="flex items-center gap-4"><input type="password" value={netlifyPat} onChange={e => setNetlifyPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-md"/><button onClick={handleSaveNetlify} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg">Connect</button></div>}
+                            {netlifyUser ? <div className="flex items-center justify-between"><div className="flex items-center gap-3"><img src={netlifyUser.avatar_url} alt={netlifyUser.full_name} className="w-10 h-10 rounded-full"/><div><p className="font-semibold text-white">{netlifyUser.full_name}</p><p className="text-sm text-slate-400">{netlifyUser.email}</p></div></div><button onClick={handleDisconnectNetlify} className="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg text-sm">Disconnect</button></div> : (
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-grow">
+                                        <div className="flex items-center gap-4">
+                                            <input type="password" value={netlifyPat} onChange={e => setNetlifyPat(e.target.value)} placeholder="Personal Access Token" className="flex-grow p-3 bg-slate-800 border border-slate-700 rounded-full px-4"/>
+                                            <button onClick={handleSaveNetlify} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full">Connect</button>
+                                        </div>
+                                        <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline mt-2 ml-2 inline-block">
+                                            Get your Netlify PAT
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                          </div>
                     </div>
                      <h3 className="text-xl font-bold text-white mt-12 mb-6">Available APIs</h3>
@@ -518,6 +570,7 @@ const ApiKeyManager: React.FC<{
         return initial;
     });
     const [isConnected, setIsConnected] = useState(false);
+    const docLink = apiDocsLinks[name];
 
     useEffect(() => {
         let connected = false;
@@ -571,19 +624,26 @@ const ApiKeyManager: React.FC<{
                     <button onClick={handleRemove} className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-md text-xs">Disconnect</button>
                  </div>
             ) : (
-                <div className="space-y-2">
-                    {fields.map(field => (
-                        <input 
-                            key={field.name}
-                            type={field.type}
-                            value={fieldValues[field.name]}
-                            onChange={e => handleFieldChange(field.name, e.target.value)}
-                            placeholder={field.name}
-                            className="w-full p-1.5 text-sm bg-slate-800 border border-slate-700 rounded-md"
-                        />
-                    ))}
-                    <div className="text-right">
-                        <button onClick={handleSave} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md text-sm">Save</button>
+                <div>
+                    <div className="space-y-2">
+                        {fields.map(field => (
+                            <input 
+                                key={field.name}
+                                type={field.type}
+                                value={fieldValues[field.name]}
+                                onChange={e => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.name}
+                                className="w-full p-2.5 px-4 text-sm bg-slate-800 border border-slate-700 rounded-full"
+                            />
+                        ))}
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                        {docLink && (
+                            <a href={docLink} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline ml-2">
+                                Get your {name} key
+                            </a>
+                        )}
+                        <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full text-sm ml-auto">Save</button>
                     </div>
                 </div>
             )}

@@ -680,3 +680,43 @@ export async function generateMaxTestPlan(code: string): Promise<TestStep[]> {
         throw new Error("Failed to generate test plan for MAX.");
     }
 }
+
+export async function editCodeWithAi(prompt: string, filePath: string, fileContent: string): Promise<string> {
+    const systemInstruction = `You are an expert AI software engineer. You will be given a file's content and a user's instruction to modify it.
+- Your task is to apply the user's requested changes to the code.
+- You MUST return the ENTIRE, complete, updated code for the file.
+- Do NOT add any explanations, comments, or markdown formatting (like \`\`\`diff or \`\`\`javascript) around the code.
+- Only output the raw, modified code content.`;
+    
+    const fullPrompt = `Here is the file \`${filePath}\`:\n\n\`\`\`\n${fileContent}\n\`\`\`\n\nUser request: "${prompt}"\n\nPlease provide the full, updated content for the file.`;
+
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: fullPrompt,
+          config: {
+            systemInstruction: systemInstruction,
+          },
+        });
+
+        const updatedCode = response.text;
+        
+        // Sometimes the model might still wrap the code in markdown, let's try to strip it.
+        const codeBlockRegex = /```(?:\w+\n)?([\s\S]*?)```/;
+        const match = updatedCode.match(codeBlockRegex);
+        if (match && match[1]) {
+            return match[1].trim();
+        }
+        
+        return updatedCode.trim();
+
+    } catch (error) {
+        console.error("Error editing code with AI:", error);
+        if (error instanceof Error) { throw new Error(`AI edit failed: ${error.message}`); }
+        throw new Error("An unknown error occurred during AI code editing.");
+    }
+}

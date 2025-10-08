@@ -1,4 +1,4 @@
-import type * as React from 'react';
+import type * React from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 
@@ -120,7 +120,25 @@ export interface GitHubRepo {
   html_url: string;
   description: string | null;
   private: boolean;
+  default_branch?: string;
 }
+
+export interface GitHubTreeItem {
+  path: string;
+  mode: string;
+  type: 'tree' | 'blob';
+  sha: string;
+  size?: number;
+  url: string;
+}
+
+export interface GitHubTree {
+  sha: string;
+  url: string;
+  tree: GitHubTreeItem[];
+  truncated: boolean;
+}
+
 
 // Netlify Integration Types
 export interface NetlifyUser {

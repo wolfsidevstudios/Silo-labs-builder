@@ -6,6 +6,7 @@ import PlansPage from './pages/PlansPage';
 import ProjectsPage from './pages/ProjectsPage';
 import NewsPage from './pages/NewsPage';
 import SiloMaxPage from './pages/SiloMaxPage';
+import CodePilotPage from './pages/CodePilotPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -14,11 +15,11 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, FirebaseUser } from './types';
+import { SavedProject, FirebaseUser, GitHubRepo } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
+  const [codePilotRepo, setCodePilotRepo] = useState<GitHubRepo | null>(null);
 
   // Auth state
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -110,6 +112,11 @@ const App: React.FC = () => {
     setProjectToLoad(null); // Ensure we're not loading an old project
     setCurrentPage('builder');
   };
+
+  const handleStartCodePilot = (repo: GitHubRepo) => {
+    setCodePilotRepo(repo);
+    setCurrentPage('codepilot');
+  };
   
   const handleLoadProject = (project: SavedProject) => {
     setProjectToLoad(project);
@@ -138,7 +145,7 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage onGenerate={handleStartBuilding} />;
+        return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
       case 'builder':
         return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} initialIsLisaActive={builderIsLisaActive} />;
       case 'settings':
@@ -151,8 +158,10 @@ const App: React.FC = () => {
         return <NewsPage />;
       case 'max':
         return <SiloMaxPage />;
+      case 'codepilot':
+        return <CodePilotPage repo={codePilotRepo!} />;
       default:
-        return <HomePage onGenerate={handleStartBuilding} />;
+        return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
     }
   };
 
