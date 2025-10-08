@@ -43,9 +43,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, use
         } else {
             await auth.signInWithPassword({ email, password });
         }
-        // onAuthStateChanged in App.tsx will see the new user is not anonymous
-        // and doesn't have a profile, so it will keep this modal open and we can proceed.
-        setStep(1);
+        // The onAuthStateChanged listener in App.tsx will now handle the state
+        // change and trigger the UI to update, which will cause this component
+        // to re-render and advance the step via the logic in `renderStep`.
     } catch (e) {
         setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
     } finally {
@@ -58,8 +58,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, use
     setAuthError(null);
     try {
         await auth.signInWithOAuth(provider);
-        // Firebase redirects for OAuth, so the app will reload.
-        // onAuthStateChanged will then handle the newly logged-in user.
+        // On success, Firebase redirects, the app reloads, and onAuthStateChanged
+        // will handle the new user state. No local state change is needed.
     } catch (e) {
         setAuthError(e instanceof Error ? e.message : 'An unknown error occurred.');
         setIsAuthLoading(false);
@@ -91,7 +91,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, use
   const renderStep = () => {
     // If a user becomes non-anonymous while this modal is open, move to the next step.
     if (step === 0 && user && !user.isAnonymous) {
-        setStep(1);
+        // Use a function with setTimeout to avoid react-dom warnings about setting state during render
+        setTimeout(() => setStep(1), 0);
     }
       
     switch (step) {
@@ -127,7 +128,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onFinish, use
             )}
             
             {(authView === 'signin' || authView === 'signup') && (
-                <form onSubmit={e => {e.preventDefault(); handleAuthAction(authView);}} className="w-full max-w-sm space-y-4 animate-fade-in">
+                <form onSubmit={e => {e.preventDefault(); handleAuthAction(authView === 'signup' ? 'signup' : 'signin');}} className="w-full max-w-sm space-y-4 animate-fade-in">
                     <h2 className="text-2xl font-bold text-white">{authView === 'signin' ? 'Log In' : 'Sign Up'}</h2>
                     {authError && <p className="text-red-400 bg-red-900/50 p-3 rounded-lg text-sm">{authError}</p>}
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required className="w-full p-3 bg-white/[0.05] border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />

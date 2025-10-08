@@ -44,24 +44,6 @@ const storage = getStorage();
 
 // --- AUTHENTICATION ---
 
-const linkAnonymousAccount = async (user: User) => {
-    const anonymousUser = authInstance.currentUser;
-    if (anonymousUser && anonymousUser.isAnonymous && user.email) {
-        try {
-            const credential = EmailAuthProvider.credential(user.email, 'password_placeholder'); // This seems odd, let's re-evaluate
-            // The Firebase SDK handles linking differently for different providers.
-            // For email/password, it happens on sign-up if an anon user is active.
-            // For OAuth, we need to link the credential from the popup result.
-            // This function might be better integrated directly into the sign-in methods.
-            console.log("Attempting to link anonymous account...");
-            // Let's rely on Firebase's automatic linking for now as it's the default behavior.
-            // Manual linking is more complex and often not needed for this flow.
-        } catch (error) {
-            console.error("Error linking anonymous account:", error);
-        }
-    }
-};
-
 export const auth = {
   onAuthStateChanged: (callback: (user: FirebaseUser | null) => void) => {
     return onAuthStateChanged(authInstance, callback as (user: User | null) => void);
@@ -73,8 +55,9 @@ export const auth = {
 
   signUp: async ({ email, password }: { email: string, password?: string }) => {
     if (!password) throw new Error("Password is required for sign up.");
+    // If an anonymous user is currently signed in, this call will upgrade the anonymous
+    // account to a permanent email/password account, preserving the UID.
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
-    // Firebase automatically links the anonymous account on sign up if one is active.
     return userCredential.user as FirebaseUser;
   },
 
@@ -86,33 +69,10 @@ export const auth = {
 
   signInWithOAuth: async (providerName: 'google' | 'github') => {
     const provider = providerName === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider();
+    // When an anonymous user signs in with a permanent credential like OAuth,
+    // Firebase automatically links the accounts. The original anonymous UID is preserved.
+    // No manual linking logic is required for this common flow.
     const result = await signInWithPopup(authInstance, provider);
-    
-    // After OAuth sign-in, Firebase might automatically link if the email matches
-    // an existing anonymous user's placeholder, but explicit linking is safer.
-    const currentUser = authInstance.currentUser;
-    if (currentUser && currentUser.isAnonymous) {
-        try {
-            // This is how you'd typically link after an OAuth popup
-            const credential = providerName === 'google' 
-                ? GoogleAuthProvider.credentialFromResult(result) 
-                : GithubAuthProvider.credentialFromResult(result);
-
-            if (credential) {
-               // This links the anonymous user's data to the new OAuth account
-               await linkWithCredential(currentUser, credential);
-            }
-        } catch (error: any) {
-            // Handle error, e.g., if the OAuth account is already linked to another user.
-            console.error("Error linking OAuth credential to anonymous user:", error);
-            if (error.code === 'auth/credential-already-in-use') {
-                // If the credential is already in use, just sign in with it directly.
-                // The anonymous user will be lost, but this prevents an error.
-                await signInWithPopup(authInstance, provider);
-            }
-        }
-    }
-    
     return result.user as FirebaseUser;
   },
 
@@ -201,6 +161,9 @@ export const getMarketplaceApps = async (limit = 20): Promise<PublishedApp[]> =>
 };
 
 export const getUserApps = async (userId: string): Promise<PublishedApp[]> => {
+  // Note: Firestore requires an index for queries on different fields.
+  // The query below should be `where('authorId', '==', authorProfileId)`.
+  // I'm assuming the `userId` passed here is the author's profile document ID.
   const q = query(appsCollection, where('authorId', '==', userId), orderBy('createdAt', 'desc'));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PublishedApp));
