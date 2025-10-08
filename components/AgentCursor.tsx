@@ -88,10 +88,26 @@ const AgentCursor: React.FC<AgentCursorProps> = ({ targets, iframeRef }) => {
 
             setActionText('Typing...');
             const randomText = generateRandomText();
+
+            const typingPromise = new Promise<void>(resolve => {
+                const typingCompleteHandler = (event: MessageEvent) => {
+                    if (
+                        event.data.type === 'MAX_AGENT_EVENT' &&
+                        event.data.event === 'typingComplete' &&
+                        event.data.payload.id === target.id
+                    ) {
+                        window.removeEventListener('message', typingCompleteHandler);
+                        resolve();
+                    }
+                };
+                window.addEventListener('message', typingCompleteHandler);
+            });
+
             iframeRef.current.contentWindow.postMessage(
               { type: 'MAX_AGENT_ACTION', action: 'type', payload: { id: target.id, text: randomText } }, '*'
             );
-            await wait(randomText.length * 50 + 500);
+            
+            await typingPromise;
 
             if (!isActive.current) return;
 

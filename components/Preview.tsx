@@ -111,6 +111,7 @@ const maxAgentScript = `
                             // Dispatch events to trigger any framework-level state updates
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
+                            window.parent.postMessage({ type: 'MAX_AGENT_EVENT', event: 'typingComplete', payload: { id: payload.id } }, '*');
                         }
                     }, 50); // 50ms per character
                 }
