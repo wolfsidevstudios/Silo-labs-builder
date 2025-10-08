@@ -30,8 +30,12 @@ const DeleteDataModal: React.FC<DeleteDataModalProps> = ({ isOpen, onClose, onCo
     setSelectedCategories(newSelection);
   };
 
-  const handleConfirm = () => {
+  const handleConfirmSelection = () => {
     onConfirm(Array.from(selectedCategories));
+  };
+
+  const handleDeleteAll = () => {
+    onConfirm(dataCategories.map(c => c.id));
   };
 
   const isAllSelected = selectedCategories.size === dataCategories.length;
@@ -104,11 +108,22 @@ const DeleteDataModal: React.FC<DeleteDataModalProps> = ({ isOpen, onClose, onCo
             Cancel
           </button>
           <button
-            onClick={handleConfirm}
+            onClick={handleConfirmSelection}
             disabled={selectedCategories.size === 0}
-            className="px-6 py-2 text-sm font-semibold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:bg-red-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
+            className="px-6 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed"
           >
             Delete Selected ({selectedCategories.size})
+          </button>
+        </div>
+        
+        <div className="mt-6 pt-6 border-t border-red-800/50">
+          <h4 className="font-bold text-red-400">Alternatively...</h4>
+          <p className="text-sm text-slate-400 mt-1 mb-3">You can wipe all local application data at once. This includes all projects, images, API keys, and settings.</p>
+          <button
+            onClick={handleDeleteAll}
+            className="w-full px-6 py-2 text-sm font-semibold bg-red-800 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            Delete All App Data
           </button>
         </div>
       </div>
