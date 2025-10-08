@@ -54,6 +54,7 @@ interface ProjectTab {
     selectedElementSelector: string | null;
     streamingPreviewHtml: string | null;
     isMaxAgentRunning: boolean;
+    agentTargets: any[];
     // Settings
     name: string;
     description?: string;
@@ -87,6 +88,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         selectedElementSelector: null,
         streamingPreviewHtml: null,
         isMaxAgentRunning: false,
+        agentTargets: [],
         // Settings
         name: project?.name || name,
         description: project?.description,
@@ -379,7 +381,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const handleStartMaxAgent = async () => {
     if (!activeTab || files.length === 0 || activeTab.isLoading || activeTab.isMaxAgentRunning) return;
   
-    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null });
+    updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [] });
   
     const tempUserId = `user-max-${Date.now()}`;
     const tempAssistantId = `assistant-max-${Date.now()}`;
@@ -556,6 +558,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         if (event.data.type === 'VISUAL_EDIT_SELECT' && activeTab?.isVisualEditMode) {
             updateActiveTab({ selectedElementSelector: event.data.selector });
             setRightPaneView('preview');
+        } else if (event.data.type === 'MAX_AGENT_ELEMENTS') {
+            updateActiveTab({ agentTargets: event.data.elements || [] });
         }
     };
     window.addEventListener('message', handleMessage);
@@ -659,6 +663,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         isLoading={activeTab?.isLoading || false}
                         isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
                         isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
+                        agentTargets={activeTab?.agentTargets || []}
                     />
                 )}
             </div>

@@ -9,6 +9,7 @@ interface PreviewProps {
   isLoading: boolean;
   isVisualEditMode: boolean;
   isMaxAgentRunning: boolean;
+  agentTargets: any[];
 }
 
 const visualEditScript = `
@@ -79,7 +80,39 @@ const visualEditScript = `
 }, true);
 `;
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning }) => {
+const maxAgentScript = `
+  try {
+    const getInteractiveElements = () => {
+      const selectors = 'a, button, input:not([type="hidden"]), [role="button"], [onclick]';
+      const elements = Array.from(document.querySelectorAll(selectors));
+      return elements
+        .filter(el => {
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' && style.pointerEvents !== 'none';
+        })
+        .map(el => {
+          const rect = el.getBoundingClientRect();
+          return {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          };
+        });
+    };
+    // Use a timeout to ensure the DOM is fully rendered before scanning
+    setTimeout(() => {
+        const elements = getInteractiveElements();
+        window.parent.postMessage({ type: 'MAX_AGENT_ELEMENTS', elements: elements }, '*');
+    }, 100);
+  } catch(e) {
+    window.parent.postMessage({ type: 'MAX_AGENT_ELEMENTS', elements: [] }, '*');
+  }
+`;
+
+
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets }) => {
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
   const convertBbcodeToHtml = (html: string): string => {
@@ -90,11 +123,19 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
   };
   
   const displayHtml = convertBbcodeToHtml(displayHtmlRaw);
-
-  const enhancedHtmlContent = isVisualEditMode
-    ? displayHtml.replace('</body>', `<script>${visualEditScript}</script></body>`)
-    : displayHtml;
   
+  let scriptsToInject = '';
+  if (isVisualEditMode) {
+      scriptsToInject += visualEditScript;
+  }
+  if (isMaxAgentRunning) {
+      scriptsToInject += maxAgentScript;
+  }
+  
+  const finalHtmlContent = scriptsToInject
+    ? displayHtml.replace('</body>', `<script>${scriptsToInject}</script></body>`)
+    : displayHtml;
+
   const hasContentToDisplay = (isLoading && streamingPreviewHtml !== null) || hasFiles;
 
   return (
@@ -114,10 +155,10 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor />}
+                {isMaxAgentRunning && <AgentCursor targets={agentTargets} />}
                 {hasContentToDisplay ? (
                     <iframe
-                        srcDoc={enhancedHtmlContent}
+                        srcDoc={finalHtmlContent}
                         title="App Preview"
                         sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
                         className={`w-full h-full border-0 bg-white ${isVisualEditMode ? 'pointer-events-auto' : ''}`}
