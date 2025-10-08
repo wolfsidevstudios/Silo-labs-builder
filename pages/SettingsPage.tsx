@@ -353,27 +353,65 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick }) =>
   );
 };
 
-const ApiKeyManager = ({ name, icon: Icon, get, save, remove }: any) => {
-    const [key, setKey] = useState('');
+const ApiKeyManager: React.FC<{
+  name: string;
+  icon: React.FC<any>;
+  get?: () => string | null;
+  save?: (key: string) => void;
+  remove?: () => void;
+  getCreds?: () => { [key: string]: string } | null;
+  saveCreds?: (...args: string[]) => void;
+  removeCreds?: () => void;
+  fields: { name: string; type: string }[];
+}> = ({ name, icon: Icon, get, save, remove, getCreds, saveCreds, removeCreds, fields }) => {
+    
+    const [fieldValues, setFieldValues] = useState<{ [key: string]: string }>(() => {
+        const initial: { [key: string]: string } = {};
+        fields.forEach(f => initial[f.name] = '');
+        return initial;
+    });
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        const storedKey = get();
-        if (storedKey) {
-            setKey(storedKey);
-            setIsConnected(true);
+        let connected = false;
+        if (get) {
+            if (get()) connected = true;
+        } else if (getCreds) {
+            if (getCreds()) connected = true;
         }
-    }, [get]);
+        setIsConnected(connected);
+    }, [get, getCreds]);
+
+    const handleFieldChange = (fieldName: string, value: string) => {
+        setFieldValues(prev => ({ ...prev, [fieldName]: value }));
+    };
 
     const handleSave = () => {
-        save(key);
-        setIsConnected(true);
-        alert(`${name} API Key saved!`);
+        if (save) {
+            const key = fieldValues[fields[0].name];
+            if (key) {
+                save(key);
+                setIsConnected(true);
+                alert(`${name} API Key saved!`);
+            }
+        } else if (saveCreds) {
+            const values = fields.map(f => fieldValues[f.name]);
+            if (values.every(v => v)) {
+                saveCreds(...values);
+                setIsConnected(true);
+                alert(`${name} credentials saved!`);
+            }
+        }
     };
 
     const handleRemove = () => {
-        remove();
-        setKey('');
+        if (remove) remove();
+        if (removeCreds) removeCreds();
+        
+        const resetValues: { [key: string]: string } = {};
+        fields.forEach(f => resetValues[f.name] = '');
+        setFieldValues(resetValues);
+        
         setIsConnected(false);
     };
 
@@ -386,9 +424,20 @@ const ApiKeyManager = ({ name, icon: Icon, get, save, remove }: any) => {
                     <button onClick={handleRemove} className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-md text-xs">Disconnect</button>
                  </div>
             ) : (
-                <div className="flex items-center gap-2">
-                    <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="API Key" className="flex-grow p-1.5 text-sm bg-slate-800 border border-slate-700 rounded-md"/>
-                    <button onClick={handleSave} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md text-sm">Save</button>
+                <div className="space-y-2">
+                    {fields.map(field => (
+                        <input 
+                            key={field.name}
+                            type={field.type}
+                            value={fieldValues[field.name]}
+                            onChange={e => handleFieldChange(field.name, e.target.value)}
+                            placeholder={field.name}
+                            className="w-full p-1.5 text-sm bg-slate-800 border border-slate-700 rounded-md"
+                        />
+                    ))}
+                    <div className="text-right">
+                        <button onClick={handleSave} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md text-sm">Save</button>
+                    </div>
                 </div>
             )}
         </div>
