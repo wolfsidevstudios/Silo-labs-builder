@@ -232,26 +232,4 @@ export interface NewsItem {
 // Firebase Types
 export type FirebaseUser = User;
 
-export interface Profile {
-  id: string;
-  userId: string;
-  username: string;
-  avatarUrl?: string;
-  bannerUrl?: string;
-  createdAt?: Timestamp | string; // Allow for client-side creation before server timestamp
-}
-
-export interface PublishedApp {
-  id: string;
-  prompt: string;
-  summary: string[];
-  htmlContent: string;
-  previewHtml: string;
-  authorId: string;
-  authorUsername: string;
-  authorAvatarUrl: string;
-  createdAt: Timestamp;
-  likes: number;
-}
-
 export type DataCategory = 'projects' | 'images' | 'keys' | 'settings';

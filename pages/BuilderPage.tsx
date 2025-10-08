@@ -14,7 +14,6 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
-import PublishModal from '../components/PublishModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode } from '../services/geminiService';
@@ -27,7 +26,7 @@ import { getApiKey as getYouTubeKey } from '../services/youtubeService';
 import { getApiKey as getPexelsKey } from '../services/pexelsService';
 import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
-import { getUserId, getProfile, publishApp } from '../services/firebaseService';
+import { getUserId } from '../services/firebaseService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -107,7 +106,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isImageLibraryOpen, setIsImageLibraryOpen] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
@@ -471,42 +469,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     URL.revokeObjectURL(url);
   };
 
-  const handlePublish = async () => {
-    if (!activeTab) return;
-    const userId = getUserId();
-    if (!userId) {
-        alert("Please sign in or create an account before publishing.");
-        return;
-    }
-    const profile = await getProfile(userId);
-    if (!profile) {
-        alert("Please create a profile before publishing.");
-        return;
-    }
-
-    const lastMessage = activeTab.chatHistory[activeTab.chatHistory.length - 1];
-    if (lastMessage?.role !== 'assistant' || !lastMessage.content.files || lastMessage.content.files.length === 0) {
-        updateActiveTab({error: "No app content to publish."});
-        return;
-    }
-    
-    const appData = {
-        prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || 'Untitled App',
-        summary: lastMessage.content.summary || [],
-        htmlContent: lastMessage.content.files[0].content,
-        previewHtml: lastMessage.content.previewHtml || lastMessage.content.files[0].content,
-    };
-    
-    try {
-        await publishApp(userId, appData);
-        setIsPublishModalOpen(false);
-        // Maybe show a success notification
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "An unknown error occurred while publishing.";
-        updateActiveTab({ error: errorMsg });
-    }
-  };
-
   const handleSaveSettings = (settings: Partial<Omit<ProjectTab, 'id'>>) => {
     if (!activeTab) return;
     
@@ -579,7 +541,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     <div className="h-screen w-screen bg-black text-white flex flex-col pl-[4.5rem]">
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!activeTab?.currentProjectRepo} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={activeTab?.currentNetlifyUrl || null} isNewDeploy={!activeTab?.currentNetlifySiteId} />
-      <PublishModal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} onPublish={handlePublish} />
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
@@ -634,7 +595,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 hasFiles={files.length > 0}
                 isPro={isTrialActive}
                 onDownloadClick={handleDownloadClick}
-                onPublishClick={() => setIsPublishModalOpen(true)}
                 onSettingsClick={() => setIsProjectSettingsOpen(true)}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">

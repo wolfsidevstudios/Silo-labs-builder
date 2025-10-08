@@ -20,7 +20,6 @@ interface ViewSwitcherProps {
   hasFiles: boolean;
   isPro: boolean;
   onDownloadClick: () => void;
-  onPublishClick: () => void;
   onSettingsClick: () => void;
 }
 
@@ -29,7 +28,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     isGitHubConnected, onGitHubClick, 
     isNetlifyConnected, onDeployClick, isDeployed,
     hasFiles, isPro, onDownloadClick,
-    onPublishClick, onSettingsClick
+    onSettingsClick
 }) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
 
@@ -110,15 +109,6 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
             title={getDeployTitle()}
         >
           {isDeployed ? "Redeploy" : "Deploy"}
-        </button>
-        <button
-            onClick={onPublishClick}
-            disabled={!hasFiles || !isPro}
-            className="px-5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-full text-sm hover:from-purple-600 hover:to-indigo-700 transition-all transform hover:scale-105 disabled:from-slate-600 disabled:to-slate-700 disabled:text-slate-400 disabled:scale-100 disabled:cursor-not-allowed flex items-center gap-2"
-            title={!isPro ? "Upgrade to Pro to publish" : !hasFiles ? "Generate an app first" : "Publish to Marketplace"}
-        >
-          <RocketIcon className="w-4 h-4" />
-          Publish
         </button>
       </div>
     </div>

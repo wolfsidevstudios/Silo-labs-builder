@@ -5,8 +5,6 @@ import SettingsPage from './pages/SettingsPage';
 import PlansPage from './pages/PlansPage';
 import ProjectsPage from './pages/ProjectsPage';
 import NewsPage from './pages/NewsPage';
-import MarketplacePage from './pages/MarketplacePage';
-import ProfilePage from './pages/ProfilePage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -15,11 +13,11 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, AppFile, FirebaseUser, Profile } from './types';
+import { SavedProject, FirebaseUser } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
-import { auth, getProfile, createOrUpdateProfile } from './services/firebaseService';
+import { auth } from './services/firebaseService';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'marketplace' | 'profile';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -32,9 +30,8 @@ const App: React.FC = () => {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
 
-  // Auth & Profile state
+  // Auth state
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
 
   // State for new onboarding flow
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -45,28 +42,17 @@ const App: React.FC = () => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
         if (firebaseUser) {
             setUser(firebaseUser as FirebaseUser);
-            const profileData = await getProfile(firebaseUser.uid);
-            setProfile(profileData);
             const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
 
-            if (profileData) {
-                setUserName(profileData.username);
-                // Ensure onboarding is marked complete if a profile exists
-                if (!onboardingCompleted) localStorage.setItem('onboardingCompleted', 'true');
+            if (onboardingCompleted) {
+                setUserName(localStorage.getItem('userName'));
                 setShowOnboarding(false);
-            } else { // No profile exists
-                if (!onboardingCompleted) {
-                    setShowOnboarding(true); // New user (anonymous or signed up)
-                } else {
-                    // This case handles a user who completed onboarding as a guest
-                    // but hasn't created a profile in the DB yet.
-                    setUserName(localStorage.getItem('userName'));
-                }
+            } else {
+                setShowOnboarding(true);
             }
         } else {
             // No user is signed in, so we start an anonymous session.
             setUser(null);
-            setProfile(null);
             auth.signInAnonymously().catch(err => console.error("Anonymous sign-in failed:", err));
         }
     });
@@ -133,7 +119,7 @@ const App: React.FC = () => {
     };
   }, []);
   
-  const handleOnboardingFinish = async (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => {
+  const handleOnboardingFinish = (data: { name: string; accountType: 'individual' | 'business'; businessProfile?: any }) => {
     localStorage.setItem('onboardingCompleted', 'true');
     localStorage.setItem('userName', data.name);
     
@@ -143,12 +129,6 @@ const App: React.FC = () => {
     
     setUserName(data.name);
     setShowOnboarding(false);
-
-    if (user) {
-        // Create a profile for the user in Firestore
-        const updatedProfile = await createOrUpdateProfile(user.uid, { username: data.name });
-        setProfile(updatedProfile);
-    }
   };
 
   const handleStartTrial = () => {
@@ -173,24 +153,11 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: SidebarPage) => {
-    if (['home', 'settings', 'projects', 'plans', 'news', 'marketplace', 'profile'].includes(page)) {
+    if (['home', 'settings', 'projects', 'plans', 'news'].includes(page)) {
       setCurrentPage(page as Page);
     } else {
       alert(`The '${page}' page is not implemented in this demo.`);
     }
-  };
-
-  const handleLoadAppFromMarketplace = (prompt: string, htmlContent: string, summary: string[]) => {
-      const files: AppFile[] = [{ path: 'index.html', content: htmlContent }];
-      const project: SavedProject = {
-          id: `marketplace-${Date.now()}`,
-          prompt,
-          files,
-          previewHtml: htmlContent,
-          summary,
-          createdAt: new Date().toISOString(),
-      };
-      handleLoadProject(project);
   };
   
   const handleGoHome = () => {
@@ -216,17 +183,13 @@ const App: React.FC = () => {
         return <ProjectsPage onLoadProject={handleLoadProject} />;
       case 'news':
         return <NewsPage />;
-      case 'marketplace':
-        return <MarketplacePage onForkApp={handleLoadAppFromMarketplace} user={user} />;
-      case 'profile':
-        return <ProfilePage onLoadProject={handleLoadProject} user={user} />;
       default:
         return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
     }
   };
 
   const getActivePageForSidebar = (): SidebarPage | null => {
-    if (['home', 'projects', 'settings', 'plans', 'news', 'marketplace', 'profile'].includes(currentPage)) {
+    if (['home', 'projects', 'settings', 'plans', 'news'].includes(currentPage)) {
       return currentPage as SidebarPage;
     }
     return null;
@@ -259,7 +222,6 @@ const App: React.FC = () => {
       <Sidebar
         activePage={getActivePageForSidebar()}
         onNavigate={handleNavigate}
-        profile={profile}
       />
       <div className="font-sans antialiased">
         {renderPage()}
