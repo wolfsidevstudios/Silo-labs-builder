@@ -3,16 +3,15 @@ import SparklesIcon from './icons/SparklesIcon';
 
 interface ProBadgeProps {
     isVisible: boolean;
-    isTrial: boolean;
 }
 
-const ProBadge: React.FC<ProBadgeProps> = ({ isVisible, isTrial }) => {
+const ProBadge: React.FC<ProBadgeProps> = ({ isVisible }) => {
     if (!isVisible) return null;
 
     return (
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 animate-fade-in-down">
             <SparklesIcon className="w-4 h-4" />
-            <span>{isTrial ? 'Pro Trial' : 'Pro'}</span>
+            <span>Pro</span>
              <style>{`
                 @keyframes fade-in-down {
                     from { opacity: 0; transform: translateY(-10px); }

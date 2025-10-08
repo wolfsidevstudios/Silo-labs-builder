@@ -46,15 +46,6 @@ const NewsPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-slate-100 mb-6 text-center">What's New</h2>
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-indigo-500/30 rounded-2xl p-8 shadow-2xl shadow-indigo-500/10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                <div className="md:col-span-2 border-b border-slate-700 pb-8">
-                   <div className="flex items-center gap-3 mb-3">
-                      <GiftIcon className="w-7 h-7 text-indigo-400" />
-                      <h3 className="text-2xl font-bold text-white">Free Pro Week For Everyone!</h3>
-                  </div>
-                  <p className="text-slate-400">
-                      As a thank you to our amazing community, every user now gets a free 7-day trial of all Pro features! Explore saving projects, one-click deployments with Netlify, GitHub integration, custom themes, and more. Your free week starts now!
-                  </p>
-                </div>
                 <div>
                    <div className="flex items-center gap-3 mb-3">
                       <ZapIcon className="w-7 h-7 text-indigo-400" />

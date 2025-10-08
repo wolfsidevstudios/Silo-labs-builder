@@ -41,6 +41,29 @@ export interface SavedProject extends GeminiResponse {
   netlifyUrl?: string;
 }
 
+// FIX: Add Profile type to resolve compilation error.
+export interface Profile {
+  id: string; // User UID
+  username: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+}
+
+// FIX: Add PublishedApp type to resolve compilation error.
+export interface PublishedApp {
+  id: string;
+  prompt: string;
+  htmlContent: string;
+  previewHtml: string;
+  summary: string[];
+  authorId: string;
+  authorUsername: string;
+  authorAvatarUrl?: string;
+  likes: number;
+  createdAt: Timestamp;
+}
+
+
 // Chat History Types
 export interface UserMessage {
   id: string;

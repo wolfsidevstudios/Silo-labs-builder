@@ -4,11 +4,10 @@ import PartyPopperIcon from './icons/PartyPopperIcon';
 interface ReferralModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartTrial: () => void;
   referrerId: string | null;
 }
 
-const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose, onStartTrial, referrerId }) => {
+const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose, referrerId }) => {
   if (!isOpen) return null;
 
   return (
@@ -33,20 +32,13 @@ const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose, onStartT
             You've been referred by <strong className="text-white">{referrerId || 'a friend'}</strong>! They just got free generations for inviting you.
         </p>
         <p className="mt-4 text-slate-400">
-            As a welcome gift, you get <strong>10% off</strong> your first upgrade and a free <strong>24-hour trial of the Pro plan</strong>.
+            As a welcome gift, you get <strong>10% off</strong> your first upgrade.
         </p>
         <button
-          onClick={onStartTrial}
+          onClick={onClose}
           className="mt-8 inline-block w-full px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-green-500"
         >
-          Start 24-Hour Pro Trial
-        </button>
-         <button 
-            onClick={onClose}
-            className="mt-4 text-sm text-slate-500 hover:text-slate-300 transition-colors"
-            aria-label="Close referral modal"
-         >
-            Maybe later
+          Claim My Discount
         </button>
       </div>
       <style>{`

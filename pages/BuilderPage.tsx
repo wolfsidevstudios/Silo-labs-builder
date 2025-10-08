@@ -11,7 +11,6 @@ import ImageLibraryModal from '../components/ImageLibraryModal';
 import GiphySearchModal from '../components/GiphySearchModal';
 import UnsplashSearchModal from '../components/UnsplashSearchModal';
 import YouTubeSearchModal from '../components/YouTubeSearchModal';
-import TrialCountdownBar from '../components/TrialCountdownBar';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
@@ -31,8 +30,7 @@ import { getUserId } from '../services/firebaseService';
 interface BuilderPageProps {
   initialPrompt?: string;
   initialProject?: SavedProject | null;
-  isTrialActive: boolean;
-  trialEndTime: number | null;
+  isPro: boolean;
 }
 
 interface UploadedImageState {
@@ -98,7 +96,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
 };
 
 
-const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isTrialActive, trialEndTime }) => {
+const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isPro }) => {
   const [tabs, setTabs] = useState<ProjectTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   
@@ -449,7 +447,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
   
   const handleDownloadClick = () => {
-    if (!isTrialActive || !activeTab || files.length === 0) return;
+    if (!isPro || !activeTab || files.length === 0) return;
     
     // For this app, we only generate a single index.html
     const fileToDownload = files[0];
@@ -554,11 +552,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       
       <div className="flex flex-grow overflow-hidden">
         <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
-            {isTrialActive && trialEndTime && !activeTabId?.includes("tab-from-project") && (
-                <div className="p-4 border-b border-slate-800">
-                    <TrialCountdownBar endTime={trialEndTime} isInline={true} />
-                </div>
-            )}
             <div className="flex-grow flex flex-col overflow-hidden">
                 <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} />
             </div>
@@ -593,7 +586,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 onDeployClick={handleDeployClick}
                 isDeployed={!!activeTab?.currentNetlifySiteId}
                 hasFiles={files.length > 0}
-                isPro={isTrialActive}
+                isPro={isPro}
                 onDownloadClick={handleDownloadClick}
                 onSettingsClick={() => setIsProjectSettingsOpen(true)}
             />

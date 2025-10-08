@@ -1,3 +1,25 @@
+// FIX: Add imports for Firestore and Storage
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  runTransaction,
+  serverTimestamp,
+  orderBy,
+  Timestamp,
+  increment,
+} from 'firebase/firestore';
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from 'firebase/storage';
 import {
   getAuth,
   onAuthStateChanged,
@@ -10,10 +32,22 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import { FirebaseUser } from '../types';
+// FIX: Add Profile and PublishedApp to type imports
+import { FirebaseUser, Profile, PublishedApp } from '../types';
 
 // Initialize Firebase services
 const authInstance = getAuth();
+// FIX: Add placeholder initialization for db and storage to avoid runtime errors if Firebase isn't configured.
+let db, storage;
+try {
+  db = getFirestore();
+  storage = getStorage();
+} catch (e) {
+  console.error("Firebase not initialized. Firestore and Storage operations will fail.");
+  db = null;
+  storage = null;
+}
+
 
 // --- AUTHENTICATION ---
 
@@ -60,3 +94,97 @@ export const auth = {
 export const getUserId = (): string | null => {
   return authInstance.currentUser?.uid || null;
 };
+
+// --- FIRESTORE & STORAGE ---
+
+// FIX: Add getMarketplaceApps function
+export async function getMarketplaceApps(): Promise<PublishedApp[]> {
+  if (!db) return [];
+  const appsRef = collection(db, 'publishedApps');
+  const q = query(appsRef, orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PublishedApp));
+}
+
+// FIX: Add toggleLike function
+export async function toggleLike(appId: string, userId: string, currentUserHasLiked: boolean): Promise<number> {
+  if (!db) throw new Error("Database not available.");
+  const appRef = doc(db, 'publishedApps', appId);
+  const likeRef = doc(db, `publishedApps/${appId}/likes/${userId}`);
+
+  return runTransaction(db, async (transaction) => {
+    const appDoc = await transaction.get(appRef);
+    if (!appDoc.exists()) {
+      throw "App does not exist!";
+    }
+    
+    let newLikesCount = appDoc.data().likes || 0;
+
+    if (currentUserHasLiked) {
+      // User is unliking
+      transaction.delete(likeRef);
+      transaction.update(appRef, { likes: increment(-1) });
+      newLikesCount--;
+    } else {
+      // User is liking
+      transaction.set(likeRef, { userId, createdAt: serverTimestamp() });
+      transaction.update(appRef, { likes: increment(1) });
+      newLikesCount++;
+    }
+    return Math.max(0, newLikesCount);
+  });
+}
+
+// FIX: Add hasUserLikedApp function
+export async function hasUserLikedApp(appId: string, userId: string): Promise<boolean> {
+  if (!db) return false;
+  const likeRef = doc(db, `publishedApps/${appId}/likes/${userId}`);
+  const docSnap = await getDoc(likeRef);
+  return docSnap.exists();
+}
+
+// FIX: Add getProfile function
+export async function getProfile(userId: string): Promise<Profile | null> {
+  if (!db) return null;
+  const profileRef = doc(db, 'profiles', userId);
+  const docSnap = await getDoc(profileRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Profile;
+  }
+  return null;
+}
+
+// FIX: Add createOrUpdateProfile function
+export async function createOrUpdateProfile(userId: string, profileData: Partial<Omit<Profile, 'id'>>): Promise<Profile> {
+  if (!db) throw new Error("Database not available.");
+  const profileRef = doc(db, 'profiles', userId);
+  
+  const dataToSave: any = {
+    username: profileData.username,
+  };
+  if ('avatarUrl' in profileData) dataToSave.avatarUrl = profileData.avatarUrl;
+  if ('bannerUrl' in profileData) dataToSave.bannerUrl = profileData.bannerUrl;
+
+  await setDoc(profileRef, dataToSave, { merge: true });
+  
+  const savedDoc = await getDoc(profileRef);
+  return { id: userId, ...savedDoc.data() } as Profile;
+}
+
+// FIX: Add getUserApps function
+export async function getUserApps(authorId: string): Promise<PublishedApp[]> {
+  if (!db) return [];
+  const appsRef = collection(db, 'publishedApps');
+  const q = query(appsRef, where('authorId', '==', authorId), orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PublishedApp));
+}
+
+// FIX: Add uploadProfileImage function
+export async function uploadProfileImage(file: File, userId: string, type: 'avatar' | 'banner'): Promise<string> {
+    if (!storage) throw new Error("Storage not available.");
+    const filePath = `profile-images/${userId}/${type}.${file.name.split('.').pop()}`;
+    const storageRef = ref(storage, filePath);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+}

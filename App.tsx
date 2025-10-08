@@ -24,7 +24,6 @@ const App: React.FC = () => {
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
   const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
   const [isPro, setIsPro] = useState<boolean>(false);
-  const [proTrialEndTime, setProTrialEndTime] = useState<number | null>(null);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -64,34 +63,8 @@ const App: React.FC = () => {
         setIsFeatureDropModalOpen(true);
     }
 
-    // Check for permanent Pro status first.
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
-    if (permanentProStatus) {
-      setIsPro(true);
-    } else {
-      const freeWeekGranted = localStorage.getItem('proTrialFreeWeekGranted') === 'true';
-      if (!freeWeekGranted) {
-        const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-        const endTime = Date.now() + sevenDaysInMs;
-        localStorage.setItem('proTrialEndTime', String(endTime));
-        localStorage.setItem('proTrialFreeWeekGranted', 'true');
-        setProTrialEndTime(endTime);
-        setIsPro(true);
-      } else {
-        const trialEndTimeStr = localStorage.getItem('proTrialEndTime');
-        if (trialEndTimeStr) {
-          const endTime = parseInt(trialEndTimeStr, 10);
-          if (Date.now() < endTime) {
-            setIsPro(true);
-            setProTrialEndTime(endTime);
-          } else {
-            setIsPro(false);
-            setProTrialEndTime(null);
-            localStorage.removeItem('proTrialEndTime');
-          }
-        }
-      }
-    }
+    setIsPro(permanentProStatus);
 
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
@@ -106,8 +79,6 @@ const App: React.FC = () => {
     if (urlParams.has('upgraded')) {
       localStorage.setItem('isPro', 'true');
       setIsPro(true);
-      setProTrialEndTime(null);
-      localStorage.removeItem('proTrialEndTime');
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('upgraded');
       newUrl.searchParams.delete('ref');
@@ -129,15 +100,6 @@ const App: React.FC = () => {
     
     setUserName(data.name);
     setShowOnboarding(false);
-  };
-
-  const handleStartTrial = () => {
-    const oneDayInMs = 24 * 60 * 60 * 1000;
-    const endTime = Date.now() + oneDayInMs;
-    localStorage.setItem('proTrialEndTime', String(endTime));
-    setProTrialEndTime(endTime);
-    setIsPro(true);
-    setIsReferralModalOpen(false);
   };
 
   const handleStartBuilding = (prompt: string) => {
@@ -172,9 +134,9 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
+        return <HomePage onGenerate={handleStartBuilding} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isTrialActive={isPro} trialEndTime={proTrialEndTime} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} user={user} />;
       case 'plans':
@@ -184,7 +146,7 @@ const App: React.FC = () => {
       case 'news':
         return <NewsPage />;
       default:
-        return <HomePage onGenerate={handleStartBuilding} isTrialActive={!!proTrialEndTime} trialEndTime={proTrialEndTime} />;
+        return <HomePage onGenerate={handleStartBuilding} />;
     }
   };
 
@@ -201,14 +163,13 @@ const App: React.FC = () => {
           <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
             <Logo type={currentPage === 'home' ? 'full' : 'icon'} />
           </button>
-          {currentPage === 'home' && <ProBadge isVisible={isPro} isTrial={!!proTrialEndTime} />}
+          {currentPage === 'home' && <ProBadge isVisible={isPro} />}
       </header>
       <OnboardingModal isOpen={showOnboarding} onFinish={handleOnboardingFinish} user={user} />
       {userName && currentPage === 'home' && <UserGreeting name={userName} />}
        <ReferralModal
         isOpen={isReferralModalOpen}
         onClose={() => setIsReferralModalOpen(false)}
-        onStartTrial={handleStartTrial}
         referrerId={referrerId}
       />
       <UpgradeModal
