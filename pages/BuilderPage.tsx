@@ -383,7 +383,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
     updateActiveTab({ isLoading: true, isMaxAgentRunning: true, error: null, agentTargets: [] });
   
-    const tempUserId = `user-max-${Date.now()}`;
     const tempAssistantId = `assistant-max-${Date.now()}`;
   
     const thinkingMessage: AssistantMessage = {
@@ -403,11 +402,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         analyzeAppCode(currentCode, projectSettings),
         new Promise(resolve => setTimeout(resolve, 5000)) // Ensure animation plays for a bit
       ]);
+
+      const lastAssistantMessageWithContent = activeTab.chatHistory
+        .slice()
+        .reverse()
+        .find(m => m.role === 'assistant' && m.content?.files?.length) as AssistantMessage | undefined;
       
       const reportMessage: AssistantMessage = {
         id: `assistant-max-report-${Date.now()}`,
         role: 'assistant',
-        content: {},
+        content: lastAssistantMessageWithContent?.content || {},
         isGenerating: false,
         maxReport: report,
       };
@@ -426,8 +430,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
 
   const handleAutoFix = (issues: MaxIssue[]) => {
-    const fixPrompt = "Please fix the following issues in the application code:\n" + 
-      issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
+    const issuesString = issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
+    const fixPrompt = `Please apply the following fixes to the application code. While implementing these changes, also take the opportunity to improve the overall UI/UX. Make the app look more modern, professional, and visually polished. Ensure the final result is both functional (with the issues resolved) and aesthetically pleasing.\n\nHere are the specific issues to address:\n${issuesString}`;
     handleSubmit(fixPrompt);
   };
   

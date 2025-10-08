@@ -18,6 +18,7 @@ import GiftIcon from './icons/GiftIcon';
 import GoogleIcon from './icons/GoogleIcon';
 import BeakerIcon from './icons/BeakerIcon';
 import DiamondIcon from './icons/DiamondIcon';
+import BrainCircuitIcon from './icons/BrainCircuitIcon';
 
 
 interface FeatureDropModalProps {
@@ -112,9 +113,20 @@ const Part4Content = () => (
    </div>
 );
 
+const Part5Content = () => (
+    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-indigo-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
+       <BrainCircuitIcon className="w-12 h-12 text-indigo-300 mb-4 animate-pulse" />
+       <h3 className="font-bold text-white text-xl">Introducing Silo Max 1.5</h3>
+       <p className="text-indigo-300 font-semibold mt-1">Coming November 1st @ 5:00 PM</p>
+       <p className="text-slate-400 mt-4 max-w-md">
+           The most powerful agent ever. As MAX 1.5 navigates your app, it will intelligently decide to restyle a button, add a new section, or fix a layout issue—and perform the edit instantly. This is live, autonomous co-development that will redefine expectations for AI agents.
+       </p>
+   </div>
+);
+
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4'>('part4');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5'>('part5');
 
   if (!isOpen) return null;
 
@@ -148,19 +160,22 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
             {activePart === 'part1' ? 'Part I: The Foundation' 
              : activePart === 'part2' ? 'Part II: The API Update' 
              : activePart === 'part3' ? 'Part III: The AI Revolution'
-             : 'Part IV: The Next Generation'}
+             : activePart === 'part4' ? 'Part IV: The Next Generation'
+             : 'Part V: The MAX Revolution'}
         </p>
 
         {activePart === 'part1' ? <Part1Content /> 
          : activePart === 'part2' ? <Part2Content /> 
          : activePart === 'part3' ? <Part3Content />
-         : <Part4Content />}
+         : activePart === 'part4' ? <Part4Content />
+         : <Part5Content />}
         
         <div className="mt-8 bg-slate-900/50 p-1 rounded-full flex items-center border border-slate-700/50">
             <button onClick={() => setActivePart('part1')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part1' ? 'bg-white text-black' : 'text-slate-300'}`}>Part I</button>
             <button onClick={() => setActivePart('part2')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part2' ? 'bg-white text-black' : 'text-slate-300'}`}>Part II</button>
             <button onClick={() => setActivePart('part3')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part3' ? 'bg-white text-black' : 'text-slate-300'}`}>Part III</button>
             <button onClick={() => setActivePart('part4')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part4' ? 'bg-white text-black' : 'text-slate-300'}`}>Part IV</button>
+            <button onClick={() => setActivePart('part5')} className={`px-5 py-1.5 text-sm font-semibold rounded-full transition-colors ${activePart === 'part5' ? 'bg-white text-black' : 'text-slate-300'}`}>Part V</button>
         </div>
       </div>
       <style>{`
