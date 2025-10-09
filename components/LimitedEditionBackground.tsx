@@ -19,7 +19,7 @@ const LimitedEditionBackground: React.FC = () => {
         'ship it',
         'think different',
         'design systems',
-        'hello world',
+        'hello, world',
         'just build',
         'innovate daily',
         'AI power',
@@ -33,6 +33,17 @@ const LimitedEditionBackground: React.FC = () => {
         'start creating',
         'imagine that',
         'endless ideas',
+        '{ }', // Figure
+        '</>', // Figure
+        'git push',
+        'Silo Build',
+        'deploy',
+        '10x dev',
+        'lambda λ', // Figure
+        'bug free',
+        'refactor',
+        '🚀', // Figure
+        '⚙️', // Figure
     ];
     const FONT_SIZE = 100; // Adjusted for better fit
     const PARTICLE_COUNT = 3000;
