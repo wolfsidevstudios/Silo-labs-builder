@@ -5,7 +5,9 @@ import GiftIcon from '../components/icons/GiftIcon';
 import AffiliateCard from '../components/AffiliateCard';
 import { getAffiliateId, getAffiliateStats } from '../services/affiliateService';
 
-const PRO_PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
+const POLAR_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
+const STRIPE_URL = "https://buy.stripe.com/test_eVa3d2e2Xg4g3wQcMM"; // Example URL
+const POLY_URL = "https://pay.poly.sh/p/silo-build-pro"; // Example URL
 
 const PlansPage: React.FC = () => {
   const [copyText, setCopyText] = useState('Copy URL');
@@ -74,9 +76,17 @@ const PlansPage: React.FC = () => {
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Use custom secrets</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Priority support</li>
             </ul>
-             <a href={PRO_PAYMENT_URL} className="mt-8 text-center w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
-              Upgrade to Pro
-            </a>
+             <div className="mt-8 space-y-2">
+                <a href={STRIPE_URL} className="block text-center w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                  Upgrade with Stripe
+                </a>
+                <a href={POLY_URL} className="block text-center w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                  Upgrade with Poly.sh
+                </a>
+                 <a href={POLAR_URL} className="block text-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105">
+                  Upgrade with Polar
+                </a>
+             </div>
           </div>
 
           {/* Ultra Plan */}

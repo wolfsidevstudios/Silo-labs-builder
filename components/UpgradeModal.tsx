@@ -6,7 +6,9 @@ interface UpgradeModalProps {
   onClose: () => void;
 }
 
-const PAYMENT_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
+const POLAR_URL = "https://buy.polar.sh/polar_cl_gu9SqU1tuhJ6PoQT2oUCgUpt6UjCc2NTbyOIC3QDDKb?redirect_url=" + encodeURIComponent(window.location.origin + "?upgraded=true");
+const STRIPE_URL = "https://buy.stripe.com/test_eVa3d2e2Xg4g3wQcMM"; // Example URL
+const POLY_URL = "https://pay.poly.sh/p/silo-build-pro"; // Example URL
 
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
@@ -33,15 +35,29 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
         <p className="mt-4 text-slate-400">
             Unlock premium features, priority support, and build even more powerful applications with the Pro plan.
         </p>
-        <a
-          href={PAYMENT_URL}
-          className="mt-8 inline-block w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
-        >
-          Upgrade Now
-        </a>
+        <div className="mt-8 space-y-3">
+          <a
+            href={STRIPE_URL}
+            className="inline-block w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+          >
+            Pay with Stripe
+          </a>
+          <a
+            href={POLY_URL}
+            className="inline-block w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-purple-500"
+          >
+            Pay with Poly.sh
+          </a>
+          <a
+            href={POLAR_URL}
+            className="inline-block w-full px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-blue-500"
+          >
+            Pay with Polar
+          </a>
+        </div>
          <button 
             onClick={onClose}
-            className="mt-4 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            className="mt-6 text-sm text-slate-500 hover:text-slate-300 transition-colors"
             aria-label="Close upgrade modal"
          >
             Maybe later

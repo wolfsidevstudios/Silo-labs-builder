@@ -24,6 +24,8 @@ import { getApiKey as getFmpApiKey, saveApiKey as saveFmpApiKey, removeApiKey as
 import { getApiKey as getNewsApiKey, saveApiKey as saveNewsApiKey, removeApiKey as removeNewsApiKey } from '../services/newsApiService';
 import { getApiKey as getRawgApiKey, saveApiKey as saveRawgApiKey, removeApiKey as removeRawgApiKey } from '../services/rawgService';
 import { getApiKey as getWordsApiKey, saveApiKey as saveWordsApiKey, removeApiKey as removeWordsApiKey } from '../services/wordsApiService';
+import { getApiKeys as getStripeKeys, saveApiKeys as saveStripeKeys, removeApiKeys as removeStripeKeys } from '../services/stripeService';
+import { getApiKey as getPolyApiKey, saveApiKey as savePolyApiKey, removeApiKey as removePolyApiKey } from '../services/polyService';
 
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import DeleteDataModal from '../components/DeleteDataModal';
@@ -60,6 +62,9 @@ import TrashIcon from '../components/icons/TrashIcon';
 import UserIcon from '../components/icons/UserIcon';
 import AccessibilityIcon from '../components/icons/AccessibilityIcon';
 import FaceIcon from '../components/icons/FaceIcon';
+import StripeIcon from '../components/icons/StripeIcon';
+import PolyIcon from '../components/icons/PolyIcon';
+
 
 interface SettingsPageProps {
   isPro: boolean;
@@ -82,10 +87,19 @@ const ICONS: Record<string, { name: string, url: string, manifest: string }> = {
 };
 
 const BACKGROUNDS: Record<string, { name: string, style: string }> = {
-    'default': { name: 'Default Animated', style: 'bg-black' }, // Special case handled in component
+    'default': { name: 'Default Animated', style: 'bg-black' },
+    'limited-edition': { name: 'Limited Edition', style: 'bg-black' },
     'gradient-1': { name: 'Cosmic Fusion', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900' },
     'gradient-2': { name: 'Oceanic Depth', style: 'bg-gradient-to-tr from-cyan-900 via-blue-900 to-slate-900' },
+    'gradient-3': { name: 'Sunset Glow', style: 'bg-gradient-to-br from-orange-800 via-pink-900 to-purple-900' },
+    'gradient-4': { name: 'Emerald Forest', style: 'bg-gradient-to-bl from-green-900 via-teal-900 to-blue-900' },
+    'gradient-5': { name: 'Cyberpunk City', style: 'bg-gradient-to-t from-black via-fuchsia-900 to-blue-900' },
     'solid-dark': { name: 'Solid Dark', style: 'bg-gray-900' },
+    'solid-blue': { name: 'Solid Blue', style: 'bg-blue-950' },
+    'solid-purple': { name: 'Solid Purple', style: 'bg-purple-950' },
+    'solid-green': { name: 'Solid Green', style: 'bg-green-950' },
+    'pattern-1': { name: 'Subtle Grid', style: 'bg-gray-900' },
+    'pattern-2': { name: 'Circuit Board', style: 'bg-blue-950' },
 };
 
 const apiDocsLinks: Record<string, string> = {
@@ -107,6 +121,8 @@ const apiDocsLinks: Record<string, string> = {
   'NewsAPI': 'https://newsapi.org/account',
   'RAWG': 'https://rawg.io/apidocs',
   'WordsAPI': 'https://rapidapi.com/dpventures/api/wordsapi',
+  'Stripe': 'https://dashboard.stripe.com/apikeys',
+  'Poly.sh': 'https://poly.sh/settings/keys',
 };
 
 
@@ -333,6 +349,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   ];
   
   const integrationsList = [
+      { name: 'Stripe', icon: StripeIcon, getCreds: getStripeKeys, saveCreds: (secretKey: string, publishableKey: string) => saveStripeKeys({ secretKey, publishableKey }), removeCreds: removeStripeKeys, fields: [{name: 'Secret Key', type: 'password'}, {name: 'Publishable Key', type: 'text'}] },
+      { name: 'Poly.sh', icon: PolyIcon, get: getPolyApiKey, save: savePolyApiKey, remove: removePolyApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Giphy', icon: GiphyIcon, get: getGiphyApiKey, save: saveGiphyApiKey, remove: removeGiphyApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Unsplash', icon: UnsplashIcon, get: getUnsplashAccessKey, save: saveUnsplashAccessKey, remove: removeUnsplashAccessKey, fields: [{name: 'Access Key', type: 'password'}] },
       { name: 'OpenAI', icon: OpenAiIcon, get: getOpenAiApiKey, save: saveOpenAiApiKey, remove: removeOpenAiApiKey, fields: [{name: 'API Key', type: 'password'}] },
@@ -478,7 +496,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                       {Object.entries(BACKGROUNDS).map(([key, {name, style}]) => (
                          <div key={key} onClick={() => handleBackgroundChange(key)} className={`cursor-pointer rounded-lg border-2 ${homeBackground === key ? 'border-indigo-500' : 'border-transparent'}`}>
                            <div className={`aspect-video w-full rounded-md ${style} flex items-center justify-center`}>
-                              {key === 'default' && <SparklesIcon className="w-6 h-6 text-white/50" />}
+                              {(key === 'default' || key === 'limited-edition') && <SparklesIcon className="w-6 h-6 text-white/50" />}
                            </div>
                            <p className="text-sm text-center mt-2">{name}</p>
                          </div>
@@ -712,7 +730,7 @@ const ApiKeyManager: React.FC<{
             if (getCreds()) connected = true;
         }
         setIsConnected(connected);
-    }, [get, getCreds]);
+    }, [get, getCreds, name]);
 
     const handleFieldChange = (fieldName: string, value: string) => {
         setFieldValues(prev => ({ ...prev, [fieldName]: value }));
@@ -772,7 +790,7 @@ const ApiKeyManager: React.FC<{
                     <div className="flex justify-between items-center mt-2">
                         {docLink && (
                             <a href={docLink} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:underline ml-2">
-                                Get your {name} key
+                                Get your {name} key(s)
                             </a>
                         )}
                         <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full text-sm ml-auto">Save</button>

@@ -29,6 +29,9 @@ const DATA_KEYS: Record<DataCategory, string[]> = {
     'huggingface_access_token',
     'huggingface_model_url',
     'ai_react_app_builder_secrets',
+    'stripe_secret_key',
+    'stripe_publishable_key',
+    'poly_api_key',
   ],
   settings: [
     'gemini_model',
