@@ -9,7 +9,31 @@ const LimitedEditionBackground: React.FC = () => {
         currentState: 'SCATTER', // SCATTER, FORM, HOLD
     });
 
-    const TEXT_SEQUENCE = ['vibe code', 'vibe anything', 'build fast'];
+    const TEXT_SEQUENCE = [
+        'vibe code',
+        'vibe anything',
+        'build fast',
+        'create magic',
+        'build cool stuff',
+        'code dreams',
+        'ship it',
+        'think different',
+        'design systems',
+        'hello world',
+        'just build',
+        'innovate daily',
+        'AI power',
+        'dream bigger',
+        'make it real',
+        'pixel perfect',
+        'flow state',
+        'good vibes',
+        'future is now',
+        'beyond code',
+        'start creating',
+        'imagine that',
+        'endless ideas',
+    ];
     const FONT_SIZE = 100; // Adjusted for better fit
     const PARTICLE_COUNT = 3000;
     const EASE_FACTOR = 0.05;
