@@ -93,6 +93,29 @@ const HomePageBackground: React.FC = () => {
             return <div className={`${commonClass} bg-purple-950`} />;
         case 'solid-green':
             return <div className={`${commonClass} bg-green-950`} />;
+        case 'light-swirl':
+            return (
+                <>
+                    <div className="absolute inset-0 w-full h-full bg-white overflow-hidden">
+                        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-sky-100 rounded-full filter blur-3xl opacity-70 animate-blob"></div>
+                        <div className="absolute bottom-[-10%] right-[5%] w-[40%] h-[40%] bg-cyan-100 rounded-full filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+                        <div className="absolute top-[20%] right-[-15%] w-[30%] h-[30%] bg-blue-100 rounded-full filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+                    </div>
+                    <style>{`
+                        @keyframes blob {
+                            0% { transform: translate(0px, 0px) scale(1); }
+                            33% { transform: translate(30px, -50px) scale(1.1); }
+                            66% { transform: translate(-20px, 20px) scale(0.9); }
+                            100% { transform: translate(0px, 0px) scale(1); }
+                        }
+                        .animate-blob {
+                            animation: blob 10s infinite ease-in-out;
+                        }
+                        .animation-delay-2000 { animation-delay: 2s; }
+                        .animation-delay-4000 { animation-delay: 4s; }
+                    `}</style>
+                </>
+            );
         case 'pattern-1':
             return (
               <div className={`${commonClass} bg-gray-900 bg-[linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-5`} />
