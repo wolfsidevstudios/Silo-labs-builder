@@ -684,6 +684,38 @@ export async function generateMaxTestPlan(code: string): Promise<TestStep[]> {
     }
 }
 
+export async function generateImprovementPrompt(code: string, existingFeatures: string[]): Promise<string> {
+    const systemInstruction = `You are an expert AI software engineer. Your task is to analyze the provided HTML application code and a list of existing features/prompts.
+- Suggest a SINGLE, NEW, and VALUABLE feature or improvement that can be added to the application.
+- The suggestion should be a concise, actionable prompt that another AI could use to implement the change.
+- DO NOT suggest features that are already in the "Existing Features" list.
+- Good examples: "add a dark mode toggle", "animate the header on scroll", "add a confirmation modal before deleting an item", "make the layout responsive for mobile devices".
+- Bad examples: "improve the code", "make it better", "add more features".
+- Respond ONLY with the raw text of the prompt. Do not add any extra formatting, quotation marks, or explanations.`;
+
+    const prompt = `Here is the application code:\n\n\`\`\`html\n${code}\n\`\`\`\n\nExisting Features (do not repeat these):\n- ${existingFeatures.join('\n- ')}\n\nPlease provide a new feature prompt.`;
+    
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            systemInstruction: systemInstruction,
+          },
+        });
+
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error generating improvement prompt:", error);
+        if (error instanceof Error) { throw new Error(`Failed to generate improvement prompt: ${error.message}`); }
+        throw new Error("An unknown error occurred while generating an improvement prompt.");
+    }
+}
+
+
 export async function editCodeWithAi(prompt: string, filePath: string, fileContent: string): Promise<string> {
     const systemInstruction = `You are an expert AI software engineer. You will be given a file's content and a user's instruction to modify it.
 - Your task is to apply the user's requested changes to the code.

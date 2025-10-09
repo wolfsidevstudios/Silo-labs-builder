@@ -14,6 +14,7 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
+import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
@@ -132,11 +133,27 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
   const [isPexelsConnected, setIsPexelsConnected] = useState(false);
   const [isFreeSoundConnected, setIsFreeSoundConnected] = useState(false);
+  
+  // MAX Vibe Agent State
+  const [isMaxVibeRunning, setIsMaxVibeRunning] = useState(false);
+
+  // Refs for MAX Vibe Agent to control UI elements
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const viewSwitcherCodeRef = useRef<HTMLButtonElement>(null);
+  const viewSwitcherPreviewRef = useRef<HTMLButtonElement>(null);
+  const githubButtonRef = useRef<HTMLButtonElement>(null);
+  const deployButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const initialGenerationDone = useRef<Set<string>>(new Set());
 
   // --- Tab Management ---
   const activeTab = tabs.find(t => t.id === activeTabId);
+  const activeTabRef = useRef<ProjectTab | null>(null);
+  useEffect(() => {
+    activeTabRef.current = activeTab || null;
+  }, [activeTab]);
   
   const updateActiveTab = (updates: Partial<ProjectTab>) => {
     if (!activeTabId) return;
@@ -488,6 +505,14 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         return tab;
     }));
   };
+  
+  const handleToggleMaxVibe = () => {
+    if (!isMaxVibeRunning && files.length === 0) {
+        alert("Please generate an initial app before activating MAX Vibe.");
+        return;
+    }
+    setIsMaxVibeRunning(prev => !prev);
+  };
 
   const handleAutoFix = (issues: MaxIssue[]) => {
     const issuesString = issues.map(issue => `- ${issue.description} (Suggestion: ${issue.suggestion})`).join('\n');
@@ -669,6 +694,39 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <QuotaErrorModal isOpen={isQuotaErrorModalOpen} onClose={() => setIsQuotaErrorModalOpen(false)} />
       {activeTab && <ProjectSettingsModal isOpen={isProjectSettingsOpen} onClose={() => setIsProjectSettingsOpen(false)} onSave={handleSaveSettings} project={activeTab} />}
       
+      {isMaxVibeRunning && activeTab && (
+        <MaxVibeAgentCursor 
+            initialCode={files.length > 0 ? files[0].content : ''}
+            promptHistory={activeTab.chatHistory.filter(m => m.role === 'user').map(m => (m as UserMessage).content)}
+            isGenerating={activeTab.isLoading}
+            onStop={() => setIsMaxVibeRunning(false)}
+            actions={{
+                setPrompt: (p: string) => updateActiveTab({ prompt: p }),
+                submit: () => {
+                    if (activeTabRef.current) {
+                       handleSubmit(activeTabRef.current.prompt.trim());
+                    }
+                },
+                switchView: setRightPaneView,
+                openGitHubModal: () => setIsGitHubModalOpen(true),
+                openDeployModal: handleDeployClick,
+                openSettingsModal: () => setIsProjectSettingsOpen(true),
+            }}
+            elementRefs={{
+                promptInput: promptInputRef,
+                submitButton: submitButtonRef,
+                viewSwitcherCode: viewSwitcherCodeRef,
+                viewSwitcherPreview: viewSwitcherPreviewRef,
+                githubButton: githubButtonRef,
+                deployButton: deployButtonRef,
+                settingsButton: settingsButtonRef,
+            }}
+        />
+      )}
+      {isMaxVibeRunning && (
+        <div className="absolute inset-0 bg-black/50 z-20 backdrop-blur-sm" aria-hidden="true" />
+      )}
+
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
       </div>
@@ -698,6 +756,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         onStartMaxAgent={handleStartMaxAgent}
                         isMaxAgentRunning={activeTab.isMaxAgentRunning}
                         hasFiles={files.length > 0}
+                        onToggleMaxVibe={handleToggleMaxVibe}
+                        isMaxVibeRunning={isMaxVibeRunning}
+                        promptInputRef={promptInputRef}
+                        submitButtonRef={submitButtonRef}
                     />
                 )}
             </div>
@@ -715,6 +777,11 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 isPro={isPro}
                 onDownloadClick={handleDownloadClick}
                 onSettingsClick={() => setIsProjectSettingsOpen(true)}
+                codeButtonRef={viewSwitcherCodeRef}
+                previewButtonRef={viewSwitcherPreviewRef}
+                githubButtonRef={githubButtonRef}
+                deployButtonRef={deployButtonRef}
+                settingsButtonRef={settingsButtonRef}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (

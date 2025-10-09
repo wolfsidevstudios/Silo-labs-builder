@@ -8,6 +8,7 @@ import FilmIcon from './icons/FilmIcon'; // A more generic icon for media
 import GiphyIcon from './icons/GiphyIcon';
 import UnsplashIcon from './icons/UnsplashIcon';
 import YouTubeIcon from './icons/YouTubeIcon';
+import MaxVibeIcon from './icons/MaxVibeIcon';
 
 
 interface PromptInputProps {
@@ -31,9 +32,13 @@ interface PromptInputProps {
   onStartMaxAgent: () => void;
   isMaxAgentRunning: boolean;
   hasFiles: boolean;
+  onToggleMaxVibe: () => void;
+  isMaxVibeRunning: boolean;
+  promptInputRef: React.RefObject<HTMLTextAreaElement>;
+  submitButtonRef: React.RefObject<HTMLButtonElement>;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick, isYouTubeConnected, onAddYouTubeVideoClick, onStartMaxAgent, isMaxAgentRunning, hasFiles }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, onBoostUi, isLoading, isVisualEditMode, onToggleVisualEditMode, uploadedImages, onImagesUpload, onImageRemove, onOpenImageLibrary, isGiphyConnected, onAddGifClick, isUnsplashConnected, onAddStockPhotoClick, isYouTubeConnected, onAddYouTubeVideoClick, onStartMaxAgent, isMaxAgentRunning, hasFiles, onToggleMaxVibe, isMaxVibeRunning, promptInputRef, submitButtonRef }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
@@ -68,14 +73,23 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
   return (
     <form onSubmit={onSubmit} className="p-4">
       {hasFiles && (
-        <div className="mb-3 flex justify-center">
+        <div className="mb-3 flex justify-center gap-4">
             <button
                 type="button"
                 onClick={onStartMaxAgent}
-                disabled={isLoading || isMaxAgentRunning}
+                disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                 className="px-6 py-2 bg-white text-black font-bold text-sm rounded-full shadow-lg hover:bg-gray-200 transition-all transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-800 disabled:cursor-not-allowed"
             >
                 {isMaxAgentRunning ? 'MAX is running...' : 'MAX'}
+            </button>
+            <button
+                type="button"
+                onClick={onToggleMaxVibe}
+                disabled={isLoading || isMaxAgentRunning}
+                className={`px-6 py-2 font-bold text-sm rounded-full shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 ${isMaxVibeRunning ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-cyan-500 text-black hover:bg-cyan-400'} disabled:bg-gray-600 disabled:text-gray-800 disabled:cursor-not-allowed`}
+            >
+                <MaxVibeIcon className="w-4 h-4" />
+                {isMaxVibeRunning ? 'Stop Vibe' : 'MAX Vibe'}
             </button>
         </div>
       )}
@@ -85,7 +99,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                 <button
                     type="button"
                     onClick={() => setIsUploadMenuOpen(prev => !prev)}
-                    disabled={isLoading || isMaxAgentRunning}
+                    disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                     className="flex items-center justify-center h-10 w-10 bg-white/5 border border-white/10 rounded-full text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Add Image"
                 >
@@ -114,7 +128,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                 <button
                     type="button"
                     onClick={() => setIsMediaMenuOpen(prev => !prev)}
-                    disabled={isLoading || isMaxAgentRunning}
+                    disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                     className="flex items-center justify-center h-10 w-10 bg-white/5 border border-white/10 rounded-full text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
                     title="Add Media from Services"
                 >
@@ -132,7 +146,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             <button
                 type="button"
                 onClick={onBoostUi}
-                disabled={isLoading || isMaxAgentRunning}
+                disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                 className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-indigo-300 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
             >
                 <SparklesIcon className="w-4 h-4" />
@@ -141,7 +155,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             <button
                 type="button"
                 onClick={onToggleVisualEditMode}
-                disabled={isLoading || isMaxAgentRunning}
+                disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                 className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2 ${
                     isVisualEditMode
                     ? 'bg-indigo-600 border-indigo-500 text-white'
@@ -162,7 +176,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
                         <button
                             type="button"
                             onClick={() => onImageRemove(index)}
-                            disabled={isLoading || isMaxAgentRunning}
+                            disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
                             className="absolute -top-2 -right-2 bg-slate-600 hover:bg-slate-500 text-white rounded-full p-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label={`Remove image ${index + 1}`}
                         >
@@ -175,11 +189,12 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
       )}
       <div className="relative">
         <textarea
+          ref={promptInputRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="e.g., Use this image as a hero background"
           className="w-full h-36 p-6 pr-20 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_120px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none"
-          disabled={isLoading || isMaxAgentRunning}
+          disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -188,8 +203,9 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
           }}
         />
         <button
+          ref={submitButtonRef}
           type="submit"
-          disabled={isLoading || isMaxAgentRunning || (!prompt.trim() && uploadedImages.length === 0)}
+          disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning || (!prompt.trim() && uploadedImages.length === 0)}
           className="absolute right-4 bottom-4 h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group"
           aria-label="Generate app"
         >

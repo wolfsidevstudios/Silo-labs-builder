@@ -21,6 +21,11 @@ interface ViewSwitcherProps {
   isPro: boolean;
   onDownloadClick: () => void;
   onSettingsClick: () => void;
+  codeButtonRef: React.RefObject<HTMLButtonElement>;
+  previewButtonRef: React.RefObject<HTMLButtonElement>;
+  githubButtonRef: React.RefObject<HTMLButtonElement>;
+  deployButtonRef: React.RefObject<HTMLButtonElement>;
+  settingsButtonRef: React.RefObject<HTMLButtonElement>;
 }
 
 const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ 
@@ -28,7 +33,8 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     isGitHubConnected, onGitHubClick, 
     isNetlifyConnected, onDeployClick, isDeployed,
     hasFiles, isPro, onDownloadClick,
-    onSettingsClick
+    onSettingsClick,
+    codeButtonRef, previewButtonRef, githubButtonRef, deployButtonRef, settingsButtonRef
 }) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
 
@@ -55,6 +61,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
         
         {/* Buttons */}
         <button
+          ref={previewButtonRef}
           onClick={() => setActiveView('preview')}
           className="relative z-10 flex items-center justify-center h-9 w-9 rounded-full transition-colors"
           aria-pressed={activeView === 'preview'}
@@ -63,6 +70,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
           <EyeIcon className={`w-5 h-5 transition-colors ${activeView === 'preview' ? 'text-slate-900' : 'text-slate-400 hover:text-white'}`} />
         </button>
         <button
+          ref={codeButtonRef}
           onClick={() => setActiveView('code')}
           className="relative z-10 flex items-center justify-center h-9 w-9 rounded-full transition-colors"
           aria-pressed={activeView === 'code'}
@@ -74,6 +82,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
 
       <div className="flex items-center gap-2">
         <button
+            ref={settingsButtonRef}
             onClick={onSettingsClick}
             disabled={!hasFiles}
             className="flex items-center justify-center h-9 w-9 bg-slate-800 border border-slate-700 rounded-full text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -95,6 +104,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
             )}
         </button>
         <button
+            ref={githubButtonRef}
             onClick={onGitHubClick}
             disabled={!isGitHubConnected || !hasFiles}
             className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-full text-sm text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -103,6 +113,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
             <GitHubIcon className="w-5 h-5" />
         </button>
         <button
+            ref={deployButtonRef}
             onClick={onDeployClick}
             disabled={!isNetlifyConnected || !hasFiles}
             className="px-5 py-2 bg-white text-black font-semibold rounded-full text-sm hover:bg-gray-200 transition-colors disabled:bg-gray-500 disabled:text-gray-800 disabled:cursor-not-allowed"
