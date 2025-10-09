@@ -22,6 +22,21 @@ import FaceTrackingCursor from './components/FaceTrackingCursor';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot';
 
+const ICONS = {
+    regular: {
+        favicon: "https://i.ibb.co/wZrCv8bW/Google-AI-Studio-2025-09-29-T00-09-44-063-Z-modified.png",
+        manifest: "/manifest-regular.json",
+    },
+    liquid: {
+        favicon: "https://i.ibb.co/yFmsLKxR/Generated-Image-October-08-2025-6-21-PM-modified.png",
+        manifest: "/manifest-liquid.json",
+    },
+    light: {
+        favicon: "https://i.ibb.co/9HrQSLym/Generated-Image-October-08-2025-6-19-PM-modified.png",
+        manifest: "/manifest-light.json",
+    }
+};
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
@@ -44,6 +59,19 @@ const App: React.FC = () => {
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
+    // --- Appearance Settings ---
+    const theme = localStorage.getItem('app_theme');
+    const icon = localStorage.getItem('app_icon') as keyof typeof ICONS | null;
+    if (theme === 'light') {
+        document.documentElement.classList.add('light');
+        document.getElementById('theme-color-meta')?.setAttribute('content', '#ffffff');
+    }
+    if (icon && ICONS[icon]) {
+        document.getElementById('favicon-link')?.setAttribute('href', ICONS[icon].favicon);
+        document.getElementById('manifest-link')?.setAttribute('href', ICONS[icon].manifest);
+    }
+
+
     // --- Auth Setup ---
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
         if (firebaseUser) {

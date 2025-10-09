@@ -75,6 +75,19 @@ const MODELS: { id: GeminiModelId; name: string; description: string }[] = [
     { id: 'gemini-1.5-flash', name: '1.5 Flash', description: 'Fast and cost-effective legacy model.' },
 ];
 
+const ICONS: Record<string, { name: string, url: string, manifest: string }> = {
+    regular: { name: 'Regular', url: "https://i.ibb.co/wZrCv8bW/Google-AI-Studio-2025-09-29-T00-09-44-063-Z-modified.png", manifest: "/manifest-regular.json" },
+    liquid: { name: 'Liquid Glass', url: "https://i.ibb.co/yFmsLKxR/Generated-Image-October-08-2025-6-21-PM-modified.png", manifest: "/manifest-liquid.json" },
+    light: { name: 'Light Mode', url: "https://i.ibb.co/9HrQSLym/Generated-Image-October-08-2025-6-19-PM-modified.png", manifest: "/manifest-light.json" },
+};
+
+const BACKGROUNDS: Record<string, { name: string, style: string }> = {
+    'default': { name: 'Default Animated', style: 'bg-black' }, // Special case handled in component
+    'gradient-1': { name: 'Cosmic Fusion', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900' },
+    'gradient-2': { name: 'Oceanic Depth', style: 'bg-gradient-to-tr from-cyan-900 via-blue-900 to-slate-900' },
+    'solid-dark': { name: 'Solid Dark', style: 'bg-gray-900' },
+};
+
 const apiDocsLinks: Record<string, string> = {
   'Giphy': 'https://developers.giphy.com/dashboard/',
   'Unsplash': 'https://unsplash.com/oauth/applications',
@@ -117,6 +130,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const [huggingFaceToken, setHuggingFaceToken] = useState('');
   const [huggingFaceModelUrl, setHuggingFaceModelUrl] = useState('');
   const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
+  const [appTheme, setAppTheme] = useState('dark');
+  const [appIcon, setAppIcon] = useState('regular');
+  const [homeBackground, setHomeBackground] = useState('default');
 
 
   // Account section states
@@ -127,6 +143,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   const loadSettings = useCallback(() => {
+    // Appearance
+    setAppTheme(localStorage.getItem('app_theme') || 'dark');
+    setAppIcon(localStorage.getItem('app_icon') || 'regular');
+    setHomeBackground(localStorage.getItem('home_background') || 'default');
+
     // Load AI Provider
     setAiProvider(localStorage.getItem('ai_provider') || 'gemini');
     setGeminiKey(localStorage.getItem('gemini_api_key') || '');
@@ -277,12 +298,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
         : "Face Tracking disabled. Please reload the page to apply the change."
     );
   };
+  
+  const handleThemeChange = (theme: 'light' | 'dark') => {
+    setAppTheme(theme);
+    localStorage.setItem('app_theme', theme);
+    document.documentElement.classList.toggle('light', theme === 'light');
+    document.getElementById('theme-color-meta')?.setAttribute('content', theme === 'light' ? '#ffffff' : '#000000');
+  };
+
+  const handleIconChange = (iconKey: string) => {
+    setAppIcon(iconKey);
+    localStorage.setItem('app_icon', iconKey);
+    const iconConf = ICONS[iconKey];
+    if(iconConf) {
+        document.getElementById('favicon-link')?.setAttribute('href', iconConf.url);
+        document.getElementById('manifest-link')?.setAttribute('href', iconConf.manifest);
+    }
+  };
+
+  const handleBackgroundChange = (bgKey: string) => {
+    setHomeBackground(bgKey);
+    localStorage.setItem('home_background', bgKey);
+  };
+
 
   const sections = [
     { id: 'account', name: 'Account', icon: UserIcon },
+    { id: 'appearance', name: 'Appearance', icon: PaintBrushIcon },
     { id: 'accessibility', name: 'Accessibility', icon: AccessibilityIcon },
     { id: 'ai', name: 'AI Settings', icon: SparklesIcon },
-    { id: 'themes', name: 'UI Themes', icon: PaintBrushIcon },
     { id: 'secrets', name: 'Global Secrets', icon: KeyIcon },
     { id: 'integrations', name: 'Integrations', icon: ZapIcon },
     { id: 'danger', name: 'Danger Zone', icon: AlertTriangleIcon },
@@ -400,6 +444,60 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                 </div>
               )}
 
+              {activeSection === 'appearance' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Appearance</h2>
+                  
+                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6 mb-8">
+                    <h3 className="font-bold text-lg text-white mb-4">Theme</h3>
+                     <div className="flex items-center justify-between">
+                       <p className="text-slate-400">Toggle between light and dark mode for the entire app.</p>
+                       <div className="bg-slate-800 p-1 rounded-full flex items-center">
+                            <button onClick={() => handleThemeChange('dark')} className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${appTheme === 'dark' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}>Dark</button>
+                            <button onClick={() => handleThemeChange('light')} className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${appTheme === 'light' ? 'bg-white text-black' : 'text-slate-300'}`}>Light</button>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6 mb-8">
+                    <h3 className="font-bold text-lg text-white mb-4">App Icon</h3>
+                    <p className="text-slate-400 mb-4 text-sm">Choose the icon for the PWA when installed on your device.</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      {Object.entries(ICONS).map(([key, {name, url}]) => (
+                        <div key={key} onClick={() => handleIconChange(key)} className={`p-4 border-2 rounded-lg cursor-pointer flex flex-col items-center gap-3 ${appIcon === key ? 'border-indigo-500' : 'border-slate-700 hover:border-slate-500'}`}>
+                          <img src={url} alt={`${name} icon`} className="w-16 h-16 rounded-lg"/>
+                          <p className="text-sm font-semibold">{name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6 mb-8">
+                    <h3 className="font-bold text-lg text-white mb-4">Home Page Background</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(BACKGROUNDS).map(([key, {name, style}]) => (
+                         <div key={key} onClick={() => handleBackgroundChange(key)} className={`cursor-pointer rounded-lg border-2 ${homeBackground === key ? 'border-indigo-500' : 'border-transparent'}`}>
+                           <div className={`aspect-video w-full rounded-md ${style} flex items-center justify-center`}>
+                              {key === 'default' && <SparklesIcon className="w-6 h-6 text-white/50" />}
+                           </div>
+                           <p className="text-sm text-center mt-2">{name}</p>
+                         </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">UI Theme Templates</h3>
+                    <p className="text-slate-400 mb-6">Guide the AI with a pre-defined design system. Select a theme to apply it to all future generations.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {THEMES.map(theme => (
+                        <ThemeTemplateCard key={theme.id} theme={theme} isSelected={selectedTheme === theme.id} onSelect={handleThemeSelect} isProUser={isPro}/>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeSection === 'accessibility' && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Accessibility</h2>
@@ -501,18 +599,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                         )}
                         <button onClick={handleSaveAiProvider} className="mt-6 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-full">Save AI Settings</button>
                    </div>
-                </div>
-              )}
-
-              {activeSection === 'themes' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">UI Theme Templates</h2>
-                  <p className="text-slate-400 mb-6">Guide the AI with a pre-defined design system. Select a theme to apply it to all future generations.</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {THEMES.map(theme => (
-                      <ThemeTemplateCard key={theme.id} theme={theme} isSelected={selectedTheme === theme.id} onSelect={handleThemeSelect} isProUser={isPro}/>
-                    ))}
-                  </div>
                 </div>
               )}
 

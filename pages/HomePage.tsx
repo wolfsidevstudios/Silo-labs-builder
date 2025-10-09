@@ -4,6 +4,7 @@ import BrainCircuitIcon from '../components/icons/BrainCircuitIcon';
 import RocketIcon from '../components/icons/RocketIcon';
 import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { GitHubRepo } from '../types';
+import HomePageBackground from '../components/HomePageBackground';
 
 
 interface HomePageProps {
@@ -19,47 +20,6 @@ const suggestionPrompts = [
   "a real-time crypto price tracker",
   "a recipe finder with a search bar",
 ];
-
-const BackgroundSvg = () => (
-    <svg viewBox="0 0 1920 1920" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full object-fill z-0 opacity-70">
-      <defs>
-        <filter id="new_blur_1" x="-800" y="-800" width="3000" height="3000" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix" />
-          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="400" result="effect1_foregroundBlur" />
-        </filter>
-        <filter id="new_blur_2" x="-800" y="-800" width="3000" height="3000" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix" />
-          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="350" result="effect1_foregroundBlur" />
-        </filter>
-        <filter id="new_blur_3" x="-800" y="-800" width="3000" height="3000" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix" />
-          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="450" result="effect1_foregroundBlur" />
-        </filter>
-        <filter id="new_blur_4" x="-800" y="-800" width="3000" height="3000" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix" />
-          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="300" result="effect1_foregroundBlur" />
-        </filter>
-      </defs>
-      <rect width="1920" height="1920" fill="black" />
-      <g filter="url(#new_blur_1)">
-        <circle cx="300" cy="400" r="600" fill="#614CF3" />
-      </g>
-      <g filter="url(#new_blur_2)">
-        <circle cx="1600" cy="500" r="700" fill="#FF7449" />
-      </g>
-      <g filter="url(#new_blur_3)">
-        <circle cx="1500" cy="1700" r="800" fill="#6DE5FF" />
-      </g>
-      <g filter="url(#new_blur_4)">
-        <circle cx="200" cy="1800" r="500" fill="#E94560" />
-      </g>
-    </svg>
-);
-
 
 const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => {
   const [prompt, setPrompt] = useState('');
@@ -87,7 +47,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
         onSelectRepo={handleRepoSelected}
       />
       <div className="relative h-screen w-screen bg-black overflow-hidden">
-        <BackgroundSvg />
+        <HomePageBackground />
         <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
           <main className="flex flex-col items-center justify-center w-full flex-grow text-center">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-6 animate-fade-in-down">

@@ -1,0 +1,21 @@
+{
+  "short_name": "Silo Build",
+  "name": "Silo Build | Text to app builder",
+  "description": "A split-screen AI-powered application that generates multi-file React applications from a text prompt and displays a live preview in a sandboxed iframe.",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/wZrCv8bW/Google-AI-Studio-2025-09-29-T00-09-44-063-Z-modified.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://i.ibb.co/wZrCv8bW/Google-AI-Studio-2025-09-29-T00-09-44-063-Z-modified.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#000000"
+}
