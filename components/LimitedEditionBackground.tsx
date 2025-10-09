@@ -42,7 +42,7 @@ const LimitedEditionBackground: React.FC = () => {
                 this.homeY = Math.random() * height;
                 this.x = this.homeX; this.y = this.homeY;
                 this.vx = (Math.random() - 0.5) * 2; this.vy = (Math.random() - 0.5) * 2;
-                this.size = Math.random() * 1.5 + 0.5;
+                this.size = Math.random() * 2 + 2; // Increased size for better visibility
                 this.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
             }
 
@@ -95,7 +95,7 @@ const LimitedEditionBackground: React.FC = () => {
 
             const imageData = tempCtx.getImageData(0, 0, width, height);
             const points = [];
-            const step = Math.max(1, Math.floor(Math.sqrt((imageData.data.length / 4) / PARTICLE_COUNT) * 1.2));
+            const step = 5; // Use a smaller step for denser points, making text clearer
 
             for (let y = 0; y < height; y += step) {
                 for (let x = 0; x < width; x += step) {
