@@ -14,8 +14,9 @@ import YouTubeSearchModal from '../components/YouTubeSearchModal';
 import ProjectTabs from '../components/ProjectTabs';
 import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
+import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport } from '../types';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -61,6 +62,7 @@ interface ProjectTab {
     pendingMaxReport?: MaxReport | null;
     testingMessageId?: string | null;
     isLisaActive: boolean;
+    history: Version[];
     // Settings
     name: string;
     description?: string;
@@ -99,6 +101,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         pendingMaxReport: null,
         testingMessageId: null,
         isLisaActive: project?.isLisaActive ?? isLisaActive,
+        history: project?.history || (project ? [{ versionId: `v-initial-${project.id}`, createdAt: project.createdAt, prompt: project.prompt, ...project }] : []),
         // Settings
         name: project?.name || name,
         description: project?.description,
@@ -119,6 +122,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
   const [isGiphyModalOpen, setIsGiphyModalOpen] = useState(false);
   const [isUnsplashModalOpen, setIsUnsplashModalOpen] = useState(false);
@@ -145,6 +149,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const githubButtonRef = useRef<HTMLButtonElement>(null);
   const deployButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
 
   const initialGenerationDone = useRef<Set<string>>(new Set());
 
@@ -347,26 +352,28 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           };
 
           let finalProjectId = activeTab.lastSavedProjectId;
-          const projectDataToSave: Partial<SavedProject> = {
-              prompt: (activeTab.chatHistory.find(m => m.role === 'user') as UserMessage)?.content || userMessageContent,
+          const projectDataToSave = {
+              prompt: userMessageContent,
               name: activeTab.name,
               isLisaActive: activeTab.isLisaActive,
               ...finalResponse
           };
           
-          delete projectDataToSave.id; // Ensure we don't pass an old ID if it exists on finalResponse somehow
+          let newHistory: Version[] = activeTab.history || [];
 
           if (finalProjectId) {
               updateProject(finalProjectId, projectDataToSave);
           } else {
-              const saved = saveProject(projectDataToSave as any);
+              const saved = saveProject(projectDataToSave);
               finalProjectId = saved.id;
+              newHistory = saved.history || [];
           }
 
           setTabs(prevTabs => prevTabs.map(t => t.id === activeTabId ? {
               ...t,
               chatHistory: t.chatHistory.map(msg => msg.id === tempAssistantId ? finalAssistantMessage : msg),
               lastSavedProjectId: finalProjectId,
+              history: newHistory.length > t.history.length ? newHistory : t.history, // crude update
           } : t));
 
           // Send a push notification if the tab is not active
@@ -626,6 +633,53 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     setIsProjectSettingsOpen(false);
   };
 
+  const handleRestoreVersion = (versionToRestore: Version) => {
+    if (!activeTab || activeTab.isLoading) return;
+
+    setIsHistoryModalOpen(false);
+    updateActiveTab({ isLoading: true });
+
+    const userMessageContent = `Restored version from ${new Date(versionToRestore.createdAt).toLocaleString()}`;
+    const newUserMessage: UserMessage = { 
+        id: `user-restore-${Date.now()}`,
+        role: 'user', 
+        content: userMessageContent,
+    };
+
+    const newAssistantMessage: AssistantMessage = {
+        id: `assistant-restore-${Date.now()}`,
+        role: 'assistant',
+        content: {
+            summary: versionToRestore.summary,
+            files: versionToRestore.files,
+            previewHtml: versionToRestore.previewHtml,
+        },
+        isGenerating: false,
+    };
+
+    const newChatHistory = [...activeTab.chatHistory, newUserMessage, newAssistantMessage];
+    
+
+    if (activeTab.lastSavedProjectId) {
+        const updateData = {
+            prompt: userMessageContent,
+            summary: versionToRestore.summary,
+            files: versionToRestore.files,
+            previewHtml: versionToRestore.previewHtml,
+        };
+        updateProject(activeTab.lastSavedProjectId, updateData);
+        // Optimistically update history in local state
+        const newVersionForHistory: Version = {
+            versionId: `v-restore-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            ...updateData
+        };
+        updateActiveTab({ chatHistory: newChatHistory, isLoading: false, history: [newVersionForHistory, ...activeTab.history] });
+    } else {
+        updateActiveTab({ chatHistory: newChatHistory, isLoading: false });
+    }
+  };
+
 
   const toggleVisualEditMode = () => {
     const nextState = !activeTab?.isVisualEditMode;
@@ -693,6 +747,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
       <QuotaErrorModal isOpen={isQuotaErrorModalOpen} onClose={() => setIsQuotaErrorModalOpen(false)} />
       {activeTab && <ProjectSettingsModal isOpen={isProjectSettingsOpen} onClose={() => setIsProjectSettingsOpen(false)} onSave={handleSaveSettings} project={activeTab} />}
+      {activeTab && <VersionHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} project={activeTab} onRestore={handleRestoreVersion} />}
       
       {isMaxVibeRunning && activeTab && (
         <MaxVibeAgentCursor 
@@ -774,11 +829,13 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 isPro={isPro}
                 onDownloadClick={handleDownloadClick}
                 onSettingsClick={() => setIsProjectSettingsOpen(true)}
+                onHistoryClick={() => setIsHistoryModalOpen(true)}
                 codeButtonRef={viewSwitcherCodeRef}
                 previewButtonRef={viewSwitcherPreviewRef}
                 githubButtonRef={githubButtonRef}
                 deployButtonRef={deployButtonRef}
                 settingsButtonRef={settingsButtonRef}
+                historyButtonRef={historyButtonRef}
                 isMaxVibeRunning={isMaxVibeRunning}
                 onStopMaxVibe={handleToggleMaxVibe}
             />

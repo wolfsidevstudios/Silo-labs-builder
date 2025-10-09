@@ -18,6 +18,12 @@ export interface GeminiResponse {
   previewHtml: string;
 }
 
+export interface Version extends GeminiResponse {
+  versionId: string;
+  createdAt: string;
+  prompt: string; // The prompt that generated this version
+}
+
 export interface Secret {
   name: string;
   value: string;
@@ -49,6 +55,7 @@ export interface SavedProject extends GeminiResponse {
   netlifySiteId?: string;
   netlifyUrl?: string;
   isLisaActive?: boolean;
+  history?: Version[];
 }
 
 // FIX: Add Profile type to resolve compilation error.

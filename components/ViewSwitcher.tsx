@@ -6,6 +6,7 @@ import DownloadIcon from './icons/DownloadIcon';
 import LockIcon from './icons/LockIcon';
 import RocketIcon from './icons/RocketIcon';
 import SettingsIcon from './icons/SettingsIcon';
+import HistoryIcon from './icons/HistoryIcon';
 import XIcon from './icons/XIcon';
 
 type View = 'preview' | 'code';
@@ -22,11 +23,13 @@ interface ViewSwitcherProps {
   isPro: boolean;
   onDownloadClick: () => void;
   onSettingsClick: () => void;
+  onHistoryClick: () => void;
   codeButtonRef: React.RefObject<HTMLButtonElement>;
   previewButtonRef: React.RefObject<HTMLButtonElement>;
   githubButtonRef: React.RefObject<HTMLButtonElement>;
   deployButtonRef: React.RefObject<HTMLButtonElement>;
   settingsButtonRef: React.RefObject<HTMLButtonElement>;
+  historyButtonRef: React.RefObject<HTMLButtonElement>;
   isMaxVibeRunning: boolean;
   onStopMaxVibe: () => void;
 }
@@ -36,8 +39,8 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     isGitHubConnected, onGitHubClick, 
     isNetlifyConnected, onDeployClick, isDeployed,
     hasFiles, isPro, onDownloadClick,
-    onSettingsClick,
-    codeButtonRef, previewButtonRef, githubButtonRef, deployButtonRef, settingsButtonRef,
+    onSettingsClick, onHistoryClick,
+    codeButtonRef, previewButtonRef, githubButtonRef, deployButtonRef, settingsButtonRef, historyButtonRef,
     isMaxVibeRunning, onStopMaxVibe
 }) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
@@ -89,6 +92,15 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+            ref={historyButtonRef}
+            onClick={onHistoryClick}
+            disabled={!hasFiles || isMaxVibeRunning}
+            className="flex items-center justify-center h-9 w-9 bg-slate-800 border border-slate-700 rounded-full text-slate-300 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!hasFiles ? "Generate an app first" : isMaxVibeRunning ? "Agent is running" : "Project History"}
+        >
+            <HistoryIcon className="w-5 h-5" />
+        </button>
         <button
             ref={settingsButtonRef}
             onClick={onSettingsClick}

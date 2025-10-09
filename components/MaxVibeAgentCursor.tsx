@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CursorIcon from './icons/CursorIcon';
+import ClockIcon from './icons/ClockIcon';
 import { generateImprovementPrompt } from '../services/geminiService';
 
 import { getApiKey as getGiphyApiKey } from '../services/giphyService';
@@ -90,6 +91,7 @@ type AgentStatus = 'Thinking...' | 'Typing prompt...' | 'Submitting...' | 'Switc
 const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, promptHistory, isGenerating, onStop, actions, elementRefs }) => {
   const [position, setPosition] = useState({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
   const [status, setStatus] = useState<AgentStatus>('Initializing MAX Vibe...');
+  const [elapsedTime, setElapsedTime] = useState(0);
   const isActive = useRef(true);
   const appCodeRef = useRef(initialCode);
   const promptHistoryRef = useRef(promptHistory);
@@ -121,6 +123,14 @@ const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, pr
       await wait(50); // Typing speed
     }
   };
+
+  useEffect(() => {
+    const timerId = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(timerId);
+  }, []);
 
   useEffect(() => {
     isActive.current = true;
@@ -190,16 +200,27 @@ const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, pr
     };
   }, [isGenerating]);
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${remainingSeconds}`;
+  };
+
   return (
     <>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full font-semibold z-30 pointer-events-none">
-        MAX Vibe: {status}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full font-semibold z-30 pointer-events-none flex items-center gap-4">
+        <span>MAX Vibe: {status}</span>
+        <span className="flex items-center gap-1.5 text-slate-400 text-sm font-mono">
+            <ClockIcon className="w-4 h-4" />
+            {formatTime(elapsedTime)}
+        </span>
       </div>
       <div
         className="absolute w-8 h-8 pointer-events-none z-50"
         style={{ 
           top: `${position.top}px`, 
           left: `${position.left}px`, 
+          transform: 'translate(-4px, -2px)',
           transition: 'top 1s ease-in-out, left 1s ease-in-out'
         }}
       >
