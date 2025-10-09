@@ -44,6 +44,33 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
   const uploadMenuRef = useRef<HTMLDivElement>(null);
   const [isMediaMenuOpen, setIsMediaMenuOpen] = useState(false);
   const mediaMenuRef = useRef<HTMLDivElement>(null);
+  const [inputStyle, setInputStyle] = useState('glossy');
+
+  useEffect(() => {
+    setInputStyle(localStorage.getItem('input_bar_style') || 'glossy');
+  }, []);
+
+  useEffect(() => {
+    if (promptInputRef.current && inputStyle === 'dynamic') {
+      const textarea = promptInputRef.current;
+      textarea.style.height = 'auto'; // Reset height to calculate new scrollHeight
+      const maxHeight = 224; // Corresponds to max-h-56
+      const scrollHeight = textarea.scrollHeight;
+
+      if (scrollHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.overflowY = 'hidden';
+      }
+    } else if (promptInputRef.current) {
+        // Reset styles for non-dynamic inputs
+        promptInputRef.current.style.height = '';
+        promptInputRef.current.style.overflowY = '';
+    }
+  }, [prompt, inputStyle, promptInputRef]);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -69,6 +96,16 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
   }, []);
   
   const anyMediaConnected = isGiphyConnected || isUnsplashConnected || isYouTubeConnected;
+  
+  const glossyClasses = "w-full h-36 p-6 pr-20 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_120px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none";
+  const transparentClasses = "w-full h-36 p-6 pr-20 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-lg shadow-black/20 transition-all resize-none";
+  const dynamicPillClasses = "w-full min-h-[56px] max-h-56 py-4 px-6 pr-20 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_120px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none overflow-hidden";
+  
+  const inputClasses = inputStyle === 'dynamic' 
+    ? dynamicPillClasses 
+    : inputStyle === 'transparent' 
+    ? transparentClasses 
+    : glossyClasses;
 
   return (
     <form onSubmit={onSubmit} className="p-4">
@@ -193,7 +230,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="e.g., Use this image as a hero background"
-          className="w-full h-36 p-6 pr-20 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_120px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none"
+          className={inputClasses}
           disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -206,7 +243,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
           ref={submitButtonRef}
           type="submit"
           disabled={isLoading || isMaxAgentRunning || isMaxVibeRunning || (!prompt.trim() && uploadedImages.length === 0)}
-          className="absolute right-4 bottom-4 h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group"
+          className={`absolute h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group ${inputStyle === 'dynamic' ? 'right-2 top-2' : 'right-4 bottom-4'}`}
           aria-label="Generate app"
         >
           {isLoading ? (

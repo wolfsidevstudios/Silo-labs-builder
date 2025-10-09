@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ArrowUpIcon from '../components/icons/ArrowUpIcon';
 import BrainCircuitIcon from '../components/icons/BrainCircuitIcon';
 import RocketIcon from '../components/icons/RocketIcon';
@@ -25,6 +25,33 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
   const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
+  const [inputStyle, setInputStyle] = useState('glossy');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setInputStyle(localStorage.getItem('input_bar_style') || 'glossy');
+  }, []);
+
+  useEffect(() => {
+    if (textareaRef.current && inputStyle === 'dynamic') {
+      const textarea = textareaRef.current;
+      textarea.style.height = 'auto'; // Reset height
+      const maxHeight = 256; // Corresponds to max-h-64
+      const scrollHeight = textarea.scrollHeight;
+
+      if (scrollHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.overflowY = 'hidden';
+      }
+    } else if (textareaRef.current) {
+        // Reset styles for non-dynamic inputs
+        textareaRef.current.style.height = '';
+        textareaRef.current.style.overflowY = '';
+    }
+  }, [prompt, inputStyle]);
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,6 +65,16 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
     setIsRepoModalOpen(false);
     onStartCodePilot(repo);
   };
+
+  const glossyClasses = "w-full h-48 p-6 pr-20 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none";
+  const transparentClasses = "w-full h-48 p-6 pr-20 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-lg shadow-black/20 transition-all resize-none";
+  const dynamicPillClasses = "w-full min-h-[56px] max-h-64 py-4 px-6 pr-20 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none overflow-hidden";
+
+  const inputClasses = inputStyle === 'dynamic' 
+      ? dynamicPillClasses 
+      : inputStyle === 'transparent' 
+      ? transparentClasses 
+      : glossyClasses;
 
   return (
     <>
@@ -83,10 +120,11 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               style={{ animationDelay: '0.3s' }}
             >
               <textarea
+                ref={textareaRef}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="e.g., a photo gallery with a masonry layout..."
-                className="w-full h-48 p-6 pr-20 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none"
+                className={inputClasses}
                 aria-label="App prompt"
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -97,7 +135,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               />
               <button
                 type="submit"
-                className="absolute right-4 bottom-4 h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group"
+                className={`absolute h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group ${inputStyle === 'dynamic' ? 'right-2 top-2' : 'right-4 bottom-4'}`}
                 disabled={!prompt.trim()}
                 aria-label="Generate app"
               >

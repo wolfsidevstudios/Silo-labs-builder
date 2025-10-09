@@ -63,6 +63,12 @@ const HomePageBackground: React.FC = () => {
     switch (background) {
         case 'limited-edition':
             return <LimitedEditionBackground />;
+        case 'limited-edition-2':
+            return <div className={`${commonClass} bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900`} />;
+        case 'limited-edition-3':
+            return <div className={`${commonClass} bg-gradient-to-tr from-emerald-900 via-cyan-900 to-slate-900`} />;
+        case 'limited-edition-4':
+            return <div className={`${commonClass} bg-gradient-to-bl from-black via-yellow-900 to-orange-800`} />;
         case 'gradient-1':
             return <div className={`${commonClass} bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900`} />;
         case 'gradient-2':
@@ -73,6 +79,12 @@ const HomePageBackground: React.FC = () => {
             return <div className={`${commonClass} bg-gradient-to-bl from-green-900 via-teal-900 to-blue-900`} />;
         case 'gradient-5':
             return <div className={`${commonClass} bg-gradient-to-t from-black via-fuchsia-900 to-blue-900`} />;
+        case 'gradient-6':
+            return <div className={`${commonClass} bg-gradient-to-br from-gray-900 via-red-900 to-rose-900`} />;
+        case 'gradient-7':
+            return <div className={`${commonClass} bg-gradient-to-tr from-slate-900 via-purple-800 to-indigo-700`} />;
+        case 'solid-black':
+            return <div className={`${commonClass} bg-black`} />;
         case 'solid-dark':
             return <div className={`${commonClass} bg-gray-900`} />;
         case 'solid-blue':
@@ -88,6 +100,17 @@ const HomePageBackground: React.FC = () => {
         case 'pattern-2':
              return (
               <div className={`${commonClass} bg-blue-950 opacity-20 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M25%2025h2v50h-2zM25%2025h50v2h-50zM75%2075h-2v-50h2zM75%2075h-50v-2h50z%22%20fill%3D%22%2300ffff%22%2F%3E%3Cpath%20d%3D%22M25%2050h25v2h-25zM50%2025h2v25h-2z%22%20fill%3D%22%2300ffff%22%2F%3E%3C%2Fsvg%3E')] bg-repeat bg-center`} />
+            );
+        case 'pattern-3':
+            return (
+                <div className={`${commonClass} bg-gray-900`}>
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,theme(colors.cyan.500/.2)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.cyan.500/.2)_1px,transparent_1px)] bg-[size:3rem_3rem]"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,theme(colors.gray.900)_70%)]"></div>
+                </div>
+            );
+        case 'pattern-4':
+            return (
+                <div className={`${commonClass} bg-gray-900 bg-[radial-gradient(theme(colors.slate.700)_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]`} />
             );
         case 'default':
         default:

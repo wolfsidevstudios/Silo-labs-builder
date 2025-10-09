@@ -86,21 +86,36 @@ const ICONS: Record<string, { name: string, url: string, manifest: string }> = {
     light: { name: 'Light Mode', url: "https://i.ibb.co/9HrQSLym/Generated-Image-October-08-2025-6-19-PM-modified.png", manifest: "/manifest-light.json" },
 };
 
-const BACKGROUNDS: Record<string, { name: string, style: string }> = {
+const BACKGROUNDS: Record<string, { name: string, style: string, isLimited?: boolean }> = {
     'default': { name: 'Default Animated', style: 'bg-black' },
-    'limited-edition': { name: 'Limited Edition', style: 'bg-black' },
+    'limited-edition': { name: 'Limited Edition', style: 'bg-black', isLimited: true },
+    'limited-edition-2': { name: 'Cosmic Rift', style: 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900', isLimited: true },
+    'limited-edition-3': { name: 'Aurora Borealis', style: 'bg-gradient-to-tr from-emerald-900 via-cyan-900 to-slate-900', isLimited: true },
+    'limited-edition-4': { name: 'Liquid Gold', style: 'bg-gradient-to-bl from-black via-yellow-900 to-orange-800', isLimited: true },
     'gradient-1': { name: 'Cosmic Fusion', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900' },
     'gradient-2': { name: 'Oceanic Depth', style: 'bg-gradient-to-tr from-cyan-900 via-blue-900 to-slate-900' },
     'gradient-3': { name: 'Sunset Glow', style: 'bg-gradient-to-br from-orange-800 via-pink-900 to-purple-900' },
     'gradient-4': { name: 'Emerald Forest', style: 'bg-gradient-to-bl from-green-900 via-teal-900 to-blue-900' },
     'gradient-5': { name: 'Cyberpunk City', style: 'bg-gradient-to-t from-black via-fuchsia-900 to-blue-900' },
+    'gradient-6': { name: 'Crimson Night', style: 'bg-gradient-to-br from-gray-900 via-red-900 to-rose-900' },
+    'gradient-7': { name: 'Royal Purple', style: 'bg-gradient-to-tr from-slate-900 via-purple-800 to-indigo-700' },
+    'solid-black': { name: 'Pure Black', style: 'bg-black' },
     'solid-dark': { name: 'Solid Dark', style: 'bg-gray-900' },
     'solid-blue': { name: 'Solid Blue', style: 'bg-blue-950' },
     'solid-purple': { name: 'Solid Purple', style: 'bg-purple-950' },
     'solid-green': { name: 'Solid Green', style: 'bg-green-950' },
     'pattern-1': { name: 'Subtle Grid', style: 'bg-gray-900' },
     'pattern-2': { name: 'Circuit Board', style: 'bg-blue-950' },
+    'pattern-3': { name: 'Cyber Grid', style: 'bg-gray-900' },
+    'pattern-4': { name: 'Dotted Grid', style: 'bg-gray-900' },
 };
+
+const INPUT_STYLES: Record<string, { name: string, description: string, isBeta?: boolean }> = {
+    glossy: { name: 'Glossy', description: 'The default subtle glass effect with a soft glow.' },
+    transparent: { name: 'Transparent', description: 'A clearer, more minimal and transparent look.' },
+    dynamic: { name: 'Dynamic Pill', description: 'A sleek, pill-shaped bar that expands as you type.', isBeta: true },
+};
+
 
 const apiDocsLinks: Record<string, string> = {
   'Giphy': 'https://developers.giphy.com/dashboard/',
@@ -149,6 +164,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const [appTheme, setAppTheme] = useState('dark');
   const [appIcon, setAppIcon] = useState('regular');
   const [homeBackground, setHomeBackground] = useState('default');
+  const [inputBarStyle, setInputBarStyle] = useState('glossy');
 
 
   // Account section states
@@ -163,6 +179,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     setAppTheme(localStorage.getItem('app_theme') || 'dark');
     setAppIcon(localStorage.getItem('app_icon') || 'regular');
     setHomeBackground(localStorage.getItem('home_background') || 'default');
+    setInputBarStyle(localStorage.getItem('input_bar_style') || 'glossy');
 
     // Load AI Provider
     setAiProvider(localStorage.getItem('ai_provider') || 'gemini');
@@ -336,6 +353,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     setHomeBackground(bgKey);
     localStorage.setItem('home_background', bgKey);
   };
+  
+  const handleInputBarStyleChange = (styleKey: string) => {
+    setInputBarStyle(styleKey);
+    localStorage.setItem('input_bar_style', styleKey);
+  };
 
 
   const sections = [
@@ -491,10 +513,29 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                   </div>
                   
                   <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6 mb-8">
+                    <h3 className="font-bold text-lg text-white mb-4">Input Bar Style</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {Object.entries(INPUT_STYLES).map(([key, {name, description, isBeta}]) => (
+                        <div key={key} onClick={() => handleInputBarStyleChange(key)} className={`relative p-4 border-2 rounded-lg cursor-pointer flex flex-col items-center gap-3 ${inputBarStyle === key ? 'border-indigo-500' : 'border-slate-700 hover:border-slate-500'}`}>
+                          {isBeta && <div className="absolute top-1 right-1 bg-cyan-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full z-10">BETA</div>}
+                          <div className="w-full h-20 bg-slate-800 rounded-md flex items-center justify-center p-2">
+                              {key === 'glossy' && <div className="w-full h-10 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl shadow-lg"></div>}
+                              {key === 'transparent' && <div className="w-full h-10 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl"></div>}
+                              {key === 'dynamic' && <div className="w-full h-10 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-full shadow-lg"></div>}
+                          </div>
+                          <p className="text-sm font-semibold text-center">{name}</p>
+                          <p className="text-xs text-slate-400 text-center flex-grow">{description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6 mb-8">
                     <h3 className="font-bold text-lg text-white mb-4">Home Page Background</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {Object.entries(BACKGROUNDS).map(([key, {name, style}]) => (
-                         <div key={key} onClick={() => handleBackgroundChange(key)} className={`cursor-pointer rounded-lg border-2 ${homeBackground === key ? 'border-indigo-500' : 'border-transparent'}`}>
+                      {Object.entries(BACKGROUNDS).map(([key, {name, style, isLimited}]) => (
+                         <div key={key} onClick={() => handleBackgroundChange(key)} className={`relative cursor-pointer rounded-lg border-2 ${homeBackground === key ? 'border-indigo-500' : 'border-transparent'}`}>
+                           {isLimited && <div className="absolute top-1 right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full z-10">LE</div>}
                            <div className={`aspect-video w-full rounded-md ${style} flex items-center justify-center`}>
                               {(key === 'default' || key === 'limited-edition') && <SparklesIcon className="w-6 h-6 text-white/50" />}
                            </div>
