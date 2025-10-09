@@ -724,7 +724,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         />
       )}
       {isMaxVibeRunning && (
-        <div className="absolute inset-0 bg-black/50 z-20 backdrop-blur-sm" aria-hidden="true" />
+        <div className="absolute inset-0 z-20" aria-hidden="true" />
       )}
 
       <div className="flex-shrink-0">
