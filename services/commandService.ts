@@ -1,7 +1,9 @@
+import { AppFile } from '../types';
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const EXPO_START_OUTPUT = `
-Starting project at /Users/silo/my-expo-app
+Starting project at /home/builder/app
 Starting Metro Bundler
 › Metro waiting on exp://192.168.1.10:8081
 › Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
@@ -11,33 +13,73 @@ Starting Metro Bundler
 › Press Ctrl+C to exit
 `;
 
-export async function executeCommand(command: string, filePaths: string[]): Promise<string> {
+export async function* executeCommand(
+  command: string, 
+  files: AppFile[]
+): AsyncGenerator<string> {
   const [cmd, ...args] = command.trim().split(/\s+/);
 
   switch (cmd.toLowerCase()) {
     case 'npx':
       if (args[0] === 'expo' && args[1] === 'start') {
-        return EXPO_START_OUTPUT;
+        for (const line of EXPO_START_OUTPUT.trim().split('\n')) {
+          yield line;
+          await wait(Math.random() * 300 + 100);
+        }
+        return;
       }
-      return `silo-shell: command not found: ${command}`;
+      yield `silo-shell: command not found: ${command}`;
+      break;
     
     case 'ls':
-      if (filePaths.length === 0) {
-        return 'No files in the current project.';
+      if (files.length === 0) {
+        yield 'No files in the current project.';
+        return;
       }
-      return filePaths.join('\n');
+      yield files.map(f => {
+          const size = f.content.length.toString().padStart(6, ' ');
+          return `-rw-r--r-- 1 builder users ${size} ${new Date().toLocaleDateString()} ${f.path}`;
+      }).join('\n');
+      break;
 
+    case 'cat':
+        if (!args[0]) {
+            yield 'Usage: cat [filename]';
+            return;
+        }
+        const file = files.find(f => f.path === args[0]);
+        if (file) {
+            yield file.content;
+        } else {
+            yield `cat: ${args[0]}: No such file or directory`;
+        }
+        break;
+
+    case 'pwd':
+        yield '/home/builder/app';
+        break;
+
+    case 'whoami':
+        yield 'builder';
+        break;
+
+    case 'date':
+        yield new Date().toString();
+        break;
+        
     case 'echo':
-      return args.join(' ');
+      yield args.join(' ');
+      break;
 
     case 'help':
-      return 'Available commands: ls, echo, npx expo start, clear, help';
+      yield 'Available commands: ls, cat, pwd, whoami, date, echo, npx expo start, clear, help';
+      break;
 
     case 'clear':
-      // This is handled by the component, but we return an empty string.
-      return '';
+      // This is handled by the component, we just need to not show an error.
+      return;
 
     default:
-      return `silo-shell: command not found: ${command}`;
+      yield `silo-shell: command not found: ${command}`;
   }
 }

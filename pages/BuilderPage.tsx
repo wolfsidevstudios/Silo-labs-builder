@@ -703,13 +703,33 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
 
   const handleCommand = async (command: string) => {
+    const currentFiles = activeTabRef.current?.chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating)?.content.files || [];
+
     setTerminalLines(prev => [...prev, { type: 'command', text: command }]);
+
     if (command.trim().toLowerCase() === 'clear') {
         setTerminalLines([]);
         return;
     }
-    const output = await executeCommand(command, files.map(f => f.path));
-    setTerminalLines(prev => [...prev, { type: 'output', text: output }]);
+
+    const stream = executeCommand(command, currentFiles);
+    
+    const singleBlockCommands = ['ls', 'cat', 'pwd', 'whoami', 'date', 'echo', 'help'];
+    const cmd = command.trim().split(/\s+/)[0].toLowerCase();
+    
+    if (singleBlockCommands.includes(cmd)) {
+        let output = '';
+        for await (const chunk of stream) {
+            output += chunk + '\n';
+        }
+        if (output.trim()) {
+            setTerminalLines(prev => [...prev, { type: 'output', text: output.trim() }]);
+        }
+    } else {
+        for await (const chunk of stream) {
+            setTerminalLines(prev => [...prev, { type: 'output', text: chunk }]);
+        }
+    }
   };
 
   useEffect(() => {
@@ -736,8 +756,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     // Initialize tabs
     if (tabs.length === 0) {
         const firstTab = initialProject
-            // FIX: Provide fallback values for potentially undefined properties from `initialProject`.
-            // `isLisaActive` and `appMode` can be undefined on a SavedProject, but createNewTab expects boolean and AppMode.
             ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode ?? 'web')
             : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive, initialAppMode);
         setTabs([firstTab]);
@@ -761,8 +779,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         initialGenerationDone.current.add(activeTab.id);
     }
   }, [activeTab]);
-  
-  const isExpoApp = activeTab?.appMode === 'expo' && files.length > 0;
 
   return (
     <div className="h-screen w-screen bg-black text-white flex flex-col pl-[4.5rem]">
@@ -878,8 +894,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 <div className="flex-grow overflow-hidden" style={{ height: isTerminalOpen ? '60%' : '100%' }}>
                   {rightPaneView === 'code' ? (
                       <CodeViewer files={files} />
-                  ) : isExpoApp ? (
-                      <ExpoPreview previewData={previewHtml} />
+                  ) : activeTab?.appMode === 'expo' ? (
+                      <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />
                   ) : (
                       <Preview 
                           htmlContent={previewHtml} 
