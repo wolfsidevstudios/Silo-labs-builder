@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppFile, GeminiResponse, Secret, MaxReport, TestStep, GeminiModelId } from "../types";
+import { AppFile, GeminiResponse, Secret, MaxReport, TestStep, GeminiModelId, AppMode } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets as getGlobalSecrets } from './secretsService';
@@ -240,7 +240,7 @@ A WordsAPI key is available. For dictionary or thesaurus apps, follow the WordsA
 ---
 `; }
 
-function constructFullPrompt( prompt: string, existingFiles: AppFile[] | null, visualEditTarget?: { selector: string } | null, projectSecrets?: Secret[] | null ): string { const instructions = [ getThemeInstruction(), getSecretsInstruction(getGlobalSecrets(), "GLOBAL CUSTOM SECRETS"), getSecretsInstruction(projectSecrets, "PROJECT-SPECIFIC SECRETS"), getLogoDevInstruction(), getGiphyInstruction(), getGeminiInstruction(), getUnsplashInstruction(), getPexelsInstruction(), getFreeSoundInstruction(), getSpotifyInstruction(), getStreamlineInstruction(), getStabilityInstruction(), getOpenAiInstruction(), getWeatherApiInstruction(), getOpenWeatherMapInstruction(), getTmdbInstruction(), getYouTubeInstruction(), getMapboxInstruction(), getExchangeRateApiInstruction(), getFmpInstruction(), getNewsApiInstruction(), getRawgInstruction(), getWordsApiInstruction(), ].filter(Boolean).join('\n'); const filesString = existingFiles ? existingFiles .map(f => `// File: ${f.path}\n\n${f.content}`) .join('\n\n---\n\n') : ''; if (visualEditTarget && existingFiles) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`; } else if (existingFiles && existingFiles.length > 0) { return `${instructions}\n\nHere is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`; } else { return `${instructions}\n\nPlease generate an application based on the following request: ${prompt}`; } }
+function constructFullPrompt( prompt: string, existingFiles: AppFile[] | null, visualEditTarget?: { selector: string } | null, projectSecrets?: Secret[] | null, appMode?: AppMode ): string { const instructions = [ getThemeInstruction(), getSecretsInstruction(getGlobalSecrets(), "GLOBAL CUSTOM SECRETS"), getSecretsInstruction(projectSecrets, "PROJECT-SPECIFIC SECRETS"), getLogoDevInstruction(), getGiphyInstruction(), getGeminiInstruction(), getUnsplashInstruction(), getPexelsInstruction(), getFreeSoundInstruction(), getSpotifyInstruction(), getStreamlineInstruction(), getStabilityInstruction(), getOpenAiInstruction(), getWeatherApiInstruction(), getOpenWeatherMapInstruction(), getTmdbInstruction(), getYouTubeInstruction(), getMapboxInstruction(), getExchangeRateApiInstruction(), getFmpInstruction(), getNewsApiInstruction(), getRawgInstruction(), getWordsApiInstruction(), ].filter(Boolean).join('\n'); const filesString = existingFiles ? existingFiles .map(f => `// File: ${f.path}\n\n${f.content}`) .join('\n\n---\n\n') : ''; const modeInstruction = `APP MODE: ${appMode || 'web'}\n\n`; if (visualEditTarget && existingFiles) { return `${instructions}\n\n${modeInstruction}Here is the current application's code:\n\n---\n${filesString}\n---\n\nCSS SELECTOR: \`${visualEditTarget.selector}\`\nVISUAL EDIT PROMPT: "${prompt}"\n\nPlease apply the visual edit prompt to the element identified by the CSS selector.`; } else if (existingFiles && existingFiles.length > 0) { return `${instructions}\n\n${modeInstruction}Here is the current application's code:\n\n---\n${filesString}\n---\n\nPlease apply the following change to the application: ${prompt}`; } else { return `${instructions}\n\n${modeInstruction}Please generate an application based on the following request: ${prompt}`; } }
 
 function injectSecrets(html: string, secrets: Secret[]): string { if (secrets.length > 0) { const secretsObject = secrets.reduce((obj, secret) => { obj[secret.name] = secret.value; return obj; }, {} as Record<string, string>); const secretScript = `<script>window.process = { env: ${JSON.stringify(secretsObject)} };</script>`; return html.replace('</head>', `${secretScript}</head>`); } return html; }
 
@@ -322,10 +322,11 @@ export async function generateOrUpdateAppCode(
     existingFiles: AppFile[] | null,
     visualEditTarget?: { selector: string } | null,
     images?: UploadedImage[] | null,
-    projectSettings?: ProjectSettings
+    projectSettings?: ProjectSettings,
+    appMode?: AppMode
 ): Promise<GeminiResponse> {
   try {
-    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets);
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets, appMode);
     const provider = localStorage.getItem('ai_provider') || 'gemini';
     
     let generatedApp: GeminiResponse;
@@ -344,7 +345,7 @@ export async function generateOrUpdateAppCode(
     }
 
     generatedApp.files = generatedApp.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
-    if (generatedApp.files[0]) {
+    if (generatedApp.files[0] && (appMode === 'web' || !appMode)) {
       const globalSecrets = getGlobalSecrets();
       const projectSecrets = projectSettings?.secrets || [];
       const secretsMap = new Map<string, string>();
@@ -473,14 +474,15 @@ export async function* streamGenerateOrUpdateAppCode(
     visualEditTarget?: { selector: string } | null,
     images?: UploadedImage[] | null,
     projectSettings?: ProjectSettings,
+    appMode?: AppMode,
 ): AsyncGenerator<{ summary?: string[]; files?: AppFile[]; previewHtml?: string; finalResponse?: GeminiResponse; error?: string }> {
   try {
-    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets);
+    const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets, appMode);
     const provider = localStorage.getItem('ai_provider') || 'gemini';
-    const useStreaming = localStorage.getItem('experimental_live_preview') === 'true';
+    const useStreaming = localStorage.getItem('experimental_live_preview') === 'true' && appMode === 'web';
 
     if (!useStreaming) {
-        const finalResponse = await generateOrUpdateAppCode(prompt, existingFiles, visualEditTarget, images, projectSettings);
+        const finalResponse = await generateOrUpdateAppCode(prompt, existingFiles, visualEditTarget, images, projectSettings, appMode);
         yield { finalResponse };
         return;
     }
@@ -518,7 +520,7 @@ export async function* streamGenerateOrUpdateAppCode(
     }
     
     finalResponse.files = finalResponse.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
-    if (finalResponse.files[0]) {
+    if (finalResponse.files[0] && (appMode === 'web' || !appMode)) {
       const globalSecrets = getGlobalSecrets();
       const projectSecrets = projectSettings?.secrets || [];
       const secretsMap = new Map<string, string>();

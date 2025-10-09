@@ -3,12 +3,13 @@ import ArrowUpIcon from '../components/icons/ArrowUpIcon';
 import BrainCircuitIcon from '../components/icons/BrainCircuitIcon';
 import RocketIcon from '../components/icons/RocketIcon';
 import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
-import { GitHubRepo } from '../types';
+import { GitHubRepo, AppMode } from '../types';
 import HomePageBackground from '../components/HomePageBackground';
+import ExpoIcon from '../components/icons/ExpoIcon';
 
 
 interface HomePageProps {
-  onGenerate: (prompt: string, isLisaActive: boolean) => void;
+  onGenerate: (prompt: string, isLisaActive: boolean, appMode: AppMode) => void;
   onStartCodePilot: (repo: GitHubRepo) => void;
 }
 
@@ -24,6 +25,7 @@ const suggestionPrompts = [
 const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => {
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
+  const [isExpoMode, setIsExpoMode] = useState(false);
   const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
   const [inputStyle, setInputStyle] = useState('glossy');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,7 +59,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
-      onGenerate(prompt, isLisaActive);
+      onGenerate(prompt, isLisaActive, isExpoMode ? 'expo' : 'web');
     }
   };
 
@@ -103,6 +105,18 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               >
                 <BrainCircuitIcon className={`w-5 h-5 transition-colors ${isLisaActive ? 'text-indigo-500' : ''}`} />
                 Lisa Agent {isLisaActive ? 'Active' : 'Inactive'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsExpoMode(prev => !prev)}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
+                  isExpoMode
+                    ? 'bg-white border-white text-black shadow-lg shadow-white/20'
+                    : 'bg-white/5 border-white/10 text-cyan-300'
+                }`}
+              >
+                <ExpoIcon className={`w-5 h-5 transition-colors ${isExpoMode ? 'text-black' : ''}`} />
+                Expo App Mode {isExpoMode ? 'Active' : 'Inactive'}
               </button>
               <button
                 type="button"

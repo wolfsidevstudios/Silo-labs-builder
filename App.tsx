@@ -15,7 +15,7 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, FirebaseUser, GitHubRepo } from './types';
+import { SavedProject, FirebaseUser, GitHubRepo, AppMode } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [builderPrompt, setBuilderPrompt] = useState<string>('');
   const [builderIsLisaActive, setBuilderIsLisaActive] = useState<boolean>(false);
+  const [builderAppMode, setBuilderAppMode] = useState<AppMode>('web');
   const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
   const [isPro, setIsPro] = useState<boolean>(false);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
@@ -141,9 +142,10 @@ const App: React.FC = () => {
     setShowOnboarding(false);
   };
 
-  const handleStartBuilding = (prompt: string, isLisaActive: boolean) => {
+  const handleStartBuilding = (prompt: string, isLisaActive: boolean, appMode: AppMode) => {
     setBuilderPrompt(prompt);
     setBuilderIsLisaActive(isLisaActive);
+    setBuilderAppMode(appMode);
     setProjectToLoad(null); // Ensure we're not loading an old project
     setCurrentPage('builder');
   };
@@ -157,6 +159,7 @@ const App: React.FC = () => {
     setProjectToLoad(project);
     setBuilderPrompt(''); // Clear any prompt from home page
     setBuilderIsLisaActive(project.isLisaActive || false);
+    setBuilderAppMode(project.appMode || 'web');
     setCurrentPage('builder');
   };
 
@@ -182,7 +185,7 @@ const App: React.FC = () => {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} initialIsLisaActive={builderIsLisaActive} />;
+        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} initialIsLisaActive={builderIsLisaActive} initialAppMode={builderAppMode} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} user={user} />;
       case 'plans':

@@ -30,6 +30,7 @@ export interface Secret {
 }
 
 export type GeminiModelId = 'gemini-2.5-pro' | 'gemini-2.5-flash' | 'gemini-2.0-pro' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+export type AppMode = 'web' | 'expo';
 
 export interface TestStep {
     action: 'type' | 'click' | 'scroll' | 'navigate';
@@ -56,6 +57,7 @@ export interface SavedProject extends GeminiResponse {
   netlifyUrl?: string;
   isLisaActive?: boolean;
   history?: Version[];
+  appMode?: AppMode;
 }
 
 // FIX: Add Profile type to resolve compilation error.

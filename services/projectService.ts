@@ -1,4 +1,4 @@
-import { SavedProject, AppFile, GeminiResponse, Version } from '../types';
+import { SavedProject, AppFile, GeminiResponse, Version, AppMode } from '../types';
 
 const PROJECTS_STORAGE_KEY = 'ai_react_app_builder_projects';
 
@@ -24,6 +24,7 @@ export function saveProject(projectData: {
   files: AppFile[];
   previewHtml: string;
   summary: string[];
+  appMode?: AppMode;
 }): SavedProject {
   const projects = getProjects();
   const now = new Date().toISOString();
@@ -42,6 +43,7 @@ export function saveProject(projectData: {
     ...projectData,
     createdAt: new Date().toISOString(),
     history: [newVersion],
+    appMode: projectData.appMode || 'web',
   };
 
   // Add the new project to the start of the array

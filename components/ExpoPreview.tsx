@@ -1,0 +1,92 @@
+import React, { useState, useEffect } from 'react';
+
+interface ExpoPreviewProps {
+  previewData: string;
+}
+
+const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [snackUrl, setSnackUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const createSnack = async () => {
+      setIsLoading(true);
+      setError(null);
+      setQrCodeUrl(null);
+      setSnackUrl(null);
+      
+      try {
+        if (!previewData) return;
+        
+        let data;
+        try {
+            data = JSON.parse(previewData);
+        } catch (e) {
+            console.error("Failed to parse previewData JSON:", previewData);
+            throw new Error('Invalid data format for Expo preview. Waiting for complete data...');
+        }
+        
+        if (data.type !== 'expo' || !data.files || !data.files['App.tsx'] || !data.files['package.json']) {
+          throw new Error('Invalid or incomplete data structure for Expo preview.');
+        }
+
+        const packageJson = JSON.parse(data.files['package.json']);
+        
+        const response = await fetch('https://exp.host/--/api/v2/snack/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            code: data.files,
+            dependencies: packageJson.dependencies,
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to create Expo Snack: ${errorText}`);
+        }
+
+        const result = await response.json();
+        const snackId = result.id;
+        const url = `https://expo.dev/${snackId}`;
+        setSnackUrl(url);
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    createSnack();
+  }, [previewData]);
+
+  return (
+    <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden items-center justify-center p-8 text-center">
+      {isLoading && (
+        <div>
+            <div className="w-12 h-12 border-4 border-t-transparent border-indigo-400 rounded-full animate-spin mb-4 mx-auto"></div>
+            <p className="text-slate-300">Generating Expo Snack...</p>
+        </div>
+      )}
+      {error && <div className="text-red-400"><p>Error creating QR Code:</p><p className="text-sm mt-2">{error}</p></div>}
+      {qrCodeUrl && (
+        <>
+          <h2 className="text-2xl font-bold text-white mb-4">Scan with Expo Go</h2>
+          <div className="p-4 bg-white rounded-lg shadow-lg">
+            <img src={qrCodeUrl} alt="Expo Go QR Code" width="250" height="250" />
+          </div>
+          <p className="text-slate-400 mt-4 max-w-sm">Open the Expo Go app on your iOS or Android device and scan the QR code to run your app.</p>
+          {snackUrl && <a href={snackUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-indigo-400 hover:underline">Or open Snack in a new tab</a>}
+        </>
+      )}
+    </div>
+  );
+};
+export default ExpoPreview;

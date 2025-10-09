@@ -16,7 +16,8 @@ import QuotaErrorModal from '../components/QuotaErrorModal';
 import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version } from '../types';
+import ExpoPreview from '../components/ExpoPreview';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -34,6 +35,7 @@ interface BuilderPageProps {
   initialProject?: SavedProject | null;
   isPro: boolean;
   initialIsLisaActive?: boolean;
+  initialAppMode?: AppMode;
 }
 
 interface UploadedImageState {
@@ -63,6 +65,7 @@ interface ProjectTab {
     testingMessageId?: string | null;
     isLisaActive: boolean;
     history: Version[];
+    appMode: AppMode;
     // Settings
     name: string;
     description?: string;
@@ -72,7 +75,7 @@ interface ProjectTab {
     secrets: Secret[];
 }
 
-const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null, isLisaActive: boolean = false): ProjectTab => {
+const createNewTab = (name: string, prompt: string = '', project: SavedProject | null = null, isLisaActive: boolean = false, appMode: AppMode = 'web'): ProjectTab => {
     const id = `tab-${Date.now()}`;
     let chatHistory: ChatMessage[] = [];
     if (project) {
@@ -102,6 +105,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
         testingMessageId: null,
         isLisaActive: project?.isLisaActive ?? isLisaActive,
         history: project?.history || (project ? [{ versionId: `v-initial-${project.id}`, createdAt: project.createdAt, prompt: project.prompt, ...project }] : []),
+        appMode: project?.appMode ?? appMode,
         // Settings
         name: project?.name || name,
         description: project?.description,
@@ -113,7 +117,7 @@ const createNewTab = (name: string, prompt: string = '', project: SavedProject |
 };
 
 
-const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isPro, initialIsLisaActive = false }) => {
+const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialProject = null, isPro, initialIsLisaActive = false, initialAppMode = 'web' }) => {
   const [tabs, setTabs] = useState<ProjectTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   
@@ -318,7 +322,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       }
 
       try {
-          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit, { ...projectSettings, model: finalModel });
+          const stream = streamGenerateOrUpdateAppCode(promptToSubmit, currentFiles, options.visualEditTarget, imagesToSubmit, { ...projectSettings, model: finalModel }, activeTab.appMode);
           let finalResponse: GeminiResponse | null = null;
           
           for await (const update of stream) {
@@ -356,6 +360,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
               prompt: userMessageContent,
               name: activeTab.name,
               isLisaActive: activeTab.isLisaActive,
+              appMode: activeTab.appMode,
               ...finalResponse
           };
           
@@ -713,8 +718,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     // Initialize tabs
     if (tabs.length === 0) {
         const firstTab = initialProject
-            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject)
-            : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive);
+            // FIX: Provide fallback values for potentially undefined properties from `initialProject`.
+            // `isLisaActive` and `appMode` can be undefined on a SavedProject, but createNewTab expects boolean and AppMode.
+            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode ?? 'web')
+            : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive, initialAppMode);
         setTabs([firstTab]);
         setActiveTabId(firstTab.id);
     }
@@ -728,7 +735,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     const pexKey = getPexelsKey(); if (pexKey) setIsPexelsConnected(true);
     const fsKey = getFreeSoundKey(); if (fsKey) setIsFreeSoundConnected(true);
 
-  }, [initialProject, initialPrompt, initialIsLisaActive]);
+  }, [initialProject, initialPrompt, initialIsLisaActive, initialAppMode]);
   
   useEffect(() => {
     if (activeTab?.prompt && !initialGenerationDone.current.has(activeTab.id) && activeTab.chatHistory.length === 0) {
@@ -736,6 +743,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         initialGenerationDone.current.add(activeTab.id);
     }
   }, [activeTab]);
+  
+  const isExpoApp = activeTab?.appMode === 'expo' && files.length > 0;
 
   return (
     <div className="h-screen w-screen bg-black text-white flex flex-col pl-[4.5rem]">
@@ -842,6 +851,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (
                     <CodeViewer files={files} />
+                ) : isExpoApp ? (
+                    <ExpoPreview previewData={previewHtml} />
                 ) : (
                     <Preview 
                         htmlContent={previewHtml} 
