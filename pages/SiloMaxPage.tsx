@@ -6,15 +6,17 @@ import YouTubeIcon from '../components/icons/YouTubeIcon';
 import ImageIcon from '../components/icons/ImageIcon';
 import GlobeIcon from '../components/icons/GlobeIcon';
 import XIcon from '../components/icons/XIcon';
+import ProjectsIcon from '../components/icons/ProjectsIcon';
 import SiloMaxRepoModal from '../components/SiloMaxRepoModal';
 import SiloMaxVideoModal from '../components/SiloMaxVideoModal';
 import SiloMaxImageModal from '../components/SiloMaxImageModal';
 import SiloMaxWebsiteModal from '../components/SiloMaxWebsiteModal';
+import SiloMaxProjectModal from '../components/SiloMaxProjectModal';
 import SiloMaxCommitModal from '../components/SiloMaxCommitModal';
 import CodeBlock from '../components/CodeBlock';
 import { generateMaxChatStream } from '../services/geminiService';
 import { createOrUpdateFile, getRepoContent, getPat } from '../services/githubService';
-import { GitHubRepo } from '../types';
+import { GitHubRepo, SavedProject } from '../types';
 
 interface CodeBlockData {
   language: string;
@@ -32,7 +34,7 @@ interface MaxChatMessage {
 }
 
 interface Resource {
-  type: 'repository' | 'video' | 'image' | 'website';
+  type: 'repository' | 'video' | 'image' | 'website' | 'project';
   label: string;
   data: any;
 }
@@ -51,6 +53,7 @@ const SiloMaxPage: React.FC = () => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isWebsiteModalOpen, setIsWebsiteModalOpen] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [commitDetails, setCommitDetails] = useState<{ filePath: string, code: string, repo: GitHubRepo } | null>(null);
 
 
@@ -71,6 +74,11 @@ const SiloMaxPage: React.FC = () => {
     setIsRepoModalOpen(false);
   };
   
+  const handleAddProject = (project: SavedProject) => {
+    setResources(prev => [...prev, { type: 'project', label: project.name || 'Untitled Project', data: project }]);
+    setIsProjectModalOpen(false);
+  };
+
   const handleAddVideo = (url: string) => {
     try {
         const label = new URL(url).hostname.replace('www.','');
@@ -115,6 +123,12 @@ const SiloMaxPage: React.FC = () => {
       context = 'Using the following context:\n' + resources.map(r => {
         if (r.type === 'repository') {
             return `- Repository: ${(r.data as GitHubRepo).full_name}. When you suggest code changes for a file in this repository, you MUST provide the full new content of the file and specify the file path on the first line of the code block like this: \`// FILEPATH: path/to/your/file.ext\`.`;
+        }
+        if (r.type === 'project') {
+            const project = r.data as SavedProject;
+            const fileSummary = project.files.map(f => `\`${f.path}\``).join(', ');
+            const projectFilesContent = project.files.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n');
+            return `- Project: ${project.name || 'Untitled'}\n  - Original Prompt: "${project.prompt}"\n  - Files: ${fileSummary}\n\nHere is the full code for the project:\n${projectFilesContent}`;
         }
         return `- ${r.type}: ${r.label}`;
       }).join('\n') + '\n\n';
@@ -239,6 +253,7 @@ const SiloMaxPage: React.FC = () => {
   };
   
   const resourceButtons = [
+      { label: 'Project', icon: ProjectsIcon, onClick: () => setIsProjectModalOpen(true) },
       { label: 'Repository', icon: GitHubIcon, onClick: () => setIsRepoModalOpen(true) },
       { label: 'Videos', icon: YouTubeIcon, onClick: () => setIsVideoModalOpen(true) },
       { label: 'Images', icon: ImageIcon, onClick: () => setIsImageModalOpen(true) },
@@ -251,6 +266,7 @@ const SiloMaxPage: React.FC = () => {
       <SiloMaxVideoModal isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} onAddVideo={handleAddVideo} />
       <SiloMaxImageModal isOpen={isImageModalOpen} onClose={() => setIsImageModalOpen(false)} onAddImage={handleAddImage} />
       <SiloMaxWebsiteModal isOpen={isWebsiteModalOpen} onClose={() => setIsWebsiteModalOpen(false)} onAddWebsite={handleAddWebsite} />
+      <SiloMaxProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} onSelectProject={handleAddProject} />
       <SiloMaxCommitModal 
         isOpen={!!commitDetails}
         onClose={() => setCommitDetails(null)}
