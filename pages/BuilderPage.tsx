@@ -782,6 +782,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 githubButtonRef={githubButtonRef}
                 deployButtonRef={deployButtonRef}
                 settingsButtonRef={settingsButtonRef}
+                isMaxVibeRunning={isMaxVibeRunning}
+                onStopMaxVibe={handleToggleMaxVibe}
             />
             <div className="flex-grow p-4 pt-0 overflow-hidden">
                 {rightPaneView === 'code' ? (
