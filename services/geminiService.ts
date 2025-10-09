@@ -755,3 +755,37 @@ export async function editCodeWithAi(prompt: string, filePath: string, fileConte
         throw new Error("An unknown error occurred during AI code editing.");
     }
 }
+
+export async function* generateMaxChatStream(prompt: string): AsyncGenerator<string> {
+    const systemInstruction = `You are Silo MAX, an expert AI assistant and programmer. 
+- You can chat conversationally.
+- You can generate code snippets or entire files.
+- When you generate code, you MUST wrap it in a markdown code block with the language identifier (e.g., \`\`\`tsx ... \`\`\`).
+- If the user provides context about editing a file in a repository, your code block should represent the entire new content of that file.
+- Keep your non-code responses helpful and concise.`;
+
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+
+        const responseStream = await ai.models.generateContentStream({
+            model: model,
+            contents: prompt,
+            config: {
+                systemInstruction: systemInstruction,
+            },
+        });
+
+        for await (const chunk of responseStream) {
+            yield chunk.text;
+        }
+
+    } catch (error) {
+        console.error("Error in Silo MAX chat stream:", error);
+        if (error instanceof Error) {
+            throw new Error(`Silo MAX chat failed: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred during Silo MAX chat.");
+    }
+}

@@ -10,20 +10,31 @@ import SiloMaxRepoModal from '../components/SiloMaxRepoModal';
 import SiloMaxVideoModal from '../components/SiloMaxVideoModal';
 import SiloMaxImageModal from '../components/SiloMaxImageModal';
 import SiloMaxWebsiteModal from '../components/SiloMaxWebsiteModal';
+import SiloMaxCommitModal from '../components/SiloMaxCommitModal';
+import CodeBlock from '../components/CodeBlock';
+import { generateMaxChatStream } from '../services/geminiService';
+import { createOrUpdateFile, getRepoContent, getPat } from '../services/githubService';
 import { GitHubRepo } from '../types';
 
-// Simplified message type for this page
+interface CodeBlockData {
+  language: string;
+  code: string;
+  filePath?: string;
+}
+
 interface MaxChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  codeBlock?: CodeBlockData;
   isGenerating?: boolean;
+  isRepoEdit?: boolean;
 }
 
 interface Resource {
   type: 'repository' | 'video' | 'image' | 'website';
   label: string;
-  data: any; // Could be repo object, URL string, image data
+  data: any;
 }
 
 
@@ -40,6 +51,8 @@ const SiloMaxPage: React.FC = () => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isWebsiteModalOpen, setIsWebsiteModalOpen] = useState(false);
+  const [commitDetails, setCommitDetails] = useState<{ filePath: string, code: string, repo: GitHubRepo } | null>(null);
+
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -99,43 +112,130 @@ const SiloMaxPage: React.FC = () => {
     
     let context = '';
     if (resources.length > 0) {
-      context = 'Using the following context:\n' + resources.map(r => `- ${r.type}: ${r.label}`).join('\n') + '\n\n';
+      context = 'Using the following context:\n' + resources.map(r => {
+        if (r.type === 'repository') {
+            return `- Repository: ${(r.data as GitHubRepo).full_name}. When you suggest code changes for a file in this repository, you MUST provide the full new content of the file and specify the file path on the first line of the code block like this: \`// FILEPATH: path/to/your/file.ext\`.`;
+        }
+        return `- ${r.type}: ${r.label}`;
+      }).join('\n') + '\n\n';
     }
+    
     const fullPrompt = context + currentPrompt;
     
     const userMessage: MaxChatMessage = {
         id: `user-${Date.now()}`,
         role: 'user',
-        content: fullPrompt,
+        content: currentPrompt,
     };
     setMessages(prev => [...prev, userMessage]);
     setPrompt('');
+    setResources([]); // Clear resources after they are submitted
     setIsLoading(true);
 
     const aiMessageId = `assistant-${Date.now()}`;
-    const thinkingMessage: MaxChatMessage = {
+    const placeholderMessage: MaxChatMessage = {
         id: aiMessageId,
         role: 'assistant',
-        content: 'Thinking...',
+        content: '',
         isGenerating: true,
     };
-    setMessages(prev => [...prev, thinkingMessage]);
+    setMessages(prev => [...prev, placeholderMessage]);
 
-    // Simulate AI response
-    setTimeout(() => {
-        const responseContent = resources.length > 0 
-            ? `I've received your request: "${currentPrompt}" with the context of ${resources.length} resource(s). I'm currently configured to provide simulated responses. In a real scenario, I would now process this request using the provided context.`
-            : `I've received your request: "${currentPrompt}". I'm currently configured to provide simulated responses. In a real scenario, I would now process this request.`;
+    try {
+        const stream = generateMaxChatStream(fullPrompt);
+        let fullResponse = '';
+
+        for await (const chunk of stream) {
+            fullResponse += chunk;
+            setMessages(prev => prev.map(msg => 
+                msg.id === aiMessageId ? { ...msg, content: fullResponse } : msg
+            ));
+        }
+
+        // Post-stream processing
+        const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/;
+        const match = fullResponse.match(codeBlockRegex);
         
-        const aiResponse: MaxChatMessage = {
+        const finalMessage: MaxChatMessage = {
             id: aiMessageId,
             role: 'assistant',
-            content: responseContent,
+            content: fullResponse.replace(codeBlockRegex, '').trim(),
             isGenerating: false,
         };
-        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? aiResponse : msg));
+
+        const repoResource = resources.find(r => r.type === 'repository');
+
+        if (match) {
+            const language = match[1] || 'text';
+            let code = match[2].trim();
+            finalMessage.codeBlock = { language, code };
+            
+            if (repoResource) {
+                const filePathRegex = /^\s*(?:\/\/|\#)\s*FILEPATH:\s*(\S+)/m;
+                const filePathMatch = code.match(filePathRegex);
+                if (filePathMatch) {
+                    finalMessage.isRepoEdit = true;
+                    finalMessage.codeBlock.filePath = filePathMatch[1];
+                    finalMessage.codeBlock.code = code.replace(filePathRegex, '').trim();
+                }
+            }
+        }
+        
+        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? finalMessage : msg));
+
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+        const errorMsg: MaxChatMessage = {
+            id: aiMessageId,
+            role: 'assistant',
+            content: `Sorry, I encountered an error: ${errorMessage}`
+        };
+        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? errorMsg : msg));
+    } finally {
         setIsLoading(false);
-    }, 2500);
+    }
+  };
+  
+  const handleCommit = async (commitMessage: string) => {
+    if (!commitDetails) return;
+
+    setIsLoading(true);
+    const { filePath, code, repo } = commitDetails;
+    const [owner, repoName] = repo.full_name.split('/');
+    
+    try {
+        const token = getPat();
+        if (!token) throw new Error("GitHub token not found. Please connect to GitHub in Settings.");
+
+        let sha: string | undefined;
+        try {
+            const fileMeta = await getRepoContent(token, owner, repoName, filePath);
+            sha = fileMeta.sha;
+        } catch (e) {
+            console.log("File not found, creating a new one.");
+        }
+
+        await createOrUpdateFile(token, owner, repoName, filePath, code, commitMessage, sha);
+        
+        const successMsg: MaxChatMessage = {
+            id: `success-${Date.now()}`,
+            role: 'assistant',
+            content: `Successfully committed changes to \`${filePath}\` in \`${repoName}\`!`
+        };
+        setMessages(prev => [...prev, successMsg]);
+
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to commit changes.";
+        const errorMsg: MaxChatMessage = {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: `Commit failed: ${errorMessage}`
+        };
+        setMessages(prev => [...prev, errorMsg]);
+    } finally {
+        setIsLoading(false);
+        setCommitDetails(null);
+    }
   };
   
   const resourceButtons = [
@@ -151,9 +251,15 @@ const SiloMaxPage: React.FC = () => {
       <SiloMaxVideoModal isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} onAddVideo={handleAddVideo} />
       <SiloMaxImageModal isOpen={isImageModalOpen} onClose={() => setIsImageModalOpen(false)} onAddImage={handleAddImage} />
       <SiloMaxWebsiteModal isOpen={isWebsiteModalOpen} onClose={() => setIsWebsiteModalOpen(false)} onAddWebsite={handleAddWebsite} />
+      <SiloMaxCommitModal 
+        isOpen={!!commitDetails}
+        onClose={() => setCommitDetails(null)}
+        onCommit={handleCommit}
+        filePath={commitDetails?.filePath || ''}
+        repoName={commitDetails?.repo.name || ''}
+      />
 
       <div className="relative h-screen w-screen bg-black overflow-hidden text-white font-sans selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
-        {/* Top Section */}
         <div className={`absolute top-0 left-0 right-0 z-20 transition-all duration-500 ease-in-out ${isChatActive ? 'pt-8 pb-4' : 'pt-20 md:pt-24'}`}>
           <div className="flex flex-col items-center justify-center">
             <h1 
@@ -173,10 +279,11 @@ const SiloMaxPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Chat History */}
         {isChatActive && (
           <div ref={chatContainerRef} className="absolute top-0 left-0 right-0 bottom-28 pt-48 pb-4 px-6 md:px-12 lg:px-24 overflow-y-auto animate-fade-in space-y-6">
-            {messages.map((message) => (
+            {messages.map((message) => {
+              const repoResource = resources.find(r => r.type === 'repository');
+              return (
                   <div key={message.id} className={`flex items-start gap-4 max-w-4xl mx-auto ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
                       {message.role === 'assistant' && (
                           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-900/50 border border-indigo-500/30 flex items-center justify-center">
@@ -185,17 +292,34 @@ const SiloMaxPage: React.FC = () => {
                       )}
                       <div className={`p-4 rounded-2xl ${
                           message.role === 'user'
-                          ? 'bg-indigo-600'
-                          : 'bg-slate-800'
+                          ? 'bg-white text-black'
+                          : 'bg-white/10 backdrop-blur-md border border-white/20'
                       }`}>
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
+                          {message.codeBlock && (
+                              <CodeBlock 
+                                  language={message.codeBlock.language} 
+                                  code={message.codeBlock.code}
+                                  filePath={message.codeBlock.filePath}
+                              />
+                          )}
+                          {message.isRepoEdit && message.codeBlock?.filePath && repoResource && (
+                              <div className="mt-4 text-right">
+                                  <button
+                                      onClick={() => setCommitDetails({ filePath: message.codeBlock!.filePath!, code: message.codeBlock!.code, repo: repoResource.data as GitHubRepo })}
+                                      className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white font-semibold rounded-lg text-sm"
+                                  >
+                                      Commit Changes
+                                  </button>
+                              </div>
+                          )}
                       </div>
                   </div>
-              ))}
+              )
+            })}
           </div>
         )}
         
-        {/* Prompt Input Form */}
         <form
           onSubmit={handleSubmit}
           className={`fixed z-30 transition-all duration-700 ease-in-out ${
@@ -207,7 +331,7 @@ const SiloMaxPage: React.FC = () => {
         >
           <div className={`relative ${!isChatActive ? 'animate-fade-in-up' : ''}`}>
             {resources.length > 0 && (
-                <div className="absolute left-4 bottom-4 flex flex-wrap gap-2 max-w-[calc(100%-6rem)]">
+                <div className="absolute left-4 -top-12 flex flex-wrap gap-2 max-w-[calc(100%-1rem)]">
                     {resources.map((resource, index) => (
                         <div key={index} className="flex items-center gap-1.5 bg-white text-black px-3 py-1 rounded-full text-sm font-semibold animate-fade-in-up">
                             <span>{resource.label}</span>
