@@ -577,360 +577,307 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
   const handleDeploy = async () => {
       const token = getNetlifyPat();
-      if (!token || !activeTab || files.length === 0) return;
-      
+      if (!token || !activeTab || files.length === 0) {
+          updateActiveTab({ error: "Cannot deploy. Ensure you are connected to Netlify and have generated an app." });
+          return;
+      }
+
       setDeployStatus('deploying');
-      let siteId = activeTab.currentNetlifySiteId;
-      let siteUrl = activeTab.currentNetlifyUrl;
       
       try {
+          let siteId = activeTab.currentNetlifySiteId;
           if (!siteId) {
               const newSite = await createSite(token);
               siteId = newSite.id;
-              siteUrl = newSite.ssl_url;
-              updateActiveTab({ currentNetlifySiteId: siteId, currentNetlifyUrl: siteUrl });
+              updateActiveTab({ currentNetlifySiteId: siteId, currentNetlifyUrl: newSite.ssl_url });
+              if (activeTab.lastSavedProjectId) {
+                  updateProject(activeTab.lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: newSite.ssl_url });
+              }
           }
-          if (!siteId) throw new Error("Could not create or find a site to deploy to.");
-
-          const deploy = await deployToNetlify(token, siteId, files);
-          siteUrl = deploy.ssl_url;
-          updateActiveTab({ currentNetlifyUrl: siteUrl });
-
-          if(activeTab.lastSavedProjectId) {
-              updateProject(activeTab.lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: siteUrl });
-          }
+          if (!siteId) throw new Error("Failed to create or find Netlify site.");
+          
+          await deployToNetlify(token, siteId, files);
           setDeployStatus('success');
 
       } catch (err) {
-          updateActiveTab({ error: err instanceof Error ? err.message : "An unknown deployment error occurred." });
+          const errorMsg = err instanceof Error ? err.message : "An unknown error occurred during deployment.";
+          updateActiveTab({ error: errorMsg });
           setDeployStatus('error');
       }
   };
   
-  const handleDeployClick = () => {
-    setDeployStatus('idle'); setIsDeployModalOpen(true);
-    if (!activeTab?.currentNetlifySiteId) handleDeploy();
-  };
-  
-  const handleDownloadClick = () => {
-    if (!isPro || !activeTab || files.length === 0) return;
-    
-    // For this app, we only generate a single index.html
-    const fileToDownload = files[0];
-    if (!fileToDownload) {
-      updateActiveTab({ error: "Could not find a file to download." });
-      return;
-    }
-    
-    const blob = new Blob([fileToDownload.content], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileToDownload.path;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleSaveSettings = (settings: Partial<Omit<ProjectTab, 'id'>>) => {
-    if (!activeTab) return;
-    
-    // Create a new tab object with updated settings to ensure correct typing
-    const updatedTabData = { ...activeTab, ...settings };
-    updateActiveTab(updatedTabData);
-
-    if (activeTab.lastSavedProjectId) {
-      updateProject(activeTab.lastSavedProjectId, settings);
-    }
-    setIsProjectSettingsOpen(false);
-  };
-
-  const handleRestoreVersion = (versionToRestore: Version) => {
-    if (!activeTab || activeTab.isLoading) return;
-
-    setIsHistoryModalOpen(false);
-    updateActiveTab({ isLoading: true });
-
-    const userMessageContent = `Restored version from ${new Date(versionToRestore.createdAt).toLocaleString()}`;
-    const newUserMessage: UserMessage = { 
-        id: `user-restore-${Date.now()}`,
-        role: 'user', 
-        content: userMessageContent,
-    };
-
-    const newAssistantMessage: AssistantMessage = {
-        id: `assistant-restore-${Date.now()}`,
-        role: 'assistant',
-        content: {
-            summary: versionToRestore.summary,
-            files: versionToRestore.files,
-            previewHtml: versionToRestore.previewHtml,
-        },
-        isGenerating: false,
-    };
-
-    const newChatHistory = [...activeTab.chatHistory, newUserMessage, newAssistantMessage];
-    
-
-    if (activeTab.lastSavedProjectId) {
-        const updateData = {
-            prompt: userMessageContent,
-            summary: versionToRestore.summary,
-            files: versionToRestore.files,
-            previewHtml: versionToRestore.previewHtml,
-        };
-        updateProject(activeTab.lastSavedProjectId, updateData);
-        // Optimistically update history in local state
-        const newVersionForHistory: Version = {
-            versionId: `v-restore-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-            ...updateData
-        };
-        updateActiveTab({ chatHistory: newChatHistory, isLoading: false, history: [newVersionForHistory, ...activeTab.history] });
+  // This effect runs once on mount to initialize the first tab
+  useEffect(() => {
+    if (initialProject) {
+      const newTab = createNewTab(
+        initialProject.name || `Project ${tabs.length + 1}`,
+        initialProject.prompt,
+        initialProject,
+        initialProject.isLisaActive ?? false,
+        // FIX: Argument of type 'string' is not assignable to parameter of type 'AppMode'.
+        initialProject.appMode || 'web'
+      );
+      setTabs([newTab]);
+      setActiveTabId(newTab.id);
+      initialGenerationDone.current.add(newTab.id);
     } else {
-        updateActiveTab({ chatHistory: newChatHistory, isLoading: false });
+      const newTab = createNewTab(
+        `Project ${tabs.length + 1}`,
+        initialPrompt,
+        null,
+        initialIsLisaActive,
+        initialAppMode
+      );
+      setTabs([newTab]);
+      setActiveTabId(newTab.id);
     }
-  };
 
-
-  const toggleVisualEditMode = () => {
-    const nextState = !activeTab?.isVisualEditMode;
-    updateActiveTab({ isVisualEditMode: nextState });
-    if (!nextState) updateActiveTab({ selectedElementSelector: null });
-  };
+    const ghPat = getGitHubPat();
+    if (ghPat) getGitHubUserInfo(ghPat).then(setGithubUser).catch(() => {});
+    if (getNetlifyPat()) setIsNetlifyConnected(true);
+    if (getGiphyKey()) setIsGiphyConnected(true);
+    if (getUnsplashKey()) setIsUnsplashConnected(true);
+    if (getYouTubeKey()) setIsYouTubeConnected(true);
+    if (getPexelsKey()) setIsPexelsConnected(true);
+    if (getFreeSoundKey()) setIsFreeSoundConnected(true);
+    
+    // Listen for VISUAL_EDIT_SELECT message from iframe
+    const handleMessage = (event: MessageEvent) => {
+      const currentActiveTab = activeTabRef.current;
+      if (event.data.type === 'VISUAL_EDIT_SELECT' && currentActiveTab && currentActiveTab.isVisualEditMode) {
+          updateActiveTab({ selectedElementSelector: event.data.selector });
+      }
+      if (event.data.type === 'MAX_AGENT_ELEMENTS') {
+          updateActiveTab({ agentTargets: event.data.elements });
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
   
-  const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
+  useEffect(() => {
+      if (activeTab && initialPrompt && !initialGenerationDone.current.has(activeTab.id)) {
+          handleSubmit(initialPrompt);
+          initialGenerationDone.current.add(activeTab.id);
+      }
+  }, [activeTab, initialPrompt]);
 
+
+  // --- Pane View Logic ---
+  const [leftPaneView, setLeftPaneView] = useState<'chat' | 'code' | 'both'>('chat');
+  const [rightPaneView, setRightPaneView] = useState<'preview' | 'code' | 'both' | 'terminal'>('preview');
+
+  // --- Resizable Panes ---
+  const [leftPaneWidth, setLeftPaneWidth] = useState(33.33);
+  const [rightPaneHeight, setRightPaneHeight] = useState(70);
+  const isResizing = useRef(false);
+  const isResizingVertical = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => { isResizing.current = true; e.preventDefault(); };
+  const handleMouseUp = () => { isResizing.current = false; };
+  const handleMouseMove = (e: MouseEvent) => { if (!isResizing.current) return; const newWidth = (e.clientX / window.innerWidth) * 100; if (newWidth > 20 && newWidth < 80) setLeftPaneWidth(newWidth); };
+  
+  const handleMouseDownVertical = (e: React.MouseEvent) => { isResizingVertical.current = true; e.preventDefault(); };
+  const handleMouseUpVertical = () => { isResizingVertical.current = false; };
+  const handleMouseMoveVertical = (e: MouseEvent) => {
+      if (!isResizingVertical.current) return;
+      const rightPane = document.getElementById('right-pane');
+      if (!rightPane) return;
+      const rect = rightPane.getBoundingClientRect();
+      const newHeight = ((e.clientY - rect.top) / rect.height) * 100;
+      if (newHeight > 20 && newHeight < 80) {
+          setRightPaneHeight(newHeight);
+      }
+  };
+
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handleMouseMoveVertical);
+    window.addEventListener('mouseup', handleMouseUpVertical);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', handleMouseMoveVertical);
+      window.removeEventListener('mouseup', handleMouseUpVertical);
+    };
+  }, []);
+  
   const handleCommand = async (command: string) => {
-    const currentFiles = activeTabRef.current?.chatHistory.slice().reverse().find(m => m.role === 'assistant' && !m.isGenerating)?.content.files || [];
-
-    setTerminalLines(prev => [...prev, { type: 'command', text: command }]);
+    if (!activeTab) return;
+    const newLines: TerminalLine[] = [...terminalLines, { type: 'command', text: command }];
+    setTerminalLines(newLines);
 
     if (command.trim().toLowerCase() === 'clear') {
         setTerminalLines([]);
         return;
     }
 
-    const stream = executeCommand(command, currentFiles);
-    
-    const singleBlockCommands = ['ls', 'cat', 'pwd', 'whoami', 'date', 'echo', 'help'];
-    const cmd = command.trim().split(/\s+/)[0].toLowerCase();
-    
-    if (singleBlockCommands.includes(cmd)) {
-        let output = '';
-        for await (const chunk of stream) {
-            output += chunk + '\n';
-        }
-        if (output.trim()) {
-            setTerminalLines(prev => [...prev, { type: 'output', text: output.trim() }]);
-        }
-    } else {
-        for await (const chunk of stream) {
-            setTerminalLines(prev => [...prev, { type: 'output', text: chunk }]);
-        }
+    const outputStream = executeCommand(command, files);
+    let currentLines = newLines;
+    for await (const output of outputStream) {
+        currentLines = [...currentLines, { type: 'output', text: output }];
+        setTerminalLines(currentLines);
     }
   };
 
-  useEffect(() => {
-    // Ask for notification permission when the builder page loads
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'VISUAL_EDIT_SELECT' && activeTab?.isVisualEditMode) {
-            updateActiveTab({ selectedElementSelector: event.data.selector });
-            setRightPaneView('preview');
-        } else if (event.data.type === 'MAX_AGENT_ELEMENTS') {
-            updateActiveTab({ agentTargets: event.data.elements || [] });
-        }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [activeTab?.isVisualEditMode, activeTabId]);
-
-  useEffect(() => {
-    // Initialize tabs
-    if (tabs.length === 0) {
-        const firstTab = initialProject
-            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode ?? 'web')
-            : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive, initialAppMode);
-        setTabs([firstTab]);
-        setActiveTabId(firstTab.id);
-    }
-
-    // Connect to services
-    const ghToken = getGitHubPat(); if (ghToken) getGitHubUserInfo(ghToken).then(setGithubUser).catch(() => console.error("Invalid GitHub PAT"));
-    const ntToken = getNetlifyPat(); if (ntToken) setIsNetlifyConnected(true);
-    const gphKey = getGiphyKey(); if (gphKey) setIsGiphyConnected(true);
-    const uspKey = getUnsplashKey(); if (uspKey) setIsUnsplashConnected(true);
-    const ytKey = getYouTubeKey(); if (ytKey) setIsYouTubeConnected(true);
-    const pexKey = getPexelsKey(); if (pexKey) setIsPexelsConnected(true);
-    const fsKey = getFreeSoundKey(); if (fsKey) setIsFreeSoundConnected(true);
-
-  }, [initialProject, initialPrompt, initialIsLisaActive, initialAppMode]);
-  
-  useEffect(() => {
-    if (activeTab?.prompt && !initialGenerationDone.current.has(activeTab.id) && activeTab.chatHistory.length === 0) {
-        handleSubmit(activeTab.prompt);
-        initialGenerationDone.current.add(activeTab.id);
-    }
-  }, [activeTab]);
-
   return (
-    <div className="h-screen w-screen bg-black text-white flex flex-col pl-[4.5rem]">
+    <>
+      <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!activeTab?.currentProjectRepo} />
       <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={activeTab?.currentNetlifyUrl || null} isNewDeploy={!activeTab?.currentNetlifySiteId} />
-      <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
       <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
       <QuotaErrorModal isOpen={isQuotaErrorModalOpen} onClose={() => setIsQuotaErrorModalOpen(false)} />
-      {activeTab && <ProjectSettingsModal isOpen={isProjectSettingsOpen} onClose={() => setIsProjectSettingsOpen(false)} onSave={handleSaveSettings} project={activeTab} />}
-      {activeTab && <VersionHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} project={activeTab} onRestore={handleRestoreVersion} />}
-      
-      {isMaxVibeRunning && activeTab && (
-        <MaxVibeAgentCursor 
-            initialCode={files.length > 0 ? files[0].content : ''}
-            promptHistory={activeTab.chatHistory.filter(m => m.role === 'user').map(m => (m as UserMessage).content)}
-            isGenerating={activeTab.isLoading}
-            onStop={() => setIsMaxVibeRunning(false)}
-            appMode={activeTab.appMode}
-            actions={{
-                setPrompt: (p: string) => updateActiveTab({ prompt: p }),
-                submit: () => {
-                    if (activeTabRef.current) {
-                       handleSubmit(activeTabRef.current.prompt.trim());
-                    }
-                },
-                switchView: setRightPaneView,
-                openGitHubModal: () => setIsGitHubModalOpen(true),
-                openDeployModal: handleDeployClick,
-                openSettingsModal: () => setIsProjectSettingsOpen(true),
-                runCommandInTerminal: handleCommand,
-                openTerminal: () => setIsTerminalOpen(true),
-            }}
-            elementRefs={{
-                promptInput: promptInputRef,
-                submitButton: submitButtonRef,
-                viewSwitcherCode: viewSwitcherCodeRef,
-                viewSwitcherPreview: viewSwitcherPreviewRef,
-                githubButton: githubButtonRef,
-                deployButton: deployButtonRef,
-                settingsButton: settingsButtonRef,
-                terminalToggle: terminalToggleRef,
-                terminalInput: terminalInputRef,
-            }}
-        />
-      )}
+      {activeTab && <ProjectSettingsModal isOpen={isProjectSettingsOpen} onClose={() => setIsProjectSettingsOpen(false)} onSave={(settings) => updateActiveTab(settings)} project={{ name: activeTab.name, model: activeTab.model, secrets: activeTab.secrets, description: activeTab.description, iconUrl: activeTab.iconUrl, thumbnailUrl: activeTab.thumbnailUrl }} />}
+      {activeTab && <VersionHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} project={activeTab ? { ...activeTab, id: activeTab.lastSavedProjectId || activeTab.id } as SavedProject : null} onRestore={(version) => { updateActiveTab({ chatHistory: [{id: `user-${version.versionId}`, role: 'user', content: version.prompt}, {id: `assistant-${version.versionId}`, role: 'assistant', content: version}] }); setIsHistoryModalOpen(false); }} />}
 
-      <div className="flex-shrink-0">
-          <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
-      </div>
-      
-      <div className="flex flex-grow overflow-hidden">
-        <div className="flex flex-col w-full lg:w-2/5 h-full border-r border-slate-800">
-            <div className="flex-grow flex flex-col overflow-hidden">
+      <div className="h-screen w-screen bg-black flex flex-col pl-[4.5rem] selection:bg-indigo-500 selection:text-white">
+        <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
+        
+        <div className="flex-grow flex overflow-hidden">
+          {/* Left Pane */}
+          <div className="h-full" style={{ width: `${leftPaneWidth}%` }}>
+            <div className="h-full flex flex-col">
+              <div className="flex-grow overflow-hidden">
                 <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} onAutoFix={handleAutoFix} />
+              </div>
+              {activeTab && (
+                <PromptInput 
+                  prompt={activeTab.prompt}
+                  setPrompt={(p) => updateActiveTab({ prompt: p })}
+                  onSubmit={handlePromptSubmit}
+                  onBoostUi={handleBoostUi}
+                  isLoading={activeTab.isLoading}
+                  isVisualEditMode={activeTab.isVisualEditMode}
+                  onToggleVisualEditMode={() => updateActiveTab({ isVisualEditMode: !activeTab.isVisualEditMode, selectedElementSelector: null })}
+                  uploadedImages={activeTab.uploadedImages}
+                  onImagesUpload={handleImagesUpload}
+                  onImageRemove={handleImageRemove}
+                  onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
+                  isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
+                  isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
+                  isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
+                  onStartMaxAgent={handleStartMaxAgent}
+                  isMaxAgentRunning={activeTab.isMaxAgentRunning}
+                  hasFiles={files.length > 0}
+                  onToggleMaxVibe={handleToggleMaxVibe}
+                  isMaxVibeRunning={isMaxVibeRunning}
+                  promptInputRef={promptInputRef}
+                  submitButtonRef={submitButtonRef}
+                />
+              )}
             </div>
-            <div className="flex-shrink-0 relative z-30">
-                {activeTab && (
-                    <PromptInput 
-                        prompt={activeTab.prompt} 
-                        setPrompt={(p) => updateActiveTab({ prompt: p })} 
-                        onSubmit={handlePromptSubmit} 
-                        onBoostUi={handleBoostUi} 
-                        isLoading={activeTab.isLoading}
-                        isVisualEditMode={activeTab.isVisualEditMode}
-                        onToggleVisualEditMode={toggleVisualEditMode}
-                        uploadedImages={activeTab.uploadedImages}
-                        onImagesUpload={handleImagesUpload}
-                        onImageRemove={handleImageRemove}
-                        onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
-                        isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
-                        isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
-                        isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
-                        onStartMaxAgent={handleStartMaxAgent}
-                        isMaxAgentRunning={activeTab.isMaxAgentRunning}
-                        hasFiles={files.length > 0}
-                        onToggleMaxVibe={handleToggleMaxVibe}
-                        isMaxVibeRunning={isMaxVibeRunning}
-                        promptInputRef={promptInputRef}
-                        submitButtonRef={submitButtonRef}
+          </div>
+
+          {/* Resizer */}
+          <div onMouseDown={handleMouseDown} className="w-1.5 h-full cursor-col-resize bg-black hover:bg-indigo-500 transition-colors" />
+
+          {/* Right Pane */}
+          <div id="right-pane" className="h-full" style={{ width: `${100 - leftPaneWidth}%` }}>
+             <div className="h-full flex flex-col">
+                <ViewSwitcher
+                    activeView={rightPaneView === 'code' ? 'code' : 'preview'}
+                    setActiveView={(v) => setRightPaneView(v)}
+                    isGitHubConnected={!!githubUser}
+                    onGitHubClick={() => setIsGitHubModalOpen(true)}
+                    isNetlifyConnected={isNetlifyConnected}
+                    onDeployClick={() => { setIsDeployModalOpen(true); if (activeTab?.currentNetlifySiteId) { setDeployStatus('idle'); } else { handleDeploy(); } }}
+                    isDeployed={!!activeTab?.currentNetlifySiteId}
+                    hasFiles={files.length > 0}
+                    isPro={isPro}
+                    onDownloadClick={() => { const file = files[0]; const blob = new Blob([file.content], { type: 'text/html' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'index.html'; a.click(); URL.revokeObjectURL(url); }}
+                    onSettingsClick={() => setIsProjectSettingsOpen(true)}
+                    onHistoryClick={() => setIsHistoryModalOpen(true)}
+                    codeButtonRef={viewSwitcherCodeRef}
+                    previewButtonRef={viewSwitcherPreviewRef}
+                    githubButtonRef={githubButtonRef}
+                    deployButtonRef={deployButtonRef}
+                    settingsButtonRef={settingsButtonRef}
+                    historyButtonRef={historyButtonRef}
+                    isMaxVibeRunning={isMaxVibeRunning}
+                    onStopMaxVibe={() => setIsMaxVibeRunning(false)}
+                    isTerminalOpen={isTerminalOpen}
+                    onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
+                    terminalButtonRef={terminalToggleRef}
+                />
+                 {activeTab && isMaxVibeRunning && (
+                    <MaxVibeAgentCursor 
+                        initialCode={files[0]?.content || ''}
+                        promptHistory={activeTab.chatHistory.filter(m => m.role === 'user').map(m => m.content)}
+                        isGenerating={activeTab.isLoading}
+                        onStop={() => setIsMaxVibeRunning(false)}
+                        appMode={activeTab.appMode}
+                        actions={{ 
+                            setPrompt: (p) => updateActiveTab({ prompt: p }), 
+                            submit: () => handleSubmit(activeTab.prompt),
+                            switchView: (v) => setRightPaneView(v),
+                            openGitHubModal: () => setIsGitHubModalOpen(true),
+                            openDeployModal: () => setIsDeployModalOpen(true),
+                            openSettingsModal: () => setIsProjectSettingsOpen(true),
+                            runCommandInTerminal: handleCommand,
+                            openTerminal: () => setIsTerminalOpen(true),
+                        }}
+                        elementRefs={{ 
+                            promptInput: promptInputRef, 
+                            submitButton: submitButtonRef,
+                            viewSwitcherCode: viewSwitcherCodeRef,
+                            viewSwitcherPreview: viewSwitcherPreviewRef,
+                            githubButton: githubButtonRef,
+                            deployButton: deployButtonRef,
+                            settingsButton: settingsButtonRef,
+                            terminalToggle: terminalToggleRef,
+                            terminalInput: terminalInputRef,
+                        }}
                     />
                 )}
-            </div>
-        </div>
-        <div className="hidden lg:flex flex-col w-3/5 h-full relative">
-            <ViewSwitcher 
-                activeView={rightPaneView} 
-                setActiveView={setRightPaneView}
-                isGitHubConnected={!!githubUser}
-                onGitHubClick={() => setIsGitHubModalOpen(true)}
-                isNetlifyConnected={isNetlifyConnected}
-                onDeployClick={handleDeployClick}
-                isDeployed={!!activeTab?.currentNetlifySiteId}
-                hasFiles={files.length > 0}
-                isPro={isPro}
-                onDownloadClick={handleDownloadClick}
-                onSettingsClick={() => setIsProjectSettingsOpen(true)}
-                onHistoryClick={() => setIsHistoryModalOpen(true)}
-                codeButtonRef={viewSwitcherCodeRef}
-                previewButtonRef={viewSwitcherPreviewRef}
-                githubButtonRef={githubButtonRef}
-                deployButtonRef={deployButtonRef}
-                settingsButtonRef={settingsButtonRef}
-                historyButtonRef={historyButtonRef}
-                isMaxVibeRunning={isMaxVibeRunning}
-                onStopMaxVibe={handleToggleMaxVibe}
-                isTerminalOpen={isTerminalOpen}
-                onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
-                terminalButtonRef={terminalToggleRef}
-            />
-            <div className="flex-grow p-4 pt-0 overflow-hidden flex flex-col">
-                <div className="flex-grow overflow-hidden" style={{ height: isTerminalOpen ? '60%' : '100%' }}>
-                  {rightPaneView === 'code' ? (
-                      <CodeViewer files={files} />
-                  ) : activeTab?.appMode === 'expo' ? (
-                      <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />
-                  ) : (
-                      <Preview 
-                          htmlContent={previewHtml} 
-                          streamingPreviewHtml={activeTab?.streamingPreviewHtml || null}
-                          hasFiles={files.length > 0} 
-                          isLoading={activeTab?.isLoading || false}
-                          isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
-                          isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
-                          agentTargets={activeTab?.agentTargets || []}
-                          testPlan={activeTab?.testPlan || null}
-                          onMaxAgentComplete={handleMaxAgentComplete}
-                      />
-                  )}
+                <div className="flex-grow p-4 pt-0 overflow-hidden">
+                    <div className="flex flex-col h-full">
+                        <div className="flex-grow" style={{ height: isTerminalOpen ? `${rightPaneHeight}%` : '100%' }}>
+                            {rightPaneView === 'code' ? (
+                                <CodeViewer files={files} />
+                            ) : activeTab?.appMode === 'expo' ? (
+                                <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />
+                            ) : (
+                                <Preview
+                                    htmlContent={previewHtml}
+                                    streamingPreviewHtml={activeTab?.streamingPreviewHtml ?? null}
+                                    hasFiles={files.length > 0}
+                                    isLoading={activeTab?.isLoading || false}
+                                    isVisualEditMode={activeTab?.isVisualEditMode || false}
+                                    isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
+                                    agentTargets={activeTab?.agentTargets || []}
+                                    testPlan={activeTab?.testPlan || null}
+                                    onMaxAgentComplete={handleMaxAgentComplete}
+                                />
+                            )}
+                        </div>
+                        {isTerminalOpen && (
+                            <>
+                                <div onMouseDown={handleMouseDownVertical} className="h-1.5 w-full cursor-row-resize bg-black hover:bg-indigo-500 transition-colors" />
+                                <div className="flex-grow" style={{ height: `${100 - rightPaneHeight}%` }}>
+                                    <Terminal lines={terminalLines} onCommand={handleCommand} inputRef={terminalInputRef} />
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
-                {isTerminalOpen && (
-                  <div className="flex-shrink-0 pt-4" style={{ height: '40%' }}>
-                      <Terminal 
-                        lines={terminalLines} 
-                        onCommand={handleCommand} 
-                        inputRef={terminalInputRef}
-                      />
-                  </div>
-                )}
             </div>
-            {activeTab?.selectedElementSelector && (
-                <VisualEditBar
-                    selector={activeTab.selectedElementSelector}
-                    onSubmit={handleVisualEditSubmit}
-                    onCancel={() => updateActiveTab({ selectedElementSelector: null })}
-                    isLoading={activeTab.isLoading}
-                />
-            )}
+          </div>
         </div>
+        
+        {activeTab?.selectedElementSelector && (
+            <VisualEditBar
+                selector={activeTab.selectedElementSelector}
+                onSubmit={handleVisualEditSubmit}
+                onCancel={() => updateActiveTab({ selectedElementSelector: null })}
+                isLoading={activeTab.isLoading}
+            />
+        )}
       </div>
-    </div>
+    </>
   );
 };
 
