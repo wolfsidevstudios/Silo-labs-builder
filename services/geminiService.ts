@@ -451,7 +451,10 @@ async function* _streamGenerateWithGemini(fullPrompt: string, images?: UploadedI
             if (filesMatch) { try { const files = JSON.parse(filesMatch[1]); if (Array.isArray(files) && files.every(f => f.path && Object.keys(f).length === 1)) { yield { files: files.map(f => ({ path: f.path, content: '' })) }; yieldedFiles = true; } } catch (e) { /* Incomplete */ } }
         }
         const startMarker = '"previewHtml": "'; const startIndex = buffer.indexOf(startMarker);
-        if (startIndex !== -1) { const htmlFragment = buffer.substring(startIndex + startMarker.length); yield { previewHtml: injectApiKeys(htmlFragment) }; }
+        if (startIndex !== -1) { 
+            const htmlFragment = buffer.substring(startIndex + startMarker.length); 
+            yield { previewHtml: htmlFragment }; 
+        }
     }
 
     const finalResponse = JSON.parse(buffer) as GeminiResponse;
