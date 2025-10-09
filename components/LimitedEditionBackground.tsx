@@ -2,96 +2,175 @@ import React, { useRef, useEffect } from 'react';
 
 const LimitedEditionBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationRef = useRef({
+        particles: [] as any[],
+        animationFrameId: 0,
+        isActive: true,
+        currentState: 'SCATTER', // SCATTER, FORM, HOLD
+    });
+
+    const TEXT_SEQUENCE = ['vibe code', 'vibe anything', 'build fast'];
+    const FONT_SIZE = 100; // Adjusted for better fit
+    const PARTICLE_COUNT = 3000;
+    const EASE_FACTOR = 0.05;
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
+        
+        animationRef.current.isActive = true;
 
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
-        window.addEventListener('resize', () => {
+        const handleResize = () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-        });
-
-        const particles: Particle[] = [];
-        const particleCount = 2000;
-        const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ffffff', '#00ff00'];
+            initParticles();
+        };
+        window.addEventListener('resize', handleResize);
 
         class Particle {
-            x: number;
-            y: number;
-            vx: number;
-            vy: number;
-            size: number;
-            color: string;
-            life: number;
+            x: number; y: number; homeX: number; homeY: number;
+            vx: number; vy: number; targetX: number | null = null; targetY: number | null = null;
+            size: number; color: string;
 
             constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2 + 0.5;
-                this.color = colors[Math.floor(Math.random() * colors.length)];
-                this.life = Math.random() * 200 + 100;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life--;
-
-                if (this.x < 0 || this.x > width) this.vx *= -1;
-                if (this.y < 0 || this.y > height) this.vy *= -1;
-
-                if (this.life <= 0) {
-                    this.reset();
-                }
-            }
-            
-            reset() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.life = Math.random() * 200 + 100;
+                this.homeX = Math.random() * width;
+                this.homeY = Math.random() * height;
+                this.x = this.homeX; this.y = this.homeY;
+                this.vx = (Math.random() - 0.5) * 2; this.vy = (Math.random() - 0.5) * 2;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
             }
 
             draw() {
                 if (!ctx) return;
                 ctx.fillStyle = this.color;
-                ctx.globalAlpha = this.life / 200;
                 ctx.fillRect(this.x, this.y, this.size, this.size);
             }
-        }
 
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
+            update() {
+                const anim = animationRef.current;
+                if ((anim.currentState === 'FORM' || anim.currentState === 'HOLD') && this.targetX !== null && this.targetY !== null) {
+                    this.vx = (this.targetX - this.x) * EASE_FACTOR;
+                    this.vy = (this.targetY - this.y) * EASE_FACTOR;
+                    if (anim.currentState === 'HOLD') {
+                        this.vx += (Math.random() - 0.5) * 0.2;
+                        this.vy += (Math.random() - 0.5) * 0.2;
+                    }
+                    this.x += this.vx; this.y += this.vy;
+                } else { // SCATTER
+                    this.x += this.vx; this.y += this.vy;
+                    if (this.x < 0 || this.x > width) this.vx *= -1;
+                    if (this.y < 0 || this.y > height) this.vy *= -1;
+                }
+            }
         }
+        
+        const initParticles = () => {
+            animationRef.current.particles = [];
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                animationRef.current.particles.push(new Particle());
+            }
+        };
 
-        let animationFrameId: number;
+        const getTextPoints = (text: string) => {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCtx) return [];
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            tempCtx.font = `bold ${FONT_SIZE}px 'Orbitron', sans-serif`;
+            tempCtx.fillStyle = 'white';
+            const textMetrics = tempCtx.measureText(text);
+            const textWidth = textMetrics.width;
+            
+            const startX = (width - textWidth) / 2;
+            const startY = height / 2 + FONT_SIZE / 3;
+
+            tempCtx.fillText(text, startX, startY);
+
+            const imageData = tempCtx.getImageData(0, 0, width, height);
+            const points = [];
+            const step = Math.max(1, Math.floor(Math.sqrt((imageData.data.length / 4) / PARTICLE_COUNT) * 1.2));
+
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const index = (y * width + x) * 4;
+                    if (imageData.data[index + 3] > 128) {
+                        points.push({ x, y });
+                    }
+                }
+            }
+            return points;
+        };
+
+        const assignTargets = (points: {x: number, y: number}[]) => {
+            const shuffledPoints = [...points].sort(() => 0.5 - Math.random());
+            animationRef.current.particles.forEach((p, i) => {
+                const target = shuffledPoints[i % shuffledPoints.length];
+                p.targetX = target ? target.x : Math.random() * width;
+                p.targetY = target ? target.y : Math.random() * height;
+            });
+        };
+        
+        const wait = (ms: number) => new Promise(resolve => {
+            if (animationRef.current.isActive) {
+                setTimeout(resolve, ms);
+            }
+        });
+
+        const runAnimationSequence = async () => {
+            while (animationRef.current.isActive) {
+                for (const text of TEXT_SEQUENCE) {
+                    if (!animationRef.current.isActive) return;
+
+                    // Form
+                    const points = getTextPoints(text);
+                    assignTargets(points);
+                    animationRef.current.currentState = 'FORM';
+                    await wait(4000);
+
+                    if (!animationRef.current.isActive) return;
+
+                    // Hold
+                    animationRef.current.currentState = 'HOLD';
+                    await wait(2000);
+
+                    if (!animationRef.current.isActive) return;
+
+                    // Scatter
+                    animationRef.current.currentState = 'SCATTER';
+                    animationRef.current.particles.forEach(p => {
+                        p.vx = (Math.random() - 0.5) * 4;
+                        p.vy = (Math.random() - 0.5) * 4;
+                    });
+                    await wait(3000);
+                }
+            }
+        };
 
         const animate = () => {
-            if (!ctx) return;
+            if (!ctx || !animationRef.current.isActive) return;
             ctx.clearRect(0, 0, width, height);
-
-            particles.forEach(p => {
+            animationRef.current.particles.forEach(p => {
                 p.update();
                 p.draw();
             });
-
-            animationFrameId = window.requestAnimationFrame(animate);
+            animationRef.current.animationFrameId = requestAnimationFrame(animate);
         };
-
+        
+        initParticles();
         animate();
+        runAnimationSequence();
 
         return () => {
-            window.cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('resize', () => {});
+            animationRef.current.isActive = false;
+            window.removeEventListener('resize', handleResize);
+            cancelAnimationFrame(animationRef.current.animationFrameId);
         };
     }, []);
 
