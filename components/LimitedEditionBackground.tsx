@@ -23,6 +23,23 @@ const LimitedEditionBackground: React.FC = () => {
         '{ }', '</>', 'lambda λ', '🚀', '⚙️',
     ];
 
+    const QUOTES = [
+        '"Code is poetry."',
+        '"Talk is cheap. Show me the code."',
+        '"First, solve the problem. Then, write the code."',
+        '"The best way to predict the future is to invent it."',
+        '"Simplicity is the ultimate sophistication."',
+    ];
+
+    const REVIEWS = [
+        "★★★★★ Mind-blowing speed!",
+        "★★★★★ From idea to app in seconds.",
+        "★★★★★ The future of development.",
+        "★★★★★ Incredibly powerful AI.",
+        "★★★★★ A total game-changer.",
+    ];
+
+
     const FONT_SIZE = 100;
     const PARTICLE_COUNT = 3000;
     const EASE_FACTOR = 0.05;
@@ -135,13 +152,22 @@ const LimitedEditionBackground: React.FC = () => {
             if (!tempCtx) return [];
             tempCanvas.width = width;
             tempCanvas.height = height;
-            tempCtx.font = `bold ${FONT_SIZE}px 'Orbitron', sans-serif`;
             tempCtx.fillStyle = 'white';
-            const textMetrics = tempCtx.measureText(text);
-            const textWidth = textMetrics.width;
             
+            let currentFontSize = FONT_SIZE;
+            tempCtx.font = `bold ${currentFontSize}px 'Orbitron', sans-serif`;
+            let textMetrics = tempCtx.measureText(text);
+            
+            // Dynamically adjust font size for long text to fit the screen
+            while (textMetrics.width > width * 0.9 && currentFontSize > 20) {
+                currentFontSize -= 5;
+                tempCtx.font = `bold ${currentFontSize}px 'Orbitron', sans-serif`;
+                textMetrics = tempCtx.measureText(text);
+            }
+
+            const textWidth = textMetrics.width;
             const startX = (width - textWidth) / 2;
-            const startY = height / 2 + FONT_SIZE / 3;
+            const startY = height / 2 + currentFontSize / 3;
 
             tempCtx.fillText(text, startX, startY);
 
@@ -191,16 +217,16 @@ const LimitedEditionBackground: React.FC = () => {
                 await wait(3000);
             }
 
-            let textIndex = 0;
-            let figureIndex = 0;
-            let isTextTurn = true;
+            const sequences = [FIGURES, TEXTS, QUOTES, REVIEWS];
+            const sequenceIndices = [0, 0, 0, 0];
+            let currentSequenceIndex = 0;
 
             while (animationRef.current.isActive) {
-                const sequence = isTextTurn ? TEXTS : FIGURES;
-                const index = isTextTurn ? textIndex : figureIndex;
-                const text = sequence[index % sequence.length];
+                const activeSequence = sequences[currentSequenceIndex];
+                const itemIndex = sequenceIndices[currentSequenceIndex];
+                const textToDisplay = activeSequence[itemIndex % activeSequence.length];
                 
-                const points = getTextPoints(text);
+                const points = getTextPoints(textToDisplay);
                 assignTargets(points);
                 animationRef.current.currentState = 'FORM';
                 await wait(4000);
@@ -219,12 +245,8 @@ const LimitedEditionBackground: React.FC = () => {
                 });
                 await wait(3000);
 
-                if (isTextTurn) {
-                    textIndex++;
-                } else {
-                    figureIndex++;
-                }
-                isTextTurn = !isTextTurn;
+                sequenceIndices[currentSequenceIndex]++;
+                currentSequenceIndex = (currentSequenceIndex + 1) % sequences.length;
             }
         };
 
