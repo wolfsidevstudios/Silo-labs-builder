@@ -33,11 +33,12 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
             throw new Error('Invalid data format for Expo preview. Waiting for complete data...');
         }
         
-        if (data.type !== 'expo' || !data.files || !data.files['App.tsx'] || !data.files['package.json']) {
-          throw new Error('Invalid or incomplete data structure for Expo preview.');
+        if (data.type !== 'expo' || !data.files || !data.files['App.tsx'] || !data.files['package.json'] || !data.files['app.json']) {
+          throw new Error('Invalid or incomplete data structure for Expo preview. Missing one or more required files (App.tsx, package.json, app.json).');
         }
 
         const packageJson = JSON.parse(data.files['package.json']);
+        const appJson = JSON.parse(data.files['app.json']);
         
         const response = await fetch('https://exp.host/--/api/v2/snack/save', {
           method: 'POST',
@@ -48,6 +49,7 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
           body: JSON.stringify({
             code: data.files,
             dependencies: packageJson.dependencies,
+            manifest: appJson.expo,
           }),
         });
         
