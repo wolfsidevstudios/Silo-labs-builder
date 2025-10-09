@@ -169,7 +169,8 @@ const MaxVibeShowcase: React.FC = () => {
                 style={{
                     top: `${cursorPos.top}px`,
                     left: `${cursorPos.left}px`,
-                    transform: `scale(${isClicking ? 0.8 : 1}) translate(-10%, -5%)`,
+                    transform: `scale(${isClicking ? 0.8 : 1})`,
+                    transformOrigin: 'top left',
                     transition: 'top 0.8s ease-in-out, left 0.8s ease-in-out, transform 0.15s ease-in-out',
                 }}
             >

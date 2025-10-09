@@ -200,8 +200,7 @@ const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, pr
         style={{ 
           top: `${position.top}px`, 
           left: `${position.left}px`, 
-          transition: 'top 1s ease-in-out, left 1s ease-in-out',
-          transform: 'translate(-50%, -50%)' // Center the cursor on the point
+          transition: 'top 1s ease-in-out, left 1s ease-in-out'
         }}
       >
         <CursorIcon className="w-full h-full text-cyan-400" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}/>
