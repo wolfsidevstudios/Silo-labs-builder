@@ -58,9 +58,11 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
 
         const result = await response.json();
         const snackId = result.id;
-        const url = `https://expo.dev/${snackId}`;
-        setSnackUrl(url);
-        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`);
+        const projectUrl = `https://expo.dev/${snackId}`;
+        const editorUrl = `https://snack.expo.dev/${snackId}`;
+        
+        setSnackUrl(editorUrl);
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(projectUrl)}`);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -94,7 +96,7 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
             <img src={qrCodeUrl} alt="Expo Go QR Code" width="250" height="250" />
           </div>
           <p className="text-slate-400 mt-4 max-w-sm">Open the Expo Go app on your iOS or Android device and scan the QR code to run your app.</p>
-          {snackUrl && <a href={snackUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-indigo-400 hover:underline">Or open Snack in a new tab</a>}
+          {snackUrl && <a href={snackUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-indigo-400 hover:underline">Or open in Snack Editor</a>}
         </>
       )}
     </div>
