@@ -720,7 +720,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         const firstTab = initialProject
             // FIX: Provide fallback values for potentially undefined properties from `initialProject`.
             // `isLisaActive` and `appMode` can be undefined on a SavedProject, but createNewTab expects boolean and AppMode.
-            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode ?? 'web')
+            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode === 'expo' ? 'expo' : 'web')
             : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive, initialAppMode);
         setTabs([firstTab]);
         setActiveTabId(firstTab.id);

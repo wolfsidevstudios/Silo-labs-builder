@@ -18,7 +18,12 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
       setSnackUrl(null);
       
       try {
-        if (!previewData) return;
+        if (!previewData || previewData.trim() === '') {
+          // Don't attempt to parse if there's no data yet. This happens during generation.
+          setIsLoading(true);
+          setError('Waiting for AI to generate app files...');
+          return;
+        }
         
         let data;
         try {
@@ -69,13 +74,19 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden items-center justify-center p-8 text-center">
-      {isLoading && (
+      {isLoading && !qrCodeUrl && (
         <div>
             <div className="w-12 h-12 border-4 border-t-transparent border-indigo-400 rounded-full animate-spin mb-4 mx-auto"></div>
             <p className="text-slate-300">Generating Expo Snack...</p>
+            {error && <p className="text-sm text-slate-500 mt-2">{error}</p>}
         </div>
       )}
-      {error && <div className="text-red-400"><p>Error creating QR Code:</p><p className="text-sm mt-2">{error}</p></div>}
+      {!isLoading && error && !qrCodeUrl && (
+        <div className="text-red-400">
+            <p>Error creating QR Code:</p>
+            <p className="text-sm mt-2">{error}</p>
+        </div>
+      )}
       {qrCodeUrl && (
         <>
           <h2 className="text-2xl font-bold text-white mb-4">Scan with Expo Go</h2>
