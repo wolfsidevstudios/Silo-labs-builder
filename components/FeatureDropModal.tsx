@@ -20,6 +20,7 @@ import BeakerIcon from './icons/BeakerIcon';
 import DiamondIcon from './icons/DiamondIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ArrowUpIcon from './icons/ArrowUpIcon';
+import MaxVibeShowcase from './MaxVibeShowcase';
 
 
 interface FeatureDropModalProps {
@@ -115,13 +116,12 @@ const Part4Content = () => (
 );
 
 const Part5Content = () => (
-    <div className="w-full p-8 bg-black/30 rounded-2xl border border-dashed border-indigo-500 animate-fade-in flex flex-col items-center justify-center text-center py-12">
-       <BrainCircuitIcon className="w-12 h-12 text-indigo-300 mb-4 animate-pulse" />
-       <h3 className="font-bold text-white text-xl">Introducing Silo Max 1.5</h3>
-       <p className="text-indigo-300 font-semibold mt-1">Coming November 1st @ 5:00 PM</p>
-       <p className="text-slate-400 mt-4 max-w-md">
-           The most powerful agent ever. As MAX 1.5 navigates your app, it will intelligently decide to restyle a button, add a new section, or fix a layout issue—and perform the edit instantly. This is live, autonomous co-development that will redefine expectations for AI agents.
+    <div className="w-full animate-fade-in flex flex-col items-center justify-center text-center">
+       <h3 className="font-bold text-white text-xl">Introducing: MAX Vibe</h3>
+       <p className="text-slate-400 mt-2 mb-4 max-w-md">
+         Activate the Vibe Coder and watch as MAX autonomously improves your app. It thinks of new features, writes the prompts, and builds them for you.
        </p>
+       <MaxVibeShowcase />
    </div>
 );
 
@@ -171,7 +171,7 @@ const Part7Content = () => (
 
 
 const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) => {
-  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6' | 'part7'>('part7');
+  const [activePart, setActivePart] = useState<'part1' | 'part2' | 'part3' | 'part4' | 'part5' | 'part6' | 'part7'>('part5');
 
   if (!isOpen) return null;
 
@@ -184,7 +184,7 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
       aria-labelledby="feature-drop-title"
     >
       <div
-        className="relative bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-indigo-500/20 p-6 md:p-8 m-4 max-w-2xl w-full text-center transform transition-transform duration-300 scale-95 animate-scale-in flex flex-col items-center"
+        className="relative bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-indigo-500/20 p-6 md:p-8 m-4 max-w-3xl w-full text-center transform transition-transform duration-300 scale-95 animate-scale-in flex flex-col items-center"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -206,7 +206,7 @@ const FeatureDropModal: React.FC<FeatureDropModalProps> = ({ isOpen, onClose }) 
              : activePart === 'part2' ? 'Part II: The API Update' 
              : activePart === 'part3' ? 'Part III: The AI Revolution'
              : activePart === 'part4' ? 'Part IV: The Next Generation'
-             : activePart === 'part5' ? 'Part V: The MAX Revolution'
+             : activePart === 'part5' ? 'Part V: The Vibe Coder'
              : activePart === 'part6' ? 'Part VI: MAX 1.01'
              : 'Part VII: MAX 1.02'}
         </p>
