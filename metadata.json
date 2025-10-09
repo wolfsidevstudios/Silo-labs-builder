@@ -1,5 +1,7 @@
 {
   "name": "Silo build | Text to app builder , build apps for free",
   "description": "A split-screen AI-powered application that generates multi-file React applications from a text prompt and displays a live preview in a sandboxed iframe.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

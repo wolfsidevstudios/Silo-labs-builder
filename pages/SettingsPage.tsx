@@ -58,6 +58,8 @@ import RawgIcon from '../components/icons/RawgIcon';
 import WordsApiIcon from '../components/icons/WordsApiIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import UserIcon from '../components/icons/UserIcon';
+import AccessibilityIcon from '../components/icons/AccessibilityIcon';
+import FaceIcon from '../components/icons/FaceIcon';
 
 interface SettingsPageProps {
   isPro: boolean;
@@ -114,6 +116,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const [aiProvider, setAiProvider] = useState('gemini');
   const [huggingFaceToken, setHuggingFaceToken] = useState('');
   const [huggingFaceModelUrl, setHuggingFaceModelUrl] = useState('');
+  const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
+
 
   // Account section states
   const [authView, setAuthView] = useState<'main' | 'signin' | 'signup'>('main');
@@ -152,6 +156,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     // Load secrets & theme
     setSecrets(getSecrets());
     setSelectedTheme(localStorage.getItem('ui_theme_template') || 'none');
+    // Load accessibility settings
+    setIsFaceTrackingEnabled(localStorage.getItem('face_tracking_enabled') === 'true');
+
   }, []);
 
   useEffect(() => {
@@ -261,8 +268,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     setIsDeleteModalOpen(false);
   };
 
+  const handleToggleFaceTracking = () => {
+    const newValue = !isFaceTrackingEnabled;
+    setIsFaceTrackingEnabled(newValue);
+    localStorage.setItem('face_tracking_enabled', String(newValue));
+    alert(newValue 
+        ? "Face Tracking enabled. Please allow camera access and reload the page for the feature to activate."
+        : "Face Tracking disabled. Please reload the page to apply the change."
+    );
+  };
+
   const sections = [
     { id: 'account', name: 'Account', icon: UserIcon },
+    { id: 'accessibility', name: 'Accessibility', icon: AccessibilityIcon },
     { id: 'ai', name: 'AI Settings', icon: SparklesIcon },
     { id: 'themes', name: 'UI Themes', icon: PaintBrushIcon },
     { id: 'secrets', name: 'Global Secrets', icon: KeyIcon },
@@ -379,6 +397,34 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                         </>
                       )}
                    </div>
+                </div>
+              )}
+
+              {activeSection === 'accessibility' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Accessibility</h2>
+                  <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <FaceIcon className="w-6 h-6 text-indigo-400"/>
+                        <div>
+                          <h3 className="font-bold text-lg text-white">Face Tracking Navigation</h3>
+                          <p className="text-slate-400 text-sm mt-1">Control the cursor with your head and click by opening your mouth.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleToggleFaceTracking}
+                        role="switch"
+                        aria-checked={isFaceTrackingEnabled}
+                        className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${isFaceTrackingEnabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${isFaceTrackingEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 

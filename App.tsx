@@ -18,6 +18,7 @@ import { trackAffiliateClick } from './services/affiliateService';
 import { SavedProject, FirebaseUser, GitHubRepo } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
+import FaceTrackingCursor from './components/FaceTrackingCursor';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot';
 
@@ -32,6 +33,8 @@ const App: React.FC = () => {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
   const [codePilotRepo, setCodePilotRepo] = useState<GitHubRepo | null>(null);
+  const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
+
 
   // Auth state
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -61,6 +64,10 @@ const App: React.FC = () => {
     });
 
     // --- Other Initializations ---
+    // Accessibility Features
+    const faceTracking = localStorage.getItem('face_tracking_enabled') === 'true';
+    setIsFaceTrackingEnabled(faceTracking);
+
     // Feature Drop Modal check
     const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v3_seen') === 'true';
     if (!featureDropSeen) {
@@ -174,6 +181,7 @@ const App: React.FC = () => {
 
   return (
     <>
+      {isFaceTrackingEnabled && <FaceTrackingCursor />}
       <header className="fixed top-6 left-[4.5rem] z-30 flex items-center gap-4">
           <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
             <Logo type={currentPage === 'home' ? 'full' : 'icon'} />
