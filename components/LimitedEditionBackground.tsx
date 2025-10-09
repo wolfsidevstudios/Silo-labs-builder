@@ -9,67 +9,21 @@ const LimitedEditionBackground: React.FC = () => {
         currentState: 'SCATTER', // SCATTER, FORM, HOLD
     });
 
-    const TEXT_SEQUENCE = [
-        'vibe code',
-        '{ }',
-        'vibe anything',
-        '</>',
-        'build fast',
-        'lambda λ',
-        'create magic',
-        '🚀',
-        'build cool stuff',
-        '⚙️',
-        'code dreams',
-        '{ }',
-        'ship it',
-        '</>',
-        'think different',
-        'lambda λ',
-        'design systems',
-        '🚀',
-        'hello, world',
-        '⚙️',
-        'just build',
-        '{ }',
-        'innovate daily',
-        '</>',
-        'AI power',
-        'lambda λ',
-        'dream bigger',
-        '🚀',
-        'make it real',
-        '⚙️',
-        'pixel perfect',
-        '{ }',
-        'flow state',
-        '</>',
-        'good vibes',
-        'lambda λ',
-        'future is now',
-        '🚀',
-        'beyond code',
-        '⚙️',
-        'start creating',
-        '{ }',
-        'imagine that',
-        '</>',
-        'endless ideas',
-        'lambda λ',
-        'git push',
-        '🚀',
-        'Silo Build',
-        '⚙️',
-        'deploy',
-        '{ }',
-        '10x dev',
-        '</>',
-        'bug free',
-        'lambda λ',
-        'refactor',
-        '🚀',
+    const TEXTS = [
+        'vibe code', 'vibe anything', 'build fast', 'create magic',
+        'build cool stuff', 'code dreams', 'ship it', 'think different',
+        'design systems', 'hello, world', 'just build', 'innovate daily',
+        'AI power', 'dream bigger', 'make it real', 'pixel perfect',
+        'flow state', 'good vibes', 'future is now', 'beyond code',
+        'start creating', 'imagine that', 'endless ideas', 'git push',
+        'Silo Build', 'deploy', '10x dev', 'bug free', 'refactor',
     ];
-    const FONT_SIZE = 100; // Adjusted for better fit
+
+    const FIGURES = [
+        '{ }', '</>', 'lambda λ', '🚀', '⚙️',
+    ];
+
+    const FONT_SIZE = 100;
     const PARTICLE_COUNT = 3000;
     const EASE_FACTOR = 0.05;
 
@@ -84,6 +38,45 @@ const LimitedEditionBackground: React.FC = () => {
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
+        const getLandingPagePoints = (w: number, h: number) => {
+            const points: { x: number, y: number }[] = [];
+            const step = 6;
+    
+            const addRectPoints = (x: number, y: number, rectW: number, rectH: number, densityStep: number = step) => {
+                for (let i = x; i < x + rectW; i += densityStep) {
+                    for (let j = y; j < y + rectH; j += densityStep) {
+                        points.push({ x: i, y: j });
+                    }
+                }
+            };
+    
+            const navHeight = h * 0.08;
+            addRectPoints(0, 0, w, navHeight, step * 2); 
+            addRectPoints(w * 0.6, navHeight * 0.4, w * 0.08, h * 0.015, step);
+            addRectPoints(w * 0.7, navHeight * 0.4, w * 0.08, h * 0.015, step);
+            addRectPoints(w * 0.8, navHeight * 0.4, w * 0.08, h * 0.015, step);
+            addRectPoints(w * 0.1, navHeight * 0.25, h * 0.05, h * 0.05, step / 2);
+    
+            const heroTop = h * 0.15;
+            const heroHeight = h * 0.4;
+            addRectPoints(w * 0.1, heroTop + h * 0.05, w * 0.35, h * 0.05, step);
+            addRectPoints(w * 0.1, heroTop + h * 0.15, w * 0.3, h * 0.015, step);
+            addRectPoints(w * 0.1, heroTop + h * 0.18, w * 0.28, h * 0.015, step);
+            addRectPoints(w * 0.1, heroTop + h * 0.25, w * 0.15, h * 0.04, step / 2);
+            addRectPoints(w * 0.55, heroTop, w * 0.35, heroHeight - h * 0.05, step / 2);
+    
+            const contentTop = h * 0.65;
+            const blockWidth = w * 0.25;
+            const blockHeight = h * 0.2;
+            const gap = (w - (blockWidth * 3)) / 4;
+    
+            addRectPoints(gap, contentTop, blockWidth, blockHeight, step);
+            addRectPoints(gap * 2 + blockWidth, contentTop, blockWidth, blockHeight, step);
+            addRectPoints(gap * 3 + blockWidth * 2, contentTop, blockWidth, blockHeight, step);
+    
+            return points;
+        };
+        
         const handleResize = () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
@@ -101,7 +94,7 @@ const LimitedEditionBackground: React.FC = () => {
                 this.homeY = Math.random() * height;
                 this.x = this.homeX; this.y = this.homeY;
                 this.vx = (Math.random() - 0.5) * 2; this.vy = (Math.random() - 0.5) * 2;
-                this.size = Math.random() * 2 + 2; // Increased size for better visibility
+                this.size = Math.random() * 2 + 2;
                 this.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
             }
 
@@ -154,7 +147,7 @@ const LimitedEditionBackground: React.FC = () => {
 
             const imageData = tempCtx.getImageData(0, 0, width, height);
             const points = [];
-            const step = 5; // Use a smaller step for denser points, making text clearer
+            const step = 5;
 
             for (let y = 0; y < height; y += step) {
                 for (let x = 0; x < width; x += step) {
@@ -176,39 +169,62 @@ const LimitedEditionBackground: React.FC = () => {
             });
         };
         
-        const wait = (ms: number) => new Promise(resolve => {
-            if (animationRef.current.isActive) {
-                setTimeout(resolve, ms);
-            }
-        });
+        const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
         const runAnimationSequence = async () => {
+            if (animationRef.current.isActive) {
+                const landingPagePoints = getLandingPagePoints(width, height);
+                assignTargets(landingPagePoints);
+                animationRef.current.currentState = 'FORM';
+                await wait(5000);
+                if (!animationRef.current.isActive) return;
+
+                animationRef.current.currentState = 'HOLD';
+                await wait(3000);
+                if (!animationRef.current.isActive) return;
+
+                animationRef.current.currentState = 'SCATTER';
+                animationRef.current.particles.forEach(p => {
+                    p.vx = (Math.random() - 0.5) * 4;
+                    p.vy = (Math.random() - 0.5) * 4;
+                });
+                await wait(3000);
+            }
+
+            let textIndex = 0;
+            let figureIndex = 0;
+            let isTextTurn = true;
+
             while (animationRef.current.isActive) {
-                for (const text of TEXT_SEQUENCE) {
-                    if (!animationRef.current.isActive) return;
+                const sequence = isTextTurn ? TEXTS : FIGURES;
+                const index = isTextTurn ? textIndex : figureIndex;
+                const text = sequence[index % sequence.length];
+                
+                const points = getTextPoints(text);
+                assignTargets(points);
+                animationRef.current.currentState = 'FORM';
+                await wait(4000);
 
-                    // Form
-                    const points = getTextPoints(text);
-                    assignTargets(points);
-                    animationRef.current.currentState = 'FORM';
-                    await wait(4000);
+                if (!animationRef.current.isActive) return;
 
-                    if (!animationRef.current.isActive) return;
+                animationRef.current.currentState = 'HOLD';
+                await wait(2000);
 
-                    // Hold
-                    animationRef.current.currentState = 'HOLD';
-                    await wait(2000);
+                if (!animationRef.current.isActive) return;
 
-                    if (!animationRef.current.isActive) return;
+                animationRef.current.currentState = 'SCATTER';
+                animationRef.current.particles.forEach(p => {
+                    p.vx = (Math.random() - 0.5) * 4;
+                    p.vy = (Math.random() - 0.5) * 4;
+                });
+                await wait(3000);
 
-                    // Scatter
-                    animationRef.current.currentState = 'SCATTER';
-                    animationRef.current.particles.forEach(p => {
-                        p.vx = (Math.random() - 0.5) * 4;
-                        p.vy = (Math.random() - 0.5) * 4;
-                    });
-                    await wait(3000);
+                if (isTextTurn) {
+                    textIndex++;
+                } else {
+                    figureIndex++;
                 }
+                isTextTurn = !isTextTurn;
             }
         };
 
