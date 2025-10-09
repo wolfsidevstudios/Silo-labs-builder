@@ -723,9 +723,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             }}
         />
       )}
-      {isMaxVibeRunning && (
-        <div className="absolute inset-0 z-20" aria-hidden="true" />
-      )}
 
       <div className="flex-shrink-0">
           <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
