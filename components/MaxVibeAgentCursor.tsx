@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import CursorIcon from './icons/CursorIcon';
 import ClockIcon from './icons/ClockIcon';
 import { generateImprovementPrompt } from '../services/geminiService';
+import { AppMode } from '../types';
 
 import { getApiKey as getGiphyApiKey } from '../services/giphyService';
 import { getAccessKey as getUnsplashAccessKey } from '../services/unsplashService';
@@ -66,6 +67,8 @@ interface ElementRefs {
   githubButton: React.RefObject<HTMLElement>;
   deployButton: React.RefObject<HTMLElement>;
   settingsButton: React.RefObject<HTMLElement>;
+  terminalToggle: React.RefObject<HTMLElement>;
+  terminalInput: React.RefObject<HTMLElement>;
 }
 
 interface AgentActions {
@@ -75,6 +78,8 @@ interface AgentActions {
   openGitHubModal: () => void;
   openDeployModal: () => void;
   openSettingsModal: () => void;
+  runCommandInTerminal: (command: string) => Promise<void>;
+  openTerminal: () => void;
 }
 
 interface MaxVibeAgentCursorProps {
@@ -82,19 +87,21 @@ interface MaxVibeAgentCursorProps {
   promptHistory: string[];
   isGenerating: boolean;
   onStop: () => void;
+  appMode: AppMode;
   actions: AgentActions;
   elementRefs: ElementRefs;
 }
 
 type AgentStatus = 'Thinking...' | 'Typing prompt...' | 'Submitting...' | 'Switching view...' | 'Waiting for user input...' | 'Deploying...' | string;
 
-const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, promptHistory, isGenerating, onStop, actions, elementRefs }) => {
+const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, promptHistory, isGenerating, onStop, appMode, actions, elementRefs }) => {
   const [position, setPosition] = useState({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
   const [status, setStatus] = useState<AgentStatus>('Initializing MAX Vibe...');
   const [elapsedTime, setElapsedTime] = useState(0);
   const isActive = useRef(true);
   const appCodeRef = useRef(initialCode);
   const promptHistoryRef = useRef(promptHistory);
+  const hasRunInitialCommand = useRef(false);
   
   useEffect(() => {
     appCodeRef.current = initialCode;
@@ -134,6 +141,18 @@ const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, pr
 
   useEffect(() => {
     isActive.current = true;
+
+    const runInitialExpoCommand = async () => {
+        setStatus('Starting Expo dev server...');
+        await moveToElement(elementRefs.terminalToggle);
+        actions.openTerminal();
+        await wait(500);
+        await moveToElement(elementRefs.terminalInput);
+        await actions.runCommandInTerminal('npx expo start');
+        setStatus('Expo server is running. Starting main loop...');
+        await wait(2000);
+        hasRunInitialCommand.current = true;
+    };
 
     const improvementLoop = async () => {
       await wait(2000);
@@ -189,11 +208,26 @@ const MaxVibeAgentCursor: React.FC<MaxVibeAgentCursorProps> = ({ initialCode, pr
     };
     
     // This effect runs the main loop. It waits for generation to finish.
-    if (!isGenerating && appCodeRef.current) {
+    const startAgent = async () => {
+        if (isGenerating) {
+            setStatus('Building...');
+            return;
+        }
+
+        if (appMode === 'expo' && !hasRunInitialCommand.current) {
+            await runInitialExpoCommand();
+        }
+
+        // Don't start improvement loop for Expo until there's code
+        if (appMode === 'expo' && !appCodeRef.current) {
+            setStatus("Waiting for initial app generation...");
+            return;
+        }
+
         improvementLoop();
-    } else if (isGenerating) {
-        setStatus('Building...');
-    }
+    };
+
+    startAgent();
 
     return () => {
       isActive.current = false;

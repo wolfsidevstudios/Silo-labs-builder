@@ -307,3 +307,8 @@ export interface NewsItem {
 export type FirebaseUser = User;
 
 export type DataCategory = 'projects' | 'images' | 'keys' | 'settings';
+
+export interface TerminalLine {
+  type: 'command' | 'output';
+  text: string;
+}

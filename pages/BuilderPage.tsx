@@ -17,7 +17,8 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
 import ExpoPreview from '../components/ExpoPreview';
-import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode } from '../types';
+import Terminal from '../components/Terminal';
+import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode, TerminalLine } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
@@ -29,6 +30,7 @@ import { getApiKey as getPexelsKey } from '../services/pexelsService';
 import { getApiKey as getFreeSoundKey } from '../services/freesoundService';
 import { saveImage } from '../services/imageService';
 import { getUserId } from '../services/firebaseService';
+import { executeCommand } from '../services/commandService';
 
 interface BuilderPageProps {
   initialPrompt?: string;
@@ -145,6 +147,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   // MAX Vibe Agent State
   const [isMaxVibeRunning, setIsMaxVibeRunning] = useState(false);
 
+  // Terminal State
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+  const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
+
   // Refs for MAX Vibe Agent to control UI elements
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
@@ -154,6 +160,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   const deployButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const terminalInputRef = useRef<HTMLInputElement>(null);
+  const terminalToggleRef = useRef<HTMLButtonElement>(null);
 
   const initialGenerationDone = useRef<Set<string>>(new Set());
 
@@ -519,7 +527,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
   
   const handleToggleMaxVibe = () => {
-    if (!isMaxVibeRunning && files.length === 0) {
+    if (!isMaxVibeRunning && files.length === 0 && activeTab?.appMode !== 'expo') {
         alert("Please generate an initial app before activating MAX Vibe.");
         return;
     }
@@ -694,6 +702,16 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   
   const [rightPaneView, setRightPaneView] = useState<'code' | 'preview'>('preview');
 
+  const handleCommand = async (command: string) => {
+    setTerminalLines(prev => [...prev, { type: 'command', text: command }]);
+    if (command.trim().toLowerCase() === 'clear') {
+        setTerminalLines([]);
+        return;
+    }
+    const output = await executeCommand(command, files.map(f => f.path));
+    setTerminalLines(prev => [...prev, { type: 'output', text: output }]);
+  };
+
   useEffect(() => {
     // Ask for notification permission when the builder page loads
     if ('Notification' in window && Notification.permission === 'default') {
@@ -720,7 +738,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         const firstTab = initialProject
             // FIX: Provide fallback values for potentially undefined properties from `initialProject`.
             // `isLisaActive` and `appMode` can be undefined on a SavedProject, but createNewTab expects boolean and AppMode.
-            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode === 'expo' ? 'expo' : 'web')
+            ? createNewTab(initialProject.name || initialProject.prompt.substring(0, 20) || "Loaded Project", initialProject.prompt, initialProject, initialProject.isLisaActive ?? false, initialProject.appMode ?? 'web')
             : createNewTab("Project 1", initialPrompt, null, initialIsLisaActive, initialAppMode);
         setTabs([firstTab]);
         setActiveTabId(firstTab.id);
@@ -764,6 +782,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             promptHistory={activeTab.chatHistory.filter(m => m.role === 'user').map(m => (m as UserMessage).content)}
             isGenerating={activeTab.isLoading}
             onStop={() => setIsMaxVibeRunning(false)}
+            appMode={activeTab.appMode}
             actions={{
                 setPrompt: (p: string) => updateActiveTab({ prompt: p }),
                 submit: () => {
@@ -775,6 +794,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 openGitHubModal: () => setIsGitHubModalOpen(true),
                 openDeployModal: handleDeployClick,
                 openSettingsModal: () => setIsProjectSettingsOpen(true),
+                runCommandInTerminal: handleCommand,
+                openTerminal: () => setIsTerminalOpen(true),
             }}
             elementRefs={{
                 promptInput: promptInputRef,
@@ -784,6 +805,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 githubButton: githubButtonRef,
                 deployButton: deployButtonRef,
                 settingsButton: settingsButtonRef,
+                terminalToggle: terminalToggleRef,
+                terminalInput: terminalInputRef,
             }}
         />
       )}
@@ -847,24 +870,38 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 historyButtonRef={historyButtonRef}
                 isMaxVibeRunning={isMaxVibeRunning}
                 onStopMaxVibe={handleToggleMaxVibe}
+                isTerminalOpen={isTerminalOpen}
+                onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
+                terminalButtonRef={terminalToggleRef}
             />
-            <div className="flex-grow p-4 pt-0 overflow-hidden">
-                {rightPaneView === 'code' ? (
-                    <CodeViewer files={files} />
-                ) : isExpoApp ? (
-                    <ExpoPreview previewData={previewHtml} />
-                ) : (
-                    <Preview 
-                        htmlContent={previewHtml} 
-                        streamingPreviewHtml={activeTab?.streamingPreviewHtml || null}
-                        hasFiles={files.length > 0} 
-                        isLoading={activeTab?.isLoading || false}
-                        isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
-                        isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
-                        agentTargets={activeTab?.agentTargets || []}
-                        testPlan={activeTab?.testPlan || null}
-                        onMaxAgentComplete={handleMaxAgentComplete}
-                    />
+            <div className="flex-grow p-4 pt-0 overflow-hidden flex flex-col">
+                <div className="flex-grow overflow-hidden" style={{ height: isTerminalOpen ? '60%' : '100%' }}>
+                  {rightPaneView === 'code' ? (
+                      <CodeViewer files={files} />
+                  ) : isExpoApp ? (
+                      <ExpoPreview previewData={previewHtml} />
+                  ) : (
+                      <Preview 
+                          htmlContent={previewHtml} 
+                          streamingPreviewHtml={activeTab?.streamingPreviewHtml || null}
+                          hasFiles={files.length > 0} 
+                          isLoading={activeTab?.isLoading || false}
+                          isVisualEditMode={!!activeTab?.isVisualEditMode && !activeTab?.selectedElementSelector}
+                          isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
+                          agentTargets={activeTab?.agentTargets || []}
+                          testPlan={activeTab?.testPlan || null}
+                          onMaxAgentComplete={handleMaxAgentComplete}
+                      />
+                  )}
+                </div>
+                {isTerminalOpen && (
+                  <div className="flex-shrink-0 pt-4" style={{ height: '40%' }}>
+                      <Terminal 
+                        lines={terminalLines} 
+                        onCommand={handleCommand} 
+                        inputRef={terminalInputRef}
+                      />
+                  </div>
                 )}
             </div>
             {activeTab?.selectedElementSelector && (

@@ -8,6 +8,7 @@ import RocketIcon from './icons/RocketIcon';
 import SettingsIcon from './icons/SettingsIcon';
 import HistoryIcon from './icons/HistoryIcon';
 import XIcon from './icons/XIcon';
+import TerminalIcon from './icons/TerminalIcon';
 
 type View = 'preview' | 'code';
 
@@ -32,6 +33,9 @@ interface ViewSwitcherProps {
   historyButtonRef: React.RefObject<HTMLButtonElement>;
   isMaxVibeRunning: boolean;
   onStopMaxVibe: () => void;
+  isTerminalOpen: boolean;
+  onToggleTerminal: () => void;
+  terminalButtonRef: React.RefObject<HTMLButtonElement>;
 }
 
 const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ 
@@ -41,7 +45,8 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     hasFiles, isPro, onDownloadClick,
     onSettingsClick, onHistoryClick,
     codeButtonRef, previewButtonRef, githubButtonRef, deployButtonRef, settingsButtonRef, historyButtonRef,
-    isMaxVibeRunning, onStopMaxVibe
+    isMaxVibeRunning, onStopMaxVibe,
+    isTerminalOpen, onToggleTerminal, terminalButtonRef,
 }) => {
   const buttonSize = 36; // Corresponds to h-9/w-9 in Tailwind (2.25rem)
 
@@ -92,6 +97,19 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+            ref={terminalButtonRef}
+            onClick={onToggleTerminal}
+            disabled={isMaxVibeRunning}
+            className={`flex items-center justify-center h-9 w-9 border rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isTerminalOpen 
+                ? 'bg-slate-600 border-slate-500 text-white' 
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+            title={isMaxVibeRunning ? "Agent is running" : "Toggle Terminal"}
+        >
+            <TerminalIcon className="w-5 h-5" />
+        </button>
         <button
             ref={historyButtonRef}
             onClick={onHistoryClick}
