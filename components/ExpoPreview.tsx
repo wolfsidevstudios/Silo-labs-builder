@@ -40,6 +40,18 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
         const packageJson = JSON.parse(data.files['package.json']);
         const appJson = JSON.parse(data.files['app.json']);
         
+        const expoVersion = packageJson.dependencies?.expo;
+        if (!expoVersion) {
+            throw new Error('Expo version not found in package.json');
+        }
+        // Extract SDK version from package version, e.g., "~51.0.21" -> "51.0.0"
+        const sdkVersion = expoVersion.replace(/[\^~]/, '').split('.').slice(0, 2).join('.') + '.0';
+
+        const manifest = {
+            ...appJson.expo,
+            sdkVersion: sdkVersion,
+        };
+
         const response = await fetch('https://exp.host/--/api/v2/snack/save', {
           method: 'POST',
           headers: {
@@ -49,7 +61,7 @@ const ExpoPreview: React.FC<ExpoPreviewProps> = ({ previewData }) => {
           body: JSON.stringify({
             code: data.files,
             dependencies: packageJson.dependencies,
-            manifest: appJson.expo,
+            manifest: manifest,
           }),
         });
         
