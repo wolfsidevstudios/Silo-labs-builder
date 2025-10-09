@@ -736,7 +736,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
             <div className="flex-grow flex flex-col overflow-hidden">
                 <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} onAutoFix={handleAutoFix} />
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 relative z-30">
                 {activeTab && (
                     <PromptInput 
                         prompt={activeTab.prompt} 
