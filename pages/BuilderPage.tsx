@@ -610,23 +610,31 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   // This effect runs once on mount to initialize the first tab
   useEffect(() => {
     if (initialProject) {
+      // FIX: The appMode from a saved project in localStorage might be an invalid string.
+      // This ensures that we only pass a valid AppMode type to createNewTab.
+      const appModeFromProject = initialProject.appMode;
+      const validAppMode: AppMode = (appModeFromProject === 'expo' || appModeFromProject === 'mobile-web') ? appModeFromProject : 'web';
+
       const newTab = createNewTab(
         initialProject.name || `Project ${tabs.length + 1}`,
         initialProject.prompt,
         initialProject,
         initialProject.isLisaActive ?? false,
-        initialProject.appMode || 'web'
+        validAppMode
       );
       setTabs([newTab]);
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
+      // FIX: The initialAppMode from props might be an invalid string.
+      // This ensures that we only pass a valid AppMode type to createNewTab.
+      const validAppMode: AppMode = (initialAppMode === 'expo' || initialAppMode === 'mobile-web') ? initialAppMode : 'web';
       const newTab = createNewTab(
         `Project ${tabs.length + 1}`,
         initialPrompt,
         null,
         initialIsLisaActive,
-        initialAppMode
+        validAppMode
       );
       setTabs([newTab]);
       setActiveTabId(newTab.id);
@@ -775,7 +783,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
           {/* Left Pane */}
           <div className="h-full" style={{ width: `${leftPaneWidth}%` }}>
             <div className="h-full flex flex-col">
-              <div className="flex-grow overflow-hidden">
+              <div className="flex-grow min-h-0">
                 <ChatHistory messages={activeTab?.chatHistory || []} error={activeTab?.error || null} onAutoFix={handleAutoFix} />
               </div>
               {activeTab && (
