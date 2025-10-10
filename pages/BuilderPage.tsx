@@ -17,6 +17,7 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
 import ExpoPreview from '../components/ExpoPreview';
+import MobilePreview from '../components/MobilePreview';
 import Terminal from '../components/Terminal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode, TerminalLine } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
@@ -614,7 +615,6 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         initialProject.prompt,
         initialProject,
         initialProject.isLisaActive ?? false,
-        // FIX: Argument of type 'string' is not assignable to parameter of type 'AppMode'.
         initialProject.appMode || 'web'
       );
       setTabs([newTab]);
@@ -719,6 +719,40 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     for await (const output of outputStream) {
         currentLines = [...currentLines, { type: 'output', text: output }];
         setTerminalLines(currentLines);
+    }
+  };
+
+  const renderPreview = () => {
+    if (!activeTab) return <Preview htmlContent="" streamingPreviewHtml={null} hasFiles={false} isLoading={false} isVisualEditMode={false} isMaxAgentRunning={false} agentTargets={[]} testPlan={null} onMaxAgentComplete={() => {}} />;
+
+    switch (activeTab.appMode) {
+        case 'expo':
+            return <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />;
+        case 'mobile-web':
+            return <MobilePreview
+                htmlContent={previewHtml}
+                streamingPreviewHtml={activeTab.streamingPreviewHtml ?? null}
+                hasFiles={files.length > 0}
+                isLoading={activeTab.isLoading || false}
+                isVisualEditMode={activeTab.isVisualEditMode || false}
+                isMaxAgentRunning={activeTab.isMaxAgentRunning || false}
+                agentTargets={activeTab.agentTargets || []}
+                testPlan={activeTab.testPlan || null}
+                onMaxAgentComplete={handleMaxAgentComplete}
+            />;
+        case 'web':
+        default:
+            return <Preview
+                htmlContent={previewHtml}
+                streamingPreviewHtml={activeTab.streamingPreviewHtml ?? null}
+                hasFiles={files.length > 0}
+                isLoading={activeTab.isLoading || false}
+                isVisualEditMode={activeTab.isVisualEditMode || false}
+                isMaxAgentRunning={activeTab.isMaxAgentRunning || false}
+                agentTargets={activeTab.agentTargets || []}
+                testPlan={activeTab.testPlan || null}
+                onMaxAgentComplete={handleMaxAgentComplete}
+            />;
     }
   };
 
@@ -838,20 +872,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                         <div className="flex-grow" style={{ height: isTerminalOpen ? `${rightPaneHeight}%` : '100%' }}>
                             {rightPaneView === 'code' ? (
                                 <CodeViewer files={files} />
-                            ) : activeTab?.appMode === 'expo' ? (
-                                <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />
                             ) : (
-                                <Preview
-                                    htmlContent={previewHtml}
-                                    streamingPreviewHtml={activeTab?.streamingPreviewHtml ?? null}
-                                    hasFiles={files.length > 0}
-                                    isLoading={activeTab?.isLoading || false}
-                                    isVisualEditMode={activeTab?.isVisualEditMode || false}
-                                    isMaxAgentRunning={activeTab?.isMaxAgentRunning || false}
-                                    agentTargets={activeTab?.agentTargets || []}
-                                    testPlan={activeTab?.testPlan || null}
-                                    onMaxAgentComplete={handleMaxAgentComplete}
-                                />
+                                renderPreview()
                             )}
                         </div>
                         {isTerminalOpen && (

@@ -6,6 +6,7 @@ import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { GitHubRepo, AppMode } from '../types';
 import HomePageBackground from '../components/HomePageBackground';
 import ExpoIcon from '../components/icons/ExpoIcon';
+import SmartphoneIcon from '../components/icons/SmartphoneIcon';
 
 
 interface HomePageProps {
@@ -26,6 +27,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
   const [isExpoMode, setIsExpoMode] = useState(false);
+  const [isMobileWebAppMode, setIsMobileWebAppMode] = useState(false);
   const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
   const [inputStyle, setInputStyle] = useState('glossy');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,13 +61,30 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
-      onGenerate(prompt, isLisaActive, isExpoMode ? 'expo' : 'web');
+      let mode: AppMode = 'web';
+      if (isExpoMode) mode = 'expo';
+      else if (isMobileWebAppMode) mode = 'mobile-web';
+      onGenerate(prompt, isLisaActive, mode);
     }
   };
 
   const handleRepoSelected = (repo: GitHubRepo) => {
     setIsRepoModalOpen(false);
     onStartCodePilot(repo);
+  };
+  
+  const handleToggleExpo = () => {
+    setIsExpoMode(prev => {
+      if (!prev) setIsMobileWebAppMode(false); // Turn off mobile web if turning on expo
+      return !prev;
+    });
+  };
+
+  const handleToggleMobileWeb = () => {
+    setIsMobileWebAppMode(prev => {
+      if (!prev) setIsExpoMode(false); // Turn off expo if turning on mobile web
+      return !prev;
+    });
   };
 
   const glossyClasses = "w-full h-48 p-6 pr-20 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none";
@@ -93,7 +112,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               From Prompt to App
             </h1>
             
-            <div className="mb-6 flex items-center justify-center gap-4">
+            <div className="mb-6 flex items-center justify-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setIsLisaActive(prev => !prev)}
@@ -106,9 +125,21 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                 <BrainCircuitIcon className={`w-5 h-5 transition-colors ${isLisaActive ? 'text-indigo-500' : ''}`} />
                 Lisa Agent {isLisaActive ? 'Active' : 'Inactive'}
               </button>
+               <button
+                type="button"
+                onClick={handleToggleMobileWeb}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
+                  isMobileWebAppMode
+                    ? 'bg-white border-white text-black shadow-lg shadow-white/20'
+                    : 'bg-white/5 border-white/10 text-cyan-300'
+                }`}
+              >
+                <SmartphoneIcon className={`w-5 h-5 transition-colors ${isMobileWebAppMode ? 'text-black' : ''}`} />
+                Mobile Web App {isMobileWebAppMode ? 'On' : 'Off'}
+              </button>
               <button
                 type="button"
-                onClick={() => setIsExpoMode(prev => !prev)}
+                onClick={handleToggleExpo}
                 className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
                   isExpoMode
                     ? 'bg-white border-white text-black shadow-lg shadow-white/20'
@@ -116,7 +147,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                 }`}
               >
                 <ExpoIcon className={`w-5 h-5 transition-colors ${isExpoMode ? 'text-black' : ''}`} />
-                Expo App Mode {isExpoMode ? 'Active' : 'Inactive'}
+                Expo App Mode {isExpoMode ? 'On' : 'Off'}
               </button>
               <button
                 type="button"
