@@ -116,7 +116,7 @@ const MobilePreview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHt
 
         <div className="flex-grow flex items-center justify-center p-4">
             {hasContentToDisplay ? (
-                <div className="relative w-full h-full max-w-[320px] max-h-[640px] aspect-[9/19.5]">
+                <div className="relative w-full h-full max-w-[320px] max-h-[576px] aspect-[9/19.5]">
                     <img 
                         src="https://i.ibb.co/cK6YGrmH/apple-iphone-13-pro-max-2021-medium.png" 
                         alt="Phone frame" 
