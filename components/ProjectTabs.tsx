@@ -18,12 +18,12 @@ interface ProjectTabsProps {
 const ProjectTabs: React.FC<ProjectTabsProps> = ({ tabs, activeTabId, onSelectTab, onAddTab, onCloseTab }) => {
   return (
     <div className="flex items-center p-2 bg-black">
-      <nav className="flex-grow flex items-center gap-2" aria-label="Tabs">
+      <nav className="flex-grow flex items-center gap-2 overflow-x-auto" aria-label="Tabs">
         {tabs.map(tab => (
           <div
             key={tab.id}
             onClick={() => onSelectTab(tab.id)}
-            className={`relative group flex items-center gap-2 py-1.5 px-4 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 ease-in-out ${
+            className={`relative group flex items-center gap-2 py-1.5 px-4 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 ease-in-out flex-shrink-0 ${
               activeTabId === tab.id
                 ? 'bg-white/10 backdrop-blur-sm border border-white/15 shadow-md text-white'
                 : 'border border-transparent text-slate-400 hover:text-white hover:bg-white/5'
@@ -52,6 +52,18 @@ const ProjectTabs: React.FC<ProjectTabsProps> = ({ tabs, activeTabId, onSelectTa
           <PlusIcon className="w-4 h-4" />
         </button>
       </div>
+      <style>{`
+        nav::-webkit-scrollbar {
+          height: 4px;
+        }
+        nav::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        nav::-webkit-scrollbar-thumb {
+          background: #334155;
+          border-radius: 2px;
+        }
+      `}</style>
     </div>
   );
 };

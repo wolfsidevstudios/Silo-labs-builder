@@ -130,7 +130,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ prompt, setPrompt, onSubmit, 
             </button>
         </div>
       )}
-      <div className="flex items-center mb-3 ml-2">
+      <div className="flex items-center flex-wrap gap-y-2 mb-3 ml-2">
             <div className="relative" ref={uploadMenuRef}>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" multiple />
                 <button

@@ -626,15 +626,12 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
-      // FIX: The initialAppMode from props might be an invalid string.
-      // This ensures that we only pass a valid AppMode type to createNewTab.
-      const validAppMode: AppMode = (initialAppMode === 'expo' || initialAppMode === 'mobile-web') ? initialAppMode : 'web';
       const newTab = createNewTab(
         `Project ${tabs.length + 1}`,
         initialPrompt,
         null,
         initialIsLisaActive,
-        validAppMode
+        initialAppMode
       );
       setTabs([newTab]);
       setActiveTabId(newTab.id);

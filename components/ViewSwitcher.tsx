@@ -65,7 +65,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
   };
 
   return (
-    <div className="relative z-30 flex-shrink-0 flex items-center justify-between px-4 py-2">
+    <div className="relative z-30 flex-shrink-0 flex items-center justify-between px-4 py-2 flex-wrap gap-y-2">
       <div className="relative bg-slate-900/50 backdrop-blur-sm p-1 rounded-full flex items-center border border-slate-700/50">
         {/* Glossy sliding indicator */}
         <div
@@ -96,7 +96,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap justify-end">
         <button
             ref={terminalButtonRef}
             onClick={onToggleTerminal}
