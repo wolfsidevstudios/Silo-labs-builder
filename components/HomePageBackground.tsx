@@ -41,6 +41,30 @@ const BackgroundSvg = () => (
     </svg>
 );
 
+const BlueSwirlBackground: React.FC = () => (
+    <>
+        <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-500 rounded-full filter blur-3xl opacity-30 animate-blob"></div>
+            <div className="absolute bottom-[-10%] right-[5%] w-[40%] h-[40%] bg-blue-600 rounded-full filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+            <div className="absolute top-[20%] right-[-15%] w-[30%] h-[30%] bg-cyan-300 rounded-full filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+        </div>
+        <style>{`
+            @keyframes blob {
+                0% { transform: translate(0px, 0px) scale(1); }
+                33% { transform: translate(30px, -50px) scale(1.1); }
+                66% { transform: translate(-20px, 20px) scale(0.9); }
+                100% { transform: translate(0px, 0px) scale(1); }
+            }
+            .animate-blob {
+                animation: blob 10s infinite ease-in-out;
+            }
+            .animation-delay-2000 { animation-delay: 2s; }
+            .animation-delay-4000 { animation-delay: 4s; }
+        `}</style>
+    </>
+);
+
+
 const HomePageBackground: React.FC = () => {
     const [background, setBackground] = useState('default');
 
@@ -61,6 +85,8 @@ const HomePageBackground: React.FC = () => {
     const commonClass = "absolute inset-0 w-full h-full z-0";
 
     switch (background) {
+        case 'animated-gradient':
+            return <BackgroundSvg />;
         case 'limited-edition':
             return <LimitedEditionBackground />;
         case 'limited-edition-2':
@@ -137,7 +163,7 @@ const HomePageBackground: React.FC = () => {
             );
         case 'default':
         default:
-            return <BackgroundSvg />;
+            return <BlueSwirlBackground />;
     }
 };
 

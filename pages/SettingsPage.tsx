@@ -87,7 +87,8 @@ const ICONS: Record<string, { name: string, url: string, manifest: string }> = {
 };
 
 const BACKGROUNDS: Record<string, { name: string, style: string, isLimited?: boolean }> = {
-    'default': { name: 'Default Animated', style: 'bg-black' },
+    'default': { name: 'Black & Blue Swirl', style: 'bg-black' },
+    'animated-gradient': { name: 'Animated Gradient', style: 'bg-black' },
     'limited-edition': { name: 'Limited Edition', style: 'bg-black', isLimited: true },
     'limited-edition-2': { name: 'Cosmic Rift', style: 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900', isLimited: true },
     'limited-edition-3': { name: 'Aurora Borealis', style: 'bg-gradient-to-tr from-emerald-900 via-cyan-900 to-slate-900', isLimited: true },
@@ -538,7 +539,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                          <div key={key} onClick={() => handleBackgroundChange(key)} className={`relative cursor-pointer rounded-lg border-2 ${homeBackground === key ? 'border-indigo-500' : 'border-transparent'}`}>
                            {isLimited && <div className="absolute top-1 right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full z-10">LE</div>}
                            <div className={`aspect-video w-full rounded-md ${style} flex items-center justify-center`}>
-                              {(key === 'default' || key === 'limited-edition') && <SparklesIcon className="w-6 h-6 text-white/50" />}
+                              {(key === 'animated-gradient' || key === 'limited-edition') && <SparklesIcon className="w-6 h-6 text-white/50" />}
                            </div>
                            <p className="text-sm text-center mt-2">{name}</p>
                          </div>
