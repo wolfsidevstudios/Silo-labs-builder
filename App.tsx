@@ -7,6 +7,8 @@ import ProjectsPage from './pages/ProjectsPage';
 import NewsPage from './pages/NewsPage';
 import SiloMaxPage from './pages/SiloMaxPage';
 import CodePilotPage from './pages/CodePilotPage';
+import PlanPage from './pages/PlanPage';
+import BuildingPage from './pages/BuildingPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -15,12 +17,12 @@ import UserGreeting from './components/UserGreeting';
 import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
-import { SavedProject, FirebaseUser, GitHubRepo, AppMode } from './types';
+import { SavedProject, FirebaseUser, GitHubRepo, AppMode, AppPlan, GeminiResponse } from './types';
 import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building';
 
 const ICONS = {
     regular: {
@@ -39,9 +41,6 @@ const ICONS = {
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [builderPrompt, setBuilderPrompt] = useState<string>('');
-  const [builderIsLisaActive, setBuilderIsLisaActive] = useState<boolean>(false);
-  const [builderAppMode, setBuilderAppMode] = useState<AppMode>('web');
   const [projectToLoad, setProjectToLoad] = useState<SavedProject | null>(null);
   const [isPro, setIsPro] = useState<boolean>(false);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
@@ -50,6 +49,14 @@ const App: React.FC = () => {
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
   const [codePilotRepo, setCodePilotRepo] = useState<GitHubRepo | null>(null);
   const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
+
+  const [generationData, setGenerationData] = useState<{
+    prompt: string;
+    isLisaActive: boolean;
+    appMode: AppMode;
+    revisedPrompt?: string;
+    plan?: AppPlan;
+  } | null>(null);
 
 
   // Auth state
@@ -143,11 +150,8 @@ const App: React.FC = () => {
   };
 
   const handleStartBuilding = (prompt: string, isLisaActive: boolean, appMode: AppMode) => {
-    setBuilderPrompt(prompt);
-    setBuilderIsLisaActive(isLisaActive);
-    setBuilderAppMode(appMode);
-    setProjectToLoad(null); // Ensure we're not loading an old project
-    setCurrentPage('builder');
+    setGenerationData({ prompt, isLisaActive, appMode });
+    setCurrentPage('plan');
   };
 
   const handleStartCodePilot = (repo: GitHubRepo) => {
@@ -157,10 +161,36 @@ const App: React.FC = () => {
   
   const handleLoadProject = (project: SavedProject) => {
     setProjectToLoad(project);
-    setBuilderPrompt(''); // Clear any prompt from home page
-    setBuilderIsLisaActive(project.isLisaActive || false);
-    setBuilderAppMode(project.appMode || 'web');
+    setGenerationData(null); // Clear any generation flow
     setCurrentPage('builder');
+  };
+
+  const handlePlanApproved = (plan: AppPlan) => {
+    setGenerationData(prev => prev ? ({ ...prev, plan }) : null);
+    setCurrentPage('building');
+  };
+
+  const handlePlanRevised = (revision: string) => {
+      setGenerationData(prev => prev ? ({ ...prev, revisedPrompt: revision }) : null);
+  };
+  
+  const handleBuildComplete = (geminiResponse: GeminiResponse) => {
+      if (!generationData) return;
+      const finalPrompt = generationData.revisedPrompt
+        ? `${generationData.prompt}\n\nUser Revision: ${generationData.revisedPrompt}`
+        : generationData.prompt;
+
+      const newProject: SavedProject = {
+          id: `temp-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          prompt: finalPrompt,
+          isLisaActive: generationData.isLisaActive,
+          appMode: generationData.appMode,
+          ...geminiResponse
+      };
+      setProjectToLoad(newProject);
+      setGenerationData(null);
+      setCurrentPage('builder');
   };
 
   const handleNavigate = (page: SidebarPage) => {
@@ -173,6 +203,7 @@ const App: React.FC = () => {
   
   const handleGoHome = () => {
     setCurrentPage('home');
+    setGenerationData(null);
   };
 
   const handleCloseFeatureDropModal = () => {
@@ -184,8 +215,26 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
+      case 'plan':
+          return generationData ? <PlanPage
+              initialPrompt={generationData.prompt}
+              isLisaActive={generationData.isLisaActive}
+              revisedPrompt={generationData.revisedPrompt}
+              onApprove={handlePlanApproved}
+              onDecline={handlePlanRevised}
+              onGoHome={handleGoHome}
+          /> : <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
+      case 'building':
+        return generationData && generationData.plan ? <BuildingPage
+            prompt={generationData.prompt}
+            plan={generationData.plan}
+            isLisaActive={generationData.isLisaActive}
+            appMode={generationData.appMode}
+            revisedPrompt={generationData.revisedPrompt}
+            onBuildComplete={handleBuildComplete}
+        /> : <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
       case 'builder':
-        return <BuilderPage initialPrompt={builderPrompt} initialProject={projectToLoad} isPro={isPro} initialIsLisaActive={builderIsLisaActive} initialAppMode={builderAppMode} />;
+        return <BuilderPage initialPrompt={""} initialProject={projectToLoad} isPro={isPro} />;
       case 'settings':
         return <SettingsPage isPro={isPro} onUpgradeClick={() => setIsUpgradeModalOpen(true)} user={user} />;
       case 'plans':
@@ -215,7 +264,7 @@ const App: React.FC = () => {
       {isFaceTrackingEnabled && <FaceTrackingCursor />}
       <header className="fixed top-6 left-[4.5rem] z-30 flex items-center gap-4">
           <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
-            <Logo type={currentPage === 'home' ? 'full' : 'icon'} />
+            <Logo type={currentPage === 'home' || currentPage === 'plan' || currentPage === 'building' ? 'full' : 'icon'} />
           </button>
           {currentPage === 'home' && <ProBadge isVisible={isPro} />}
       </header>

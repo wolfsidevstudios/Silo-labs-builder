@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppFile, GeminiResponse, Secret, MaxReport, TestStep, GeminiModelId, AppMode } from "../types";
+import { AppFile, GeminiResponse, Secret, MaxReport, TestStep, GeminiModelId, AppMode, AppPlan } from "../types";
 import { SYSTEM_PROMPT } from '../constants';
 import { THEMES } from '../data/themes';
 import { getSecrets as getGlobalSecrets } from './secretsService';
@@ -71,6 +71,41 @@ const geminiSchema = {
   },
   required: ["previewHtml", "files", "summary"],
 };
+
+const appPlanSchema = {
+    type: Type.OBJECT,
+    properties: {
+        features: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list of key features the application should have.",
+        },
+        designDetails: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list describing the visual style, layout, and overall design aesthetic.",
+        },
+        pages: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list of the different pages or main sections the application will contain.",
+        },
+        colors: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING, description: "The role of the color (e.g., Primary, Background, Text)." },
+                    hex: { type: Type.STRING, description: "The hex code for the color (e.g., #FFFFFF)." },
+                },
+                required: ["name", "hex"],
+            },
+            description: "A color palette for the application.",
+        },
+    },
+    required: ["features", "designDetails", "pages", "colors"],
+};
+
 
 const maxReportSchema = {
     type: Type.OBJECT,
@@ -538,6 +573,37 @@ export async function* streamGenerateOrUpdateAppCode(
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     yield { error: `Failed to generate app code: ${errorMessage}` };
   }
+}
+
+export async function generateAppPlan(prompt: string, revisions?: string): Promise<AppPlan> {
+    const systemInstruction = `You are an expert software project planner. Based on the user's prompt, break down the requested application into a detailed plan. The plan must include a list of features, design details, pages/sections, and a color palette. If the user provides revisions, adjust the plan accordingly. You MUST respond in the specified JSON format.`;
+
+    const fullPrompt = revisions
+        ? `The original request was: "${prompt}". The user has requested the following revisions: "${revisions}". Please generate an updated plan.`
+        : `Please generate a plan for the following application request: "${prompt}"`;
+
+    try {
+        const apiKey = getGeminiApiKey();
+        const ai = new GoogleGenAI({ apiKey });
+        const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: fullPrompt,
+          config: {
+            systemInstruction: systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: appPlanSchema,
+          },
+        });
+
+        const jsonString = response.text;
+        return JSON.parse(jsonString) as AppPlan;
+    } catch (error) {
+        console.error("Error generating app plan:", error);
+        if (error instanceof Error) { throw new Error(`Failed to generate app plan: ${error.message}`); }
+        throw new Error("An unknown error occurred while generating the app plan.");
+    }
 }
 
 

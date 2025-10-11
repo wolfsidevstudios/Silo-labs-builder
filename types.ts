@@ -18,6 +18,16 @@ export interface GeminiResponse {
   previewHtml: string;
 }
 
+export interface AppPlan {
+  features: string[];
+  designDetails: string[];
+  pages: string[];
+  colors: {
+    name: string;
+    hex: string;
+  }[];
+}
+
 export interface Version extends GeminiResponse {
   versionId: string;
   createdAt: string;
