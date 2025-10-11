@@ -50,7 +50,8 @@ const PlansPage: React.FC = () => {
             <p className="text-4xl font-bold my-4">$0 <span className="text-lg font-normal text-slate-400">/ month</span></p>
             <p className="text-slate-400 mb-6 h-12">For individuals and hobbyists starting out.</p>
             <ul className="space-y-3 text-slate-300 flex-grow">
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> 30 monthly generations</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> 50 monthly generations</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Save up to 50 projects</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Access to all AI models</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Community support</li>
             </ul>
@@ -70,7 +71,7 @@ const PlansPage: React.FC = () => {
             <ul className="space-y-3 text-slate-300 flex-grow">
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Unlimited generations</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Download project code</li>
-              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Save projects</li>
+              <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Unlimited saved projects</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Use custom secrets</li>
               <li className="flex items-center gap-3"><CheckIcon className="w-5 h-5 text-green-500" /> Priority support</li>
             </ul>

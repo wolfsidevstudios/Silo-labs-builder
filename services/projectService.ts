@@ -81,3 +81,9 @@ export function updateProject(id: string, updates: Partial<SavedProject>): void 
         localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
     }
 }
+
+export function deleteProject(id: string): void {
+  const projects = getProjects();
+  const updatedProjects = projects.filter(p => p.id !== id);
+  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updatedProjects));
+}
