@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppPlan, AppMode, GeminiResponse } from '../types';
 import { streamGenerateOrUpdateAppCode } from '../services/geminiService';
 import CheckIcon from '../components/icons/CheckIcon';
@@ -16,11 +16,28 @@ const BuildingPage: React.FC<BuildingPageProps> = ({ prompt, plan, isLisaActive,
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('Preparing to build...');
   const [isFinished, setIsFinished] = useState(false);
+  const progressRef = useRef(0);
 
   useEffect(() => {
+    let progressInterval: ReturnType<typeof setInterval> | undefined;
+
     const buildApp = async () => {
-      setStatusText('Generating application code...');
-      
+      setStatusText('Initializing build process...');
+      progressRef.current = 0;
+      setProgress(0);
+
+      // Start a smooth progress interval to give a sense of real-time progress
+      progressInterval = setInterval(() => {
+        // Increment progress but slow down as it gets closer to 90
+        const increment = progressRef.current < 70 ? Math.random() * 3 : Math.random();
+        progressRef.current += increment;
+        if (progressRef.current > 95) {
+          progressRef.current = 95;
+          if (progressInterval) clearInterval(progressInterval);
+        }
+        setProgress(progressRef.current);
+      }, 250);
+
       const planContext = `
         Based on the user prompt, you must adhere to the following plan:
         - Features: ${plan.features.join(', ')}
@@ -37,27 +54,24 @@ const BuildingPage: React.FC<BuildingPageProps> = ({ prompt, plan, isLisaActive,
         const stream = streamGenerateOrUpdateAppCode(fullPrompt, null, null, null, { model: isLisaActive ? 'gemini-2.5-pro' : 'gemini-2.5-flash' }, appMode);
         
         let finalResponse: GeminiResponse | null = null;
-        const estimatedSize = 20000; // Estimate for progress calculation
-
+        
         for await (const update of stream) {
             if (update.error) throw new Error(update.error);
             if (update.finalResponse) {
                 finalResponse = update.finalResponse;
                 break;
             }
-            if (update.previewHtml) {
-                const currentProgress = (update.previewHtml.length / estimatedSize) * 100;
-                setProgress(Math.min(currentProgress, 99));
-            }
             if(update.summary && update.summary.length > 0) {
-              setStatusText(update.summary[0]);
+              const newStatus = update.summary[update.summary.length - 1];
+              setStatusText(newStatus);
             }
         }
 
         if (!finalResponse) {
             throw new Error("Build process completed without a valid result.");
         }
-
+        
+        if (progressInterval) clearInterval(progressInterval);
         setProgress(100);
         setStatusText('Finalizing build...');
         setIsFinished(true);
@@ -67,12 +81,16 @@ const BuildingPage: React.FC<BuildingPageProps> = ({ prompt, plan, isLisaActive,
         }, 1500);
 
       } catch (err) {
+        if (progressInterval) clearInterval(progressInterval);
         setStatusText(err instanceof Error ? `Error: ${err.message}` : "An unknown error occurred.");
-        // Handle error state visually if needed
       }
     };
 
     buildApp();
+
+    return () => {
+      if (progressInterval) clearInterval(progressInterval);
+    }
   }, []);
 
   return (
@@ -90,9 +108,9 @@ const BuildingPage: React.FC<BuildingPageProps> = ({ prompt, plan, isLisaActive,
             <>
                 <h2 className="text-3xl font-bold text-white mb-4">Building your app...</h2>
                 <p className="text-slate-400 mb-8">{statusText}</p>
-                <div className="w-full bg-slate-800 rounded-full h-4">
+                <div className="w-full bg-slate-800 rounded-full h-4 overflow-hidden">
                     <div
-                        className="bg-white h-4 rounded-full transition-all duration-500 ease-out"
+                        className="bg-white h-4 rounded-full transition-all duration-300 ease-linear"
                         style={{ width: `${progress}%` }}
                     />
                 </div>

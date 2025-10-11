@@ -21,7 +21,6 @@ import { SavedProject, FirebaseUser, GitHubRepo, AppMode, AppPlan, GeminiRespons
 import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
-import DiscontinuationModal from './components/DiscontinuationModal';
 
 type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building';
 
@@ -50,7 +49,6 @@ const App: React.FC = () => {
   const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
   const [codePilotRepo, setCodePilotRepo] = useState<GitHubRepo | null>(null);
   const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
-  const [isDiscontinuationModalOpen, setIsDiscontinuationModalOpen] = useState(false);
 
   const [generationData, setGenerationData] = useState<{
     prompt: string;
@@ -112,12 +110,6 @@ const App: React.FC = () => {
         setIsFeatureDropModalOpen(true);
     }
     
-    // Discontinuation notice check
-    const discontinuationNoticeSeen = localStorage.getItem('mobileWebAppDiscontinuationNoticeSeen') === 'true';
-    if (!discontinuationNoticeSeen) {
-        setIsDiscontinuationModalOpen(true);
-    }
-
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
     setIsPro(permanentProStatus);
 
@@ -218,11 +210,6 @@ const App: React.FC = () => {
     setIsFeatureDropModalOpen(false);
     localStorage.setItem('featureDrop_oct2025_v3_seen', 'true');
   };
-  
-  const handleCloseDiscontinuationModal = () => {
-    setIsDiscontinuationModalOpen(false);
-    localStorage.setItem('mobileWebAppDiscontinuationNoticeSeen', 'true');
-  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -295,10 +282,6 @@ const App: React.FC = () => {
       <FeatureDropModal
         isOpen={isFeatureDropModalOpen}
         onClose={handleCloseFeatureDropModal}
-      />
-      <DiscontinuationModal
-        isOpen={isDiscontinuationModalOpen}
-        onClose={handleCloseDiscontinuationModal}
       />
       <Sidebar
         activePage={getActivePageForSidebar()}

@@ -6,7 +6,7 @@ import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { GitHubRepo, AppMode } from '../types';
 import HomePageBackground from '../components/HomePageBackground';
 import ExpoIcon from '../components/icons/ExpoIcon';
-import SmartphoneIcon from '../components/icons/SmartphoneIcon';
+import ReactIcon from '../components/icons/ReactIcon';
 
 
 interface HomePageProps {
@@ -27,7 +27,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
   const [isExpoMode, setIsExpoMode] = useState(false);
-  const [isMobileWebAppMode, setIsMobileWebAppMode] = useState(false);
+  const [isReactTsMode, setIsReactTsMode] = useState(false);
   const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
   const [inputStyle, setInputStyle] = useState('glossy');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,7 +63,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
     if (prompt.trim()) {
       let mode: AppMode = 'web';
       if (isExpoMode) mode = 'expo';
-      else if (isMobileWebAppMode) mode = 'mobile-web';
+      else if (isReactTsMode) mode = 'react-ts';
       onGenerate(prompt, isLisaActive, mode);
     }
   };
@@ -75,14 +75,14 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   
   const handleToggleExpo = () => {
     setIsExpoMode(prev => {
-      if (!prev) setIsMobileWebAppMode(false); // Turn off mobile web if turning on expo
+      if (!prev) setIsReactTsMode(false); // Turn off react-ts if turning on expo
       return !prev;
     });
   };
 
-  const handleToggleMobileWeb = () => {
-    setIsMobileWebAppMode(prev => {
-      if (!prev) setIsExpoMode(false); // Turn off expo if turning on mobile web
+  const handleToggleReactTs = () => {
+    setIsReactTsMode(prev => {
+      if (!prev) setIsExpoMode(false); // Turn off expo if turning on react-ts
       return !prev;
     });
   };
@@ -127,15 +127,15 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               </button>
                <button
                 type="button"
-                onClick={handleToggleMobileWeb}
+                onClick={handleToggleReactTs}
                 className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
-                  isMobileWebAppMode
+                  isReactTsMode
                     ? 'bg-white border-white text-black shadow-lg shadow-white/20'
                     : 'bg-white/5 border-white/10 text-cyan-300'
                 }`}
               >
-                <SmartphoneIcon className={`w-5 h-5 transition-colors ${isMobileWebAppMode ? 'text-black' : ''}`} />
-                Mobile Web App {isMobileWebAppMode ? 'On' : 'Off'}
+                <ReactIcon className={`w-5 h-5 transition-colors ${isReactTsMode ? 'text-cyan-500' : 'text-cyan-300'}`} />
+                React + TS App
               </button>
               <button
                 type="button"

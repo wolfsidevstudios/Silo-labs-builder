@@ -17,7 +17,7 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
 import ExpoPreview from '../components/ExpoPreview';
-import MobilePreview from '../components/MobilePreview';
+import ReactTsPreview from '../components/ReactTsPreview';
 import Terminal from '../components/Terminal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode, TerminalLine } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
@@ -611,9 +611,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   useEffect(() => {
     if (initialProject) {
       const appModeFromProject = initialProject.appMode;
-      // FIX: Use explicit comparison for type narrowing instead of .includes()
       const validAppMode: AppMode =
-        appModeFromProject === 'web' || appModeFromProject === 'expo' || appModeFromProject === 'mobile-web'
+        appModeFromProject === 'web' || appModeFromProject === 'expo' || appModeFromProject === 'react-ts'
           ? appModeFromProject
           : 'web';
 
@@ -628,9 +627,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
-      // FIX: Use explicit comparison for type narrowing instead of .includes()
       const validAppMode: AppMode =
-        initialAppMode === 'web' || initialAppMode === 'expo' || initialAppMode === 'mobile-web'
+        initialAppMode === 'web' || initialAppMode === 'expo' || initialAppMode === 'react-ts'
           ? initialAppMode
           : 'web';
       const newTab = createNewTab(
@@ -739,19 +737,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
 
     switch (activeTab.appMode) {
         case 'expo':
-            return <ExpoPreview previewData={activeTab.isLoading ? '' : previewHtml} />;
-        case 'mobile-web':
-            return <MobilePreview
-                htmlContent={previewHtml}
-                streamingPreviewHtml={activeTab.streamingPreviewHtml ?? null}
-                hasFiles={files.length > 0}
-                isLoading={activeTab.isLoading || false}
-                isVisualEditMode={activeTab.isVisualEditMode || false}
-                isMaxAgentRunning={activeTab.isMaxAgentRunning || false}
-                agentTargets={activeTab.agentTargets || []}
-                testPlan={activeTab.testPlan || null}
-                onMaxAgentComplete={handleMaxAgentComplete}
-            />;
+            return <ExpoPreview previewData={previewHtml} />;
+        case 'react-ts':
+            return <ReactTsPreview />;
         case 'web':
         default:
             return <Preview
@@ -805,7 +793,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                   onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
                   isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
                   isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
-                  isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
+                  isYouTubeConnected={isYouTubeConnected} onAddYouTubeClick={() => setIsYouTubeModalOpen(true)}
                   onStartMaxAgent={handleStartMaxAgent}
                   isMaxAgentRunning={activeTab.isMaxAgentRunning}
                   hasFiles={files.length > 0}
