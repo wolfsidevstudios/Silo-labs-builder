@@ -611,7 +611,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   useEffect(() => {
     if (initialProject) {
       const appModeFromProject = initialProject.appMode;
-      const validAppMode: AppMode = (appModeFromProject && ['web', 'expo', 'mobile-web'].includes(appModeFromProject))
+      // FIX: Use explicit comparison for type narrowing instead of .includes()
+      const validAppMode: AppMode =
+        appModeFromProject === 'web' || appModeFromProject === 'expo' || appModeFromProject === 'mobile-web'
           ? appModeFromProject
           : 'web';
 
@@ -626,7 +628,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
-      const validAppMode: AppMode = (initialAppMode && ['web', 'expo', 'mobile-web'].includes(initialAppMode))
+      // FIX: Use explicit comparison for type narrowing instead of .includes()
+      const validAppMode: AppMode =
+        initialAppMode === 'web' || initialAppMode === 'expo' || initialAppMode === 'mobile-web'
           ? initialAppMode
           : 'web';
       const newTab = createNewTab(
