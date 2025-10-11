@@ -19,7 +19,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, error, onAutoFix })
   const showInitialPlaceholder = messages.length === 0 && !error;
 
   return (
-    <div className="flex-grow p-4 overflow-y-auto space-y-6">
+    <div className="h-full p-4 overflow-y-auto space-y-6">
       {showInitialPlaceholder && (
         <div className="flex-grow flex items-center justify-center h-full">
           <p className="text-slate-500">Your conversation with the AI will appear here.</p>

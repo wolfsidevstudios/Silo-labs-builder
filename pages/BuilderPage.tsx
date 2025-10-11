@@ -613,7 +613,8 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       // FIX: The appMode from a saved project in localStorage might be an invalid string.
       // This ensures that we only pass a valid AppMode type to createNewTab.
       const appModeFromProject = initialProject.appMode;
-      const validAppMode: AppMode = (appModeFromProject === 'expo' || appModeFromProject === 'mobile-web') ? appModeFromProject : 'web';
+      // FIX: Argument of type 'string' is not assignable to parameter of type 'AppMode'. The ternary was not correctly narrowing the type. This chained ternary explicitly returns the correct literal types, ensuring type safety.
+      const validAppMode: AppMode = appModeFromProject === 'expo' ? 'expo' : appModeFromProject === 'mobile-web' ? 'mobile-web' : 'web';
 
       const newTab = createNewTab(
         initialProject.name || `Project ${tabs.length + 1}`,
@@ -776,7 +777,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       <div className="h-screen w-screen bg-black flex flex-col pl-[4.5rem] selection:bg-indigo-500 selection:text-white">
         <ProjectTabs tabs={tabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} onAddTab={handleAddNewTab} onCloseTab={handleCloseTab} />
         
-        <div className="flex-grow flex overflow-hidden">
+        <div className="flex-grow flex overflow-hidden min-h-0">
           {/* Left Pane */}
           <div className="h-full" style={{ width: `${leftPaneWidth}%` }}>
             <div className="h-full flex flex-col">
