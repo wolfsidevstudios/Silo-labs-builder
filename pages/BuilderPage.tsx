@@ -610,11 +610,10 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   // This effect runs once on mount to initialize the first tab
   useEffect(() => {
     if (initialProject) {
-      // FIX: The appMode from a saved project in localStorage might be an invalid string.
-      // This ensures that we only pass a valid AppMode type to createNewTab.
       const appModeFromProject = initialProject.appMode;
-      // FIX: Argument of type 'string' is not assignable to parameter of type 'AppMode'. The ternary was not correctly narrowing the type. This chained ternary explicitly returns the correct literal types, ensuring type safety.
-      const validAppMode: AppMode = appModeFromProject === 'expo' ? 'expo' : appModeFromProject === 'mobile-web' ? 'mobile-web' : 'web';
+      const validAppMode: AppMode = (appModeFromProject && ['web', 'expo', 'mobile-web'].includes(appModeFromProject))
+          ? appModeFromProject
+          : 'web';
 
       const newTab = createNewTab(
         initialProject.name || `Project ${tabs.length + 1}`,
@@ -627,12 +626,15 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
+      const validAppMode: AppMode = (initialAppMode && ['web', 'expo', 'mobile-web'].includes(initialAppMode))
+          ? initialAppMode
+          : 'web';
       const newTab = createNewTab(
         `Project ${tabs.length + 1}`,
         initialPrompt,
         null,
         initialIsLisaActive,
-        initialAppMode
+        validAppMode
       );
       setTabs([newTab]);
       setActiveTabId(newTab.id);

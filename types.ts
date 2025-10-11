@@ -1,4 +1,4 @@
-import type * React from 'react';
+import type * as React from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 
@@ -70,7 +70,6 @@ export interface SavedProject extends GeminiResponse {
   appMode?: AppMode;
 }
 
-// FIX: Add Profile type to resolve compilation error.
 export interface Profile {
   id: string; // User UID
   username: string;
@@ -78,7 +77,6 @@ export interface Profile {
   bannerUrl?: string;
 }
 
-// FIX: Add PublishedApp type to resolve compilation error.
 export interface PublishedApp {
   id: string;
   prompt: string;

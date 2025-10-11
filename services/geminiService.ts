@@ -479,14 +479,31 @@ async function* _streamGenerateWithGemini(fullPrompt: string, images?: UploadedI
     for await (const chunk of responseStream) {
         buffer += chunk.text;
         if (!yieldedSummary) {
-            const summaryRegex = /"summary"\s*:\s*(\[.*?\])/s; const summaryMatch = buffer.match(summaryRegex);
-            if (summaryMatch) { try { const summary = JSON.parse(summaryMatch[1]); yield { summary }; yieldedSummary = true; } catch (e) { /* Incomplete */ } }
+            const summaryRegex = /"summary"\s*:\s*(\[.*?\])/s;
+            const summaryMatch = buffer.match(summaryRegex);
+            if (summaryMatch) {
+                try {
+                    const summary = JSON.parse(summaryMatch[1]);
+                    yield { summary };
+                    yieldedSummary = true;
+                } catch (e) { /* Incomplete */ }
+            }
         }
         if (!yieldedFiles) {
-            const filesRegex = /"files"\s*:\s*(\[.*?\])/s; const filesMatch = buffer.match(filesRegex);
-            if (filesMatch) { try { const files = JSON.parse(filesMatch[1]); if (Array.isArray(files) && files.every(f => f.path && Object.keys(f).length === 1)) { yield { files: files.map(f => ({ path: f.path, content: '' })) }; yieldedFiles = true; } } catch (e) { /* Incomplete */ } }
+            const filesRegex = /"files"\s*:\s*(\[.*?\])/s;
+            const filesMatch = buffer.match(filesRegex);
+            if (filesMatch) {
+                try {
+                    const files = JSON.parse(filesMatch[1]);
+                    if (Array.isArray(files) && files.every(f => f.path && Object.keys(f).length === 1)) {
+                        yield { files: files.map(f => ({ path: f.path, content: '' })) };
+                        yieldedFiles = true;
+                    }
+                } catch (e) { /* Incomplete */ }
+            }
         }
-        const startMarker = '"previewHtml": "'; const startIndex = buffer.indexOf(startMarker);
+        const startMarker = '"previewHtml": "';
+        const startIndex = buffer.indexOf(startMarker);
         if (startIndex !== -1) { 
             const htmlFragment = buffer.substring(startIndex + startMarker.length); 
             yield { previewHtml: htmlFragment }; 
@@ -497,8 +514,7 @@ async function* _streamGenerateWithGemini(fullPrompt: string, images?: UploadedI
     if (!finalResponse || !finalResponse.previewHtml || !finalResponse.files || !finalResponse.summary) {
         throw new Error("Stream finished but AI response is not in the expected format or is empty.");
     }
-    // FIX: An async generator's return value is not captured by a `for await...of` loop.
-    // The final response must be yielded to be consumed by the calling function.
+    
     yield { finalResponse };
 }
 

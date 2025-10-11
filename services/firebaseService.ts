@@ -1,4 +1,3 @@
-// FIX: Add imports for Firestore and Storage
 import {
   getFirestore,
   collection,
@@ -32,12 +31,10 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-// FIX: Add Profile and PublishedApp to type imports
 import { FirebaseUser, Profile, PublishedApp } from '../types';
 
 // Initialize Firebase services
 const authInstance = getAuth();
-// FIX: Add placeholder initialization for db and storage to avoid runtime errors if Firebase isn't configured.
 let db, storage;
 try {
   db = getFirestore();
@@ -97,7 +94,6 @@ export const getUserId = (): string | null => {
 
 // --- FIRESTORE & STORAGE ---
 
-// FIX: Add getMarketplaceApps function
 export async function getMarketplaceApps(): Promise<PublishedApp[]> {
   if (!db) return [];
   const appsRef = collection(db, 'publishedApps');
@@ -106,7 +102,6 @@ export async function getMarketplaceApps(): Promise<PublishedApp[]> {
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PublishedApp));
 }
 
-// FIX: Add toggleLike function
 export async function toggleLike(appId: string, userId: string, currentUserHasLiked: boolean): Promise<number> {
   if (!db) throw new Error("Database not available.");
   const appRef = doc(db, 'publishedApps', appId);
@@ -135,7 +130,6 @@ export async function toggleLike(appId: string, userId: string, currentUserHasLi
   });
 }
 
-// FIX: Add hasUserLikedApp function
 export async function hasUserLikedApp(appId: string, userId: string): Promise<boolean> {
   if (!db) return false;
   const likeRef = doc(db, `publishedApps/${appId}/likes/${userId}`);
@@ -143,7 +137,6 @@ export async function hasUserLikedApp(appId: string, userId: string): Promise<bo
   return docSnap.exists();
 }
 
-// FIX: Add getProfile function
 export async function getProfile(userId: string): Promise<Profile | null> {
   if (!db) return null;
   const profileRef = doc(db, 'profiles', userId);
@@ -154,7 +147,6 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return null;
 }
 
-// FIX: Add createOrUpdateProfile function
 export async function createOrUpdateProfile(userId: string, profileData: Partial<Omit<Profile, 'id'>>): Promise<Profile> {
   if (!db) throw new Error("Database not available.");
   const profileRef = doc(db, 'profiles', userId);
@@ -171,7 +163,6 @@ export async function createOrUpdateProfile(userId: string, profileData: Partial
   return { id: userId, ...savedDoc.data() } as Profile;
 }
 
-// FIX: Add getUserApps function
 export async function getUserApps(authorId: string): Promise<PublishedApp[]> {
   if (!db) return [];
   const appsRef = collection(db, 'publishedApps');
@@ -180,7 +171,6 @@ export async function getUserApps(authorId: string): Promise<PublishedApp[]> {
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PublishedApp));
 }
 
-// FIX: Add uploadProfileImage function
 export async function uploadProfileImage(file: File, userId: string, type: 'avatar' | 'banner'): Promise<string> {
     if (!storage) throw new Error("Storage not available.");
     const filePath = `profile-images/${userId}/${type}.${file.name.split('.').pop()}`;

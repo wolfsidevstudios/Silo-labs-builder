@@ -1,4 +1,3 @@
-// FIX: Create BeakerIcon component to resolve 'is not a module' error.
 import React from 'react';
 
 const BeakerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
