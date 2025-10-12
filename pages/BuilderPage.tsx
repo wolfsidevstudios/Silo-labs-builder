@@ -756,7 +756,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
 
   const renderPreview = () => {
-    if (!activeTab) return <Preview htmlContent="" streamingPreviewHtml={null} hasFiles={false} isLoading={false} isVisualEditMode={false} isMaxAgentRunning={false} agentTargets={[]} testPlan={null} onMaxAgentComplete={() => {}} />;
+    if (!activeTab) return <Preview htmlContent="" streamingPreviewHtml={null} hasFiles={false} isLoading={false} isVisualEditMode={false} isMaxAgentRunning={false} agentTargets={[]} testPlan={null} onMaxAgentComplete={() => {}} deployedUrl={null} />;
 
     switch (activeTab.appMode) {
         case 'expo':
@@ -778,6 +778,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                 agentTargets={activeTab.agentTargets || []}
                 testPlan={activeTab.testPlan || null}
                 onMaxAgentComplete={handleMaxAgentComplete}
+                deployedUrl={activeTab.currentNetlifyUrl}
             />;
     }
   };

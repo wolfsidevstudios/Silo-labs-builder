@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import EyeIcon from './icons/EyeIcon';
 import AgentCursor from './AgentCursor';
 import { TestStep } from '../types';
+import GlobeIcon from './icons/GlobeIcon';
 
 interface PreviewProps {
   htmlContent: string;
@@ -13,6 +14,7 @@ interface PreviewProps {
   agentTargets: any[];
   testPlan: TestStep[] | null;
   onMaxAgentComplete: () => void;
+  deployedUrl?: string | null;
 }
 
 const visualEditScript = `
@@ -209,8 +211,11 @@ const maxAgentScript = `
 `;
 
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, testPlan, onMaxAgentComplete }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, hasFiles, isLoading, isVisualEditMode, isMaxAgentRunning, agentTargets, testPlan, onMaxAgentComplete, deployedUrl }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  const isLivePreview = !!deployedUrl;
+  
   const displayHtmlRaw = isLoading && streamingPreviewHtml !== null ? streamingPreviewHtml : htmlContent;
 
   const convertBbcodeToHtml = (html: string): string => {
@@ -223,28 +228,38 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
   const displayHtml = convertBbcodeToHtml(displayHtmlRaw);
   
   let scriptsToInject = '';
-  if (isVisualEditMode) {
-      scriptsToInject += visualEditScript;
-  }
-  if (isMaxAgentRunning) {
-      scriptsToInject += maxAgentScript;
+  if (!isLivePreview) {
+      if (isVisualEditMode) {
+          scriptsToInject += visualEditScript;
+      }
+      if (isMaxAgentRunning) {
+          scriptsToInject += maxAgentScript;
+      }
   }
   
   const finalHtmlContent = scriptsToInject
     ? displayHtml.replace('</body>', `<script>${scriptsToInject}</script></body>`)
     : displayHtml;
 
-  const hasContentToDisplay = (isLoading && streamingPreviewHtml !== null) || hasFiles;
+  const hasContentToDisplay = (isLoading && streamingPreviewHtml !== null) || hasFiles || isLivePreview;
 
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
-        <div className="relative flex-shrink-0 flex items-center gap-2 px-4 py-3 bg-slate-900 overflow-hidden">
+        <div className="relative flex-shrink-0 flex items-center justify-between gap-2 px-4 py-3 bg-slate-900 overflow-hidden">
             <div 
                 className={`absolute top-1/2 right-0 w-2/3 h-[300%] ${isLoading ? 'bg-fuchsia-500 animate-pulse' : 'bg-gradient-to-r from-fuchsia-600 to-pink-600'} opacity-25 blur-3xl transform -translate-y-1/2 -rotate-[25deg] transition-all duration-500`}
                 aria-hidden="true" 
             />
-            <EyeIcon className="relative z-10 w-5 h-5 text-slate-300" />
-            <h2 className="relative z-10 font-semibold text-slate-200">Live Preview</h2>
+            <div className="relative z-10 flex items-center gap-2">
+                <EyeIcon className="w-5 h-5 text-slate-300" />
+                <h2 className="font-semibold text-slate-200">Live Preview</h2>
+            </div>
+            {isLivePreview && (
+              <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="relative z-10 flex items-center gap-2 px-3 py-1 bg-green-900/50 border border-green-700/50 rounded-full text-xs text-green-300 hover:bg-green-900/80 transition-colors">
+                  <GlobeIcon className="w-4 h-4" />
+                  <span>Live Site</span>
+              </a>
+            )}
         </div>
 
         <div className={`flex-grow relative ${isLoading ? 'p-2' : ''}`}>
@@ -253,21 +268,22 @@ const Preview: React.FC<PreviewProps> = ({ htmlContent, streamingPreviewHtml, ha
             )}
             
             <div className="w-full h-full relative z-10 bg-slate-800 rounded-md overflow-hidden">
-                {isMaxAgentRunning && <AgentCursor targets={agentTargets} iframeRef={iframeRef} testPlan={testPlan} onComplete={onMaxAgentComplete} />}
+                {isMaxAgentRunning && !isLivePreview && <AgentCursor targets={agentTargets} iframeRef={iframeRef} testPlan={testPlan} onComplete={onMaxAgentComplete} />}
                 {hasContentToDisplay ? (
                     <iframe
                         ref={iframeRef}
-                        srcDoc={finalHtmlContent}
+                        src={isLivePreview ? deployedUrl : undefined}
+                        srcDoc={isLivePreview ? undefined : finalHtmlContent}
                         title="App Preview"
                         sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
-                        className={`w-full h-full border-0 bg-white ${isVisualEditMode ? 'pointer-events-auto' : ''}`}
+                        className={`w-full h-full border-0 bg-white ${isVisualEditMode && !isLivePreview ? 'pointer-events-auto' : ''}`}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-500">
                         Your app preview will appear here.
                     </div>
                 )}
-                 {isVisualEditMode && (
+                 {isVisualEditMode && !isLivePreview && (
                     <div className="absolute inset-0 bg-indigo-900/20 pointer-events-none rounded-md flex items-center justify-center">
                         <p className="bg-black/50 text-white px-4 py-2 rounded-full font-semibold">
                             Select an element to edit
