@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
           className={`p-3 rounded-full transition-all duration-200 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
             activePage === item.id
               ? 'bg-white text-black shadow-lg'
-              : 'text-white bg-slate-900/50 backdrop-blur-md border border-slate-700/50 hover:bg-white/20'
+              : 'text-white hover:bg-white/20'
           }`}
         >
           <item.icon className="w-6 h-6" />

@@ -18,7 +18,6 @@ import UpgradeModal from './components/UpgradeModal';
 import Logo from './components/Logo';
 import { trackAffiliateClick } from './services/affiliateService';
 import { SavedProject, FirebaseUser, GitHubRepo, AppMode, AppPlan, GeminiResponse } from './types';
-import FeatureDropModal from './components/FeatureDropModal';
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
 
@@ -46,7 +45,6 @@ const App: React.FC = () => {
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isFeatureDropModalOpen, setIsFeatureDropModalOpen] = useState(false);
   const [codePilotRepo, setCodePilotRepo] = useState<GitHubRepo | null>(null);
   const [isFaceTrackingEnabled, setIsFaceTrackingEnabled] = useState(false);
 
@@ -104,12 +102,6 @@ const App: React.FC = () => {
     const faceTracking = localStorage.getItem('face_tracking_enabled') === 'true';
     setIsFaceTrackingEnabled(faceTracking);
 
-    // Feature Drop Modal check
-    const featureDropSeen = localStorage.getItem('featureDrop_oct2025_v3_seen') === 'true';
-    if (!featureDropSeen) {
-        setIsFeatureDropModalOpen(true);
-    }
-    
     const permanentProStatus = localStorage.getItem('isPro') === 'true';
     setIsPro(permanentProStatus);
 
@@ -206,11 +198,6 @@ const App: React.FC = () => {
     setGenerationData(null);
   };
 
-  const handleCloseFeatureDropModal = () => {
-    setIsFeatureDropModalOpen(false);
-    localStorage.setItem('featureDrop_oct2025_v3_seen', 'true');
-  };
-
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -278,10 +265,6 @@ const App: React.FC = () => {
       <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
-      />
-      <FeatureDropModal
-        isOpen={isFeatureDropModalOpen}
-        onClose={handleCloseFeatureDropModal}
       />
       <Sidebar
         activePage={getActivePageForSidebar()}
