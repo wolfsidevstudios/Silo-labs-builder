@@ -23,7 +23,7 @@ import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitH
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
 import { saveProject, updateProject } from '../services/projectService';
 import { getPat as getGitHubPat, getUserInfo as getGitHubUserInfo, createRepository, getRepoContent, createOrUpdateFile } from '../services/githubService';
-import { getPat as getNetlifyPat, createSite, deployToNetlify } from '../services/netlifyService';
+import { getPat as getNetlifyPat, createSite, deployToNetlify, createSiteFromRepo, triggerRedeploy } from '../services/netlifyService';
 import { getApiKey as getGiphyKey } from '../services/giphyService';
 import { getAccessKey as getUnsplashKey } from '../services/unsplashService';
 import { getApiKey as getYouTubeKey } from '../services/youtubeService';
@@ -577,34 +577,57 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   };
 
   const handleDeploy = async () => {
-      const token = getNetlifyPat();
-      if (!token || !activeTab || files.length === 0) {
-          updateActiveTab({ error: "Cannot deploy. Ensure you are connected to Netlify and have generated an app." });
-          return;
-      }
+    const token = getNetlifyPat();
+    if (!token || !activeTab) { updateActiveTab({ error: "Cannot deploy. Ensure you are connected to Netlify." }); return; }
 
-      setDeployStatus('deploying');
-      
-      try {
-          let siteId = activeTab.currentNetlifySiteId;
-          if (!siteId) {
-              const newSite = await createSite(token);
-              siteId = newSite.id;
-              updateActiveTab({ currentNetlifySiteId: siteId, currentNetlifyUrl: newSite.ssl_url });
-              if (activeTab.lastSavedProjectId) {
-                  updateProject(activeTab.lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: newSite.ssl_url });
-              }
-          }
-          if (!siteId) throw new Error("Failed to create or find Netlify site.");
-          
-          await deployToNetlify(token, siteId, files);
-          setDeployStatus('success');
+    const frameworkModes: AppMode[] = ['react-ts', 'nextjs', 'angular'];
+    const isGitBased = frameworkModes.includes(activeTab.appMode);
 
-      } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : "An unknown error occurred during deployment.";
-          updateActiveTab({ error: errorMsg });
-          setDeployStatus('error');
-      }
+    if (isGitBased) {
+        if (!activeTab.currentProjectRepo) {
+            alert("Please save your project to a public GitHub repository before deploying.");
+            setIsGitHubModalOpen(true);
+            setIsDeployModalOpen(false); // Close the deploy modal if it was open
+            return;
+        }
+        setDeployStatus('deploying');
+        try {
+            if (activeTab.currentNetlifySiteId) {
+                await triggerRedeploy(token, activeTab.currentNetlifySiteId);
+                setDeployStatus('success');
+            } else {
+                const newSite = await createSiteFromRepo(token, activeTab.currentProjectRepo);
+                updateActiveTab({ currentNetlifySiteId: newSite.id, currentNetlifyUrl: newSite.ssl_url });
+                if (activeTab.lastSavedProjectId) {
+                    updateProject(activeTab.lastSavedProjectId, { netlifySiteId: newSite.id, netlifyUrl: newSite.ssl_url });
+                }
+                setDeployStatus('success');
+            }
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "An unknown error occurred during deployment.";
+            updateActiveTab({ error: errorMsg });
+            setDeployStatus('error');
+        }
+    } else { // Direct deploy for 'web' mode
+        if (files.length === 0) { updateActiveTab({ error: "Cannot deploy. Generate an app first." }); return; }
+        setDeployStatus('deploying');
+        try {
+            let siteId = activeTab.currentNetlifySiteId;
+            if (!siteId) {
+                const newSite = await createSite(token);
+                siteId = newSite.id;
+                updateActiveTab({ currentNetlifySiteId: siteId, currentNetlifyUrl: newSite.ssl_url });
+                if (activeTab.lastSavedProjectId) { updateProject(activeTab.lastSavedProjectId, { netlifySiteId: siteId, netlifyUrl: newSite.ssl_url }); }
+            }
+            if (!siteId) throw new Error("Failed to create or find Netlify site.");
+            await deployToNetlify(token, siteId, files);
+            setDeployStatus('success');
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "An unknown error occurred during deployment.";
+            updateActiveTab({ error: errorMsg });
+            setDeployStatus('error');
+        }
+    }
   };
   
   // This effect runs once on mount to initialize the first tab
@@ -763,7 +786,15 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     <>
       <ImageLibraryModal isOpen={isImageLibraryOpen} onClose={() => setIsImageLibraryOpen(false)} onSelectImages={handleSelectFromLibrary} />
       <GitHubSaveModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} onSave={handleGitHubSave} isNewRepo={!activeTab?.currentProjectRepo} />
-      <DeployModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} onDeploy={handleDeploy} status={deployStatus} siteUrl={activeTab?.currentNetlifyUrl || null} isNewDeploy={!activeTab?.currentNetlifySiteId} />
+      <DeployModal 
+        isOpen={isDeployModalOpen} 
+        onClose={() => setIsDeployModalOpen(false)} 
+        onDeploy={handleDeploy} 
+        status={deployStatus} 
+        siteUrl={activeTab?.currentNetlifyUrl || null} 
+        isNewDeploy={!activeTab?.currentNetlifySiteId}
+        isGitBased={activeTab && ['react-ts', 'nextjs', 'angular'].includes(activeTab.appMode)}
+      />
       <GiphySearchModal isOpen={isGiphyModalOpen} onClose={() => setIsGiphyModalOpen(false)} onSelectGif={handleSelectGif} />
       <UnsplashSearchModal isOpen={isUnsplashModalOpen} onClose={() => setIsUnsplashModalOpen(false)} onSelectPhoto={handleSelectUnsplashPhoto} />
       <YouTubeSearchModal isOpen={isYouTubeModalOpen} onClose={() => setIsYouTubeModalOpen(false)} onSelectVideo={handleSelectYouTubeVideo} />
@@ -821,7 +852,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                     isGitHubConnected={!!githubUser}
                     onGitHubClick={() => setIsGitHubModalOpen(true)}
                     isNetlifyConnected={isNetlifyConnected}
-                    onDeployClick={() => { setIsDeployModalOpen(true); if (activeTab?.currentNetlifySiteId) { setDeployStatus('idle'); } else { handleDeploy(); } }}
+                    onDeployClick={() => { setIsDeployModalOpen(true); setDeployStatus('idle'); }}
                     isDeployed={!!activeTab?.currentNetlifySiteId}
                     hasFiles={files.length > 0}
                     isPro={isPro}

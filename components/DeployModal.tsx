@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import NetlifyIcon from './icons/NetlifyIcon';
 import CheckIcon from './icons/CheckIcon';
 import RocketIcon from './icons/RocketIcon';
@@ -10,27 +10,42 @@ interface DeployModalProps {
   status: 'idle' | 'deploying' | 'success' | 'error';
   siteUrl: string | null;
   isNewDeploy: boolean;
+  isGitBased?: boolean;
 }
 
-const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onClose, onDeploy, status, siteUrl, isNewDeploy }) => {
+const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onClose, onDeploy, status, siteUrl, isNewDeploy, isGitBased = false }) => {
+  useEffect(() => {
+    // Automatically start deployment for new web apps as they don't need a confirmation step
+    if (isOpen && isNewDeploy && !isGitBased && status === 'idle') {
+        onDeploy();
+    }
+  }, [isOpen, isNewDeploy, isGitBased, status, onDeploy]);
+
   if (!isOpen) return null;
 
   const renderContent = () => {
-    // For an existing project, show the URL and require a click to redeploy
-    if (!isNewDeploy && status === 'idle') {
+    // For an existing project OR a new Git-based project, show a confirmation first.
+    if (status === 'idle' && (!isNewDeploy || isGitBased)) {
       return (
         <>
             <div className="flex items-center gap-3 mb-4">
                 <NetlifyIcon className="h-7 w-7" />
-                <h2 className="text-2xl font-bold text-white">Redeploy Project</h2>
+                <h2 className="text-2xl font-bold text-white">{isNewDeploy ? 'Deploy to Netlify' : 'Redeploy Project'}</h2>
             </div>
-            <p className="text-slate-400 mb-6">Your project is live at the URL below. Click redeploy to push your latest changes.</p>
-            <div className="bg-slate-900/50 p-3 rounded-lg text-center mb-6">
-                <a href={siteUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-mono break-all hover:underline">{siteUrl}</a>
-            </div>
+            <p className="text-slate-400 mb-6">
+                {isNewDeploy
+                    ? "This will create a new Netlify site from your connected GitHub repository and trigger the first build."
+                    : `Your project is live at the URL below. Click redeploy to push your latest changes from GitHub.`
+                }
+            </p>
+            {!isNewDeploy && siteUrl && (
+                <div className="bg-slate-900/50 p-3 rounded-lg text-center mb-6">
+                    <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-mono break-all hover:underline">{siteUrl}</a>
+                </div>
+            )}
              <div className="mt-8 flex justify-end gap-4">
                 <button onClick={onClose} className="px-5 py-2 text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">Cancel</button>
-                <button onClick={onDeploy} className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">Redeploy</button>
+                <button onClick={onDeploy} className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">{isNewDeploy ? 'Deploy' : 'Redeploy'}</button>
             </div>
         </>
       );
@@ -54,8 +69,14 @@ const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onClose, onDeploy, st
              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-600/20 mb-6">
                 <CheckIcon className="h-6 w-6 text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Deployment Successful!</h2>
-            <p className="text-slate-400 mt-2 mb-6">Your app is now live. You can view it at the URL below.</p>
+            <h2 className="text-2xl font-bold text-white">{isGitBased ? 'Build Triggered!' : 'Deployment Successful!'}</h2>
+            <p className="text-slate-400 mt-2 mb-6">
+              {isGitBased 
+                ? isNewDeploy 
+                  ? "Your site is being created and the first build is in progress. It will be live at the URL below shortly."
+                  : "A new build has been triggered from your repository's latest commit. Your changes will be live shortly."
+                : "Your app is now live. You can view it at the URL below."}
+            </p>
             <div className="bg-slate-900/50 p-3 rounded-lg">
                 <a href={siteUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-mono break-all hover:underline">{siteUrl}</a>
             </div>

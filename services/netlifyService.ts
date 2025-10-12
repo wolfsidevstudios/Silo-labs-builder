@@ -50,12 +50,42 @@ export async function getSites(token: string): Promise<NetlifySite[]> {
   return netlifyApiRequest<NetlifySite[]>('/sites', token);
 }
 
+// For manual file deploys of simple web apps
 export async function createSite(token: string): Promise<NetlifySite> {
     return netlifyApiRequest<NetlifySite>('/sites', token, {
         method: 'POST',
         body: JSON.stringify({}), // Create with a random name
     });
 }
+
+// For Git-based deploys of framework apps
+export async function createSiteFromRepo(token: string, repoFullName: string): Promise<NetlifySite> {
+    const [owner, repoName] = repoFullName.split('/');
+    if (!owner || !repoName) {
+        throw new Error("Invalid repository name format. Expected 'owner/repo'.");
+    }
+    return netlifyApiRequest<NetlifySite>('/sites', token, {
+        method: 'POST',
+        body: JSON.stringify({
+            repo: {
+                provider: 'github',
+                repo: repoFullName,
+                private: false, // For simplicity with PAT, assume public repos
+                branch: 'main', // Assume default branch is main
+            }
+        }),
+    });
+}
+
+// For triggering a new build on a Git-linked site
+export async function triggerRedeploy(token: string, siteId: string): Promise<any> {
+    // The body can be an empty object to trigger a new build from the latest repo commit
+    return netlifyApiRequest<any>(`/sites/${siteId}/builds`, token, {
+        method: 'POST',
+        body: JSON.stringify({}),
+    });
+}
+
 
 // Helper to calculate SHA1 digest for a file
 async function getFileSha1(content: string): Promise<string> {
