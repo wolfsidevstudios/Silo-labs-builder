@@ -140,7 +140,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
       <div className="relative h-screen w-screen bg-black overflow-hidden">
         <HomePageBackground />
         <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
-          <main className="flex flex-col items-center justify-center w-full flex-grow text-center">
+          <main className="flex flex-col items-center justify-center w-full flex-grow">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-6 animate-fade-in-down">
               From Prompt to App
             </h1>
@@ -155,7 +155,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="e.g., a photo gallery with a masonry layout..."
-                className={inputClasses}
+                className={`${inputClasses} text-left`}
                 aria-label="App prompt"
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {

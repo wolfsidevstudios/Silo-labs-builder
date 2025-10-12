@@ -41,11 +41,11 @@ const BackgroundSvg = () => (
     </svg>
 );
 
-const ImageBackground: React.FC = () => (
+const ImageBackground: React.FC<{ src: string, alt: string }> = ({ src, alt }) => (
     <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
         <img
-            src="https://i.ibb.co/ZzRwdfdj/Google-AI-Studio-2025-10-12-T01-49-15-585-Z.png"
-            alt="Abstract background with glowing lines and particles"
+            src={src}
+            alt={alt}
             className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black opacity-40"></div>
@@ -83,6 +83,8 @@ const HomePageBackground: React.FC = () => {
             return <div className={`${commonClass} bg-gradient-to-tr from-emerald-900 via-cyan-900 to-slate-900`} />;
         case 'limited-edition-4':
             return <div className={`${commonClass} bg-gradient-to-bl from-black via-yellow-900 to-orange-800`} />;
+        case 'limited-edition-5':
+            return <ImageBackground src="https://i.ibb.co/6JHRP99c/Google-AI-Studio-2025-10-12-T01-55-17-287-Z.png" alt="Cosmic energy background" />;
         case 'gradient-1':
             return <div className={`${commonClass} bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900`} />;
         case 'gradient-2':
@@ -151,7 +153,7 @@ const HomePageBackground: React.FC = () => {
             );
         case 'default':
         default:
-            return <ImageBackground />;
+            return <ImageBackground src="https://i.ibb.co/ZzRwdfdj/Google-AI-Studio-2025-10-12-T01-49-15-585-Z.png" alt="Abstract background with glowing lines and particles" />;
     }
 };
 

@@ -100,6 +100,7 @@ const BACKGROUNDS: Record<string, { name: string, style: string, isLimited?: boo
     'limited-edition-2': { name: 'Cosmic Rift', style: 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900', isLimited: true },
     'limited-edition-3': { name: 'Aurora Borealis', style: 'bg-gradient-to-tr from-emerald-900 via-cyan-900 to-slate-900', isLimited: true },
     'limited-edition-4': { name: 'Liquid Gold', style: 'bg-gradient-to-bl from-black via-yellow-900 to-orange-800', isLimited: true },
+    'limited-edition-5': { name: 'Cosmic Energy', style: 'bg-indigo-900', isLimited: true },
     'light-swirl': { name: 'Light Swirl', style: 'bg-gradient-to-br from-sky-100 via-white to-cyan-100' },
     'gradient-1': { name: 'Cosmic Fusion', style: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900' },
     'gradient-2': { name: 'Oceanic Depth', style: 'bg-gradient-to-tr from-cyan-900 via-blue-900 to-slate-900' },
