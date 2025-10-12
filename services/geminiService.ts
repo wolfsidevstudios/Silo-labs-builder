@@ -102,8 +102,12 @@ const appPlanSchema = {
             },
             description: "A color palette for the application.",
         },
+        previewHtml: {
+            type: Type.STRING,
+            description: "A single, self-contained HTML string using Tailwind CSS to create a simple, static, non-interactive visual mockup of the app's main page based on the plan. It should include a basic layout, colors from the palette, and placeholder text/images to give a feel for the design. It must include the Tailwind CSS script tag: <script src=\"https://cdn.tailwindcss.com\"></script>."
+        }
     },
-    required: ["features", "designDetails", "pages", "colors"],
+    required: ["features", "designDetails", "pages", "colors", "previewHtml"],
 };
 
 
@@ -592,7 +596,11 @@ export async function* streamGenerateOrUpdateAppCode(
 }
 
 export async function generateAppPlan(prompt: string, revisions?: string): Promise<AppPlan> {
-    const systemInstruction = `You are an expert software project planner. Based on the user's prompt, break down the requested application into a detailed plan. The plan must include a list of features, design details, pages/sections, and a color palette. If the user provides revisions, adjust the plan accordingly. You MUST respond in the specified JSON format.`;
+    const systemInstruction = `You are an expert software project planner and UI/UX designer. Based on the user's prompt, your task is twofold:
+1.  Break down the requested application into a detailed plan. The plan must include a list of features, design details, pages/sections, and a color palette.
+2.  Generate a simple, static, non-interactive visual mockup of the application's main page. This mockup MUST be a single HTML string using Tailwind CSS for styling. It should visually represent the plan, including layout, colors, and typography to give the user a preview of the potential look and feel. The HTML must be self-contained and include the Tailwind CSS CDN script: <script src="https://cdn.tailwindcss.com"></script>.
+
+If the user provides revisions, adjust both the plan and the HTML preview accordingly. You MUST respond in the specified JSON format that includes both the plan object and the previewHtml string.`;
 
     const fullPrompt = revisions
         ? `The original request was: "${prompt}". The user has requested the following revisions: "${revisions}". Please generate an updated plan.`

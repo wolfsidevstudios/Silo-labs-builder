@@ -26,6 +26,7 @@ export interface AppPlan {
     name: string;
     hex: string;
   }[];
+  previewHtml: string;
 }
 
 export interface Version extends GeminiResponse {
