@@ -8,6 +8,9 @@ import HomePageBackground from '../components/HomePageBackground';
 import ExpoIcon from '../components/icons/ExpoIcon';
 import ReactIcon from '../components/icons/ReactIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
+import ZapIcon from '../components/icons/ZapIcon';
+import ChevronDownIcon from '../components/icons/ChevronDownIcon';
+import CheckIcon from '../components/icons/CheckIcon';
 
 
 interface HomePageProps {
@@ -35,6 +38,9 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const suggestionsMenuRef = useRef<HTMLDivElement>(null);
   const suggestionsButtonRef = useRef<HTMLButtonElement>(null);
+  const [isModesMenuOpen, setIsModesMenuOpen] = useState(false);
+  const modesMenuRef = useRef<HTMLDivElement>(null);
+  const modesButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setInputStyle(localStorage.getItem('input_bar_style') || 'glossy');
@@ -71,6 +77,14 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
       ) {
         setIsSuggestionsOpen(false);
       }
+      if (
+        modesMenuRef.current &&
+        !modesMenuRef.current.contains(event.target as Node) &&
+        modesButtonRef.current &&
+        !modesButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsModesMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -106,9 +120,9 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
     });
   };
 
-  const glossyClasses = "w-full h-48 p-6 pr-40 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none";
-  const transparentClasses = "w-full h-48 p-6 pr-40 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-lg shadow-black/20 transition-all resize-none";
-  const dynamicPillClasses = "w-full min-h-[56px] max-h-64 py-4 px-6 pr-40 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-[0_0_150px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(255,255,255,0.05)] transition-all resize-none overflow-hidden";
+  const glossyClasses = "w-full h-48 p-6 pl-44 pr-40 bg-white rounded-3xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl shadow-black/20 transition-all resize-none";
+  const transparentClasses = "w-full h-48 p-6 pl-44 pr-40 bg-white/90 backdrop-blur-md border border-white/20 rounded-3xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl shadow-black/20 transition-all resize-none";
+  const dynamicPillClasses = "w-full min-h-[56px] max-h-64 py-4 px-6 pl-44 pr-40 bg-white rounded-full text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl shadow-black/20 transition-all resize-none overflow-hidden";
 
   const inputClasses = inputStyle === 'dynamic' 
       ? dynamicPillClasses 
@@ -131,50 +145,6 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               From Prompt to App
             </h1>
             
-            <div className="mb-8 flex justify-center">
-                <div className="bg-white/5 border border-white/10 rounded-full p-1 flex items-center gap-1 backdrop-blur-sm">
-                    <button
-                        type="button"
-                        onClick={() => setIsLisaActive(prev => !prev)}
-                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                            isLisaActive ? 'bg-white text-black shadow-md' : 'text-slate-300 hover:bg-white/10'
-                        }`}
-                    >
-                        <BrainCircuitIcon className={`w-5 h-5 transition-colors ${isLisaActive ? 'text-indigo-500' : 'text-indigo-300'}`} />
-                        Lisa Agent
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleToggleReactTs}
-                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                            isReactTsMode ? 'bg-white text-black shadow-md' : 'text-slate-300 hover:bg-white/10'
-                        }`}
-                    >
-                        <ReactIcon className={`w-5 h-5 ${isReactTsMode ? '' : 'text-cyan-300'}`} />
-                        React + TS
-                    </button>
-                     <button
-                        type="button"
-                        onClick={handleToggleExpo}
-                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                            isExpoMode ? 'bg-white text-black shadow-md' : 'text-slate-300 hover:bg-white/10'
-                        }`}
-                    >
-                        <ExpoIcon className={`w-5 h-5 ${isExpoMode ? '' : 'text-cyan-300'}`} />
-                        Expo
-                    </button>
-                    <div className="w-px h-6 bg-white/10 mx-1"></div>
-                    <button
-                        type="button"
-                        onClick={() => setIsRepoModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold text-slate-300 hover:bg-white/10 transition-colors"
-                    >
-                        <RocketIcon className="w-5 h-5 text-cyan-300" />
-                        Code Pilot
-                    </button>
-                </div>
-            </div>
-
             <form 
               onSubmit={handleSubmit} 
               className="relative w-full max-w-2xl animate-fade-in-up"
@@ -194,15 +164,70 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                     }
                 }}
               />
+              <div className={`absolute flex items-center gap-2 ${inputStyle === 'dynamic' ? 'left-3 top-2' : 'left-4 bottom-4'}`}>
+                <div className="relative">
+                    <button
+                        ref={modesButtonRef}
+                        type="button"
+                        onClick={() => setIsModesMenuOpen(prev => !prev)}
+                        className="relative bg-slate-100 p-2 pl-4 pr-3 flex items-center gap-2 rounded-full text-slate-700 hover:bg-slate-200 transition-colors"
+                    >
+                        <ZapIcon className="w-5 h-5 text-indigo-500" />
+                        <span className="font-semibold text-sm">Modes & Agents</span>
+                        <ChevronDownIcon className="w-4 h-4 text-slate-500" />
+                        {(isLisaActive || isExpoMode || isReactTsMode) && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                            </span>
+                        )}
+                    </button>
+                    {isModesMenuOpen && (
+                        <div
+                            ref={modesMenuRef}
+                            className="absolute bottom-full left-0 mb-2 bg-slate-800/80 backdrop-blur-lg border border-slate-700 rounded-2xl shadow-lg w-64 animate-fade-in-up-sm"
+                        >
+                            <div className="p-2 space-y-1">
+                                <button onClick={() => setIsLisaActive(prev => !prev)} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <BrainCircuitIcon className="w-5 h-5 text-indigo-300" />
+                                        <span>Lisa Agent</span>
+                                    </div>
+                                    {isLisaActive && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={handleToggleReactTs} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <ReactIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>React + TS Mode</span>
+                                    </div>
+                                    {isReactTsMode && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={handleToggleExpo} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <ExpoIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>Expo Mode</span>
+                                    </div>
+                                    {isExpoMode && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <div className="!my-2 h-px bg-slate-700"></div>
+                                <button onClick={() => { setIsRepoModalOpen(true); setIsModesMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <RocketIcon className="w-5 h-5 text-cyan-300" />
+                                    <span>Code Pilot</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+              </div>
               <div className={`absolute flex items-center gap-2 ${inputStyle === 'dynamic' ? 'right-2 top-2' : 'right-4 bottom-4'}`}>
                 <div className="relative">
                   <button
                     ref={suggestionsButtonRef}
                     type="button"
                     onClick={() => setIsSuggestionsOpen(prev => !prev)}
-                    className="h-12 px-5 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full text-sm text-slate-200 hover:bg-white/10 transition-colors flex items-center gap-2"
+                    className="h-12 px-5 bg-slate-100 rounded-full text-sm text-slate-700 hover:bg-slate-200 transition-colors flex items-center gap-2"
                   >
-                    <SparklesIcon className="w-5 h-5" />
+                    <SparklesIcon className="w-5 h-5 text-slate-600" />
                     <span>Prompts</span>
                   </button>
                   {isSuggestionsOpen && (
@@ -233,11 +258,11 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                 
                 <button
                   type="submit"
-                  className="h-12 w-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group"
+                  className="h-12 w-12 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed group"
                   disabled={!prompt.trim()}
                   aria-label="Generate app"
                 >
-                  <ArrowUpIcon className="w-6 h-6 text-black transition-transform group-hover:scale-110" />
+                  <ArrowUpIcon className="w-6 h-6 text-white transition-transform group-hover:scale-110" />
                 </button>
               </div>
             </form>
