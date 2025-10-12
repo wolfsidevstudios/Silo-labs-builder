@@ -44,11 +44,11 @@ const BackgroundSvg = () => (
 const ImageBackground: React.FC = () => (
     <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
         <img
-            src="https://images.pexels.com/photos/110854/pexels-photo-110854.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260"
-            alt="Milky way galaxy"
+            src="https://i.ibb.co/ZzRwdfdj/Google-AI-Studio-2025-10-12-T01-49-15-585-Z.png"
+            alt="Abstract background with glowing lines and particles"
             className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="absolute inset-0 bg-black opacity-40"></div>
     </div>
 );
 

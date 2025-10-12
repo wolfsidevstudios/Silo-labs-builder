@@ -32,6 +32,10 @@ const DATA_KEYS: Record<DataCategory, string[]> = {
     'stripe_secret_key',
     'stripe_publishable_key',
     'poly_api_key',
+    'twilio_account_sid',
+    'twilio_auth_token',
+    'google_adsense_publisher_id',
+    'google_analytics_measurement_id',
   ],
   settings: [
     'gemini_model',

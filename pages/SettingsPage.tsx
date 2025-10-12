@@ -26,6 +26,10 @@ import { getApiKey as getRawgApiKey, saveApiKey as saveRawgApiKey, removeApiKey 
 import { getApiKey as getWordsApiKey, saveApiKey as saveWordsApiKey, removeApiKey as removeWordsApiKey } from '../services/wordsApiService';
 import { getApiKeys as getStripeKeys, saveApiKeys as saveStripeKeys, removeApiKeys as removeStripeKeys } from '../services/stripeService';
 import { getApiKey as getPolyApiKey, saveApiKey as savePolyApiKey, removeApiKey as removePolyApiKey } from '../services/polyService';
+import { getCredentials as getTwilioCredentials, saveCredentials as saveTwilioCredentials, removeCredentials as removeTwilioCredentials } from '../services/twilioService';
+import { getPublisherId as getAdsenseId, savePublisherId as saveAdsenseId, removePublisherId as removeAdsenseId } from '../services/googleAdsenseService';
+import { getMeasurementId as getAnalyticsId, saveMeasurementId as saveAnalyticsId, removeMeasurementId as removeAnalyticsId } from '../services/googleAnalyticsService';
+
 
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import DeleteDataModal from '../components/DeleteDataModal';
@@ -64,6 +68,9 @@ import AccessibilityIcon from '../components/icons/AccessibilityIcon';
 import FaceIcon from '../components/icons/FaceIcon';
 import StripeIcon from '../components/icons/StripeIcon';
 import PolyIcon from '../components/icons/PolyIcon';
+import TwilioIcon from '../components/icons/TwilioIcon';
+import GoogleAdsenseIcon from '../components/icons/GoogleAdsenseIcon';
+import GoogleAnalyticsIcon from '../components/icons/GoogleAnalyticsIcon';
 
 
 interface SettingsPageProps {
@@ -140,6 +147,9 @@ const apiDocsLinks: Record<string, string> = {
   'WordsAPI': 'https://rapidapi.com/dpventures/api/wordsapi',
   'Stripe': 'https://dashboard.stripe.com/apikeys',
   'Poly.sh': 'https://poly.sh/settings/keys',
+  'Twilio': 'https://www.twilio.com/console',
+  'Google AdSense': 'https://www.google.com/adsense/start/',
+  'Google Analytics': 'https://analytics.google.com/',
 };
 
 
@@ -375,6 +385,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const integrationsList = [
       { name: 'Stripe', icon: StripeIcon, getCreds: getStripeKeys, saveCreds: (secretKey: string, publishableKey: string) => saveStripeKeys({ secretKey, publishableKey }), removeCreds: removeStripeKeys, fields: [{name: 'Secret Key', type: 'password'}, {name: 'Publishable Key', type: 'text'}] },
       { name: 'Poly.sh', icon: PolyIcon, get: getPolyApiKey, save: savePolyApiKey, remove: removePolyApiKey, fields: [{name: 'API Key', type: 'password'}] },
+      { name: 'Twilio', icon: TwilioIcon, getCreds: getTwilioCredentials, saveCreds: (accountSid: string, authToken: string) => saveTwilioCredentials({ accountSid, authToken }), removeCreds: removeTwilioCredentials, fields: [{name: 'Account SID', type: 'text'}, {name: 'Auth Token', type: 'password'}] },
+      { name: 'Google AdSense', icon: GoogleAdsenseIcon, get: getAdsenseId, save: saveAdsenseId, remove: removeAdsenseId, fields: [{name: 'Publisher ID (ca-pub-...)', type: 'text'}] },
+      { name: 'Google Analytics', icon: GoogleAnalyticsIcon, get: getAnalyticsId, save: saveAnalyticsId, remove: removeAnalyticsId, fields: [{name: 'Measurement ID (G-...)' , type: 'text'}] },
       { name: 'Giphy', icon: GiphyIcon, get: getGiphyApiKey, save: saveGiphyApiKey, remove: removeGiphyApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Unsplash', icon: UnsplashIcon, get: getUnsplashAccessKey, save: saveUnsplashAccessKey, remove: removeUnsplashAccessKey, fields: [{name: 'Access Key', type: 'password'}] },
       { name: 'OpenAI', icon: OpenAiIcon, get: getOpenAiApiKey, save: saveOpenAiApiKey, remove: removeOpenAiApiKey, fields: [{name: 'API Key', type: 'password'}] },
