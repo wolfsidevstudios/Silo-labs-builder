@@ -7,6 +7,9 @@ import { GitHubRepo, AppMode } from '../types';
 import HomePageBackground from '../components/HomePageBackground';
 import ExpoIcon from '../components/icons/ExpoIcon';
 import ReactIcon from '../components/icons/ReactIcon';
+import FlutterIcon from '../components/icons/FlutterIcon';
+import NextjsIcon from '../components/icons/NextjsIcon';
+import AngularIcon from '../components/icons/AngularIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import ZapIcon from '../components/icons/ZapIcon';
 import ChevronDownIcon from '../components/icons/ChevronDownIcon';
@@ -30,8 +33,6 @@ const suggestionPrompts = [
 const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => {
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
-  const [isExpoMode, setIsExpoMode] = useState(false);
-  const [isReactTsMode, setIsReactTsMode] = useState(false);
   const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
   const [inputStyle, setInputStyle] = useState('glossy');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,6 +42,9 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const [isModesMenuOpen, setIsModesMenuOpen] = useState(false);
   const modesMenuRef = useRef<HTMLDivElement>(null);
   const modesButtonRef = useRef<HTMLButtonElement>(null);
+  
+  const [activeMode, setActiveMode] = useState<AppMode>('web');
+
 
   useEffect(() => {
     setInputStyle(localStorage.getItem('input_bar_style') || 'glossy');
@@ -94,10 +98,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
-      let mode: AppMode = 'web';
-      if (isExpoMode) mode = 'expo';
-      else if (isReactTsMode) mode = 'react-ts';
-      onGenerate(prompt, isLisaActive, mode);
+      onGenerate(prompt, isLisaActive, activeMode);
     }
   };
 
@@ -106,18 +107,8 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
     onStartCodePilot(repo);
   };
   
-  const handleToggleExpo = () => {
-    setIsExpoMode(prev => {
-      if (!prev) setIsReactTsMode(false); // Turn off react-ts if turning on expo
-      return !prev;
-    });
-  };
-
-  const handleToggleReactTs = () => {
-    setIsReactTsMode(prev => {
-      if (!prev) setIsExpoMode(false); // Turn off expo if turning on react-ts
-      return !prev;
-    });
+  const handleModeChange = (mode: AppMode) => {
+    setActiveMode(prev => prev === mode ? 'web' : mode);
   };
 
   const glossyClasses = "w-full h-48 p-6 pl-44 pr-40 bg-white rounded-3xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl shadow-black/20 transition-all resize-none";
@@ -175,7 +166,7 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                         <ZapIcon className="w-5 h-5 text-indigo-500" />
                         <span className="font-semibold text-sm">Modes & Agents</span>
                         <ChevronDownIcon className="w-4 h-4 text-slate-500" />
-                        {(isLisaActive || isExpoMode || isReactTsMode) && (
+                        {(isLisaActive || activeMode !== 'web') && (
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
@@ -195,19 +186,41 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                                     </div>
                                     {isLisaActive && <CheckIcon className="w-5 h-5 text-indigo-400" />}
                                 </button>
-                                <button onClick={handleToggleReactTs} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                <div className="!my-2 h-px bg-slate-700"></div>
+                                <button onClick={() => handleModeChange('react-ts')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
                                     <div className="flex items-center gap-3">
                                         <ReactIcon className="w-5 h-5 text-cyan-300" />
-                                        <span>React + TS Mode</span>
+                                        <span>React + TS</span>
                                     </div>
-                                    {isReactTsMode && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                    {activeMode === 'react-ts' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
                                 </button>
-                                <button onClick={handleToggleExpo} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                <button onClick={() => handleModeChange('nextjs')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <NextjsIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>Next.js</span>
+                                    </div>
+                                    {activeMode === 'nextjs' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={() => handleModeChange('angular')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <AngularIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>Angular</span>
+                                    </div>
+                                    {activeMode === 'angular' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={() => handleModeChange('expo')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
                                     <div className="flex items-center gap-3">
                                         <ExpoIcon className="w-5 h-5 text-cyan-300" />
-                                        <span>Expo Mode</span>
+                                        <span>Expo</span>
                                     </div>
-                                    {isExpoMode && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                    {activeMode === 'expo' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={() => handleModeChange('flutter')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <FlutterIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>Flutter</span>
+                                    </div>
+                                    {activeMode === 'flutter' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
                                 </button>
                                 <div className="!my-2 h-px bg-slate-700"></div>
                                 <button onClick={() => { setIsRepoModalOpen(true); setIsModesMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">

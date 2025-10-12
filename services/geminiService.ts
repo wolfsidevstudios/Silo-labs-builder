@@ -405,7 +405,7 @@ export async function generateOrUpdateAppCode(
     }
 
     generatedApp.files = generatedApp.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
-    if (generatedApp.files[0] && (appMode === 'web' || !appMode)) {
+    if (generatedApp.files[0] && ['web', 'react-ts', 'nextjs', 'angular'].includes(appMode || 'web')) {
       const globalSecrets = getGlobalSecrets();
       const projectSecrets = projectSettings?.secrets || [];
       const secretsMap = new Map<string, string>();
@@ -413,7 +413,7 @@ export async function generateOrUpdateAppCode(
       projectSecrets.forEach(s => secretsMap.set(s.name, s.value));
       const combinedSecrets: Secret[] = Array.from(secretsMap, ([name, value]) => ({ name, value }));
 
-      generatedApp.previewHtml = injectSecrets(generatedApp.files[0].content, combinedSecrets);
+      generatedApp.previewHtml = injectSecrets(generatedApp.previewHtml, combinedSecrets);
     }
     
     return generatedApp;
@@ -555,7 +555,7 @@ export async function* streamGenerateOrUpdateAppCode(
   try {
     const fullPrompt = constructFullPrompt(prompt, existingFiles, visualEditTarget, projectSettings?.secrets, appMode);
     const provider = localStorage.getItem('ai_provider') || 'gemini';
-    const useStreaming = localStorage.getItem('experimental_live_preview') === 'true' && appMode === 'web';
+    const useStreaming = localStorage.getItem('experimental_live_preview') === 'true' && ['web', 'react-ts', 'nextjs', 'angular'].includes(appMode || 'web');
 
     if (!useStreaming) {
         const finalResponse = await generateOrUpdateAppCode(prompt, existingFiles, visualEditTarget, images, projectSettings, appMode);
@@ -596,7 +596,7 @@ export async function* streamGenerateOrUpdateAppCode(
     }
     
     finalResponse.files = finalResponse.files.map(file => ({ ...file, content: injectApiKeys(file.content) }));
-    if (finalResponse.files[0] && (appMode === 'web' || !appMode)) {
+    if (finalResponse.files[0] && ['web', 'react-ts', 'nextjs', 'angular'].includes(appMode || 'web')) {
       const globalSecrets = getGlobalSecrets();
       const projectSecrets = projectSettings?.secrets || [];
       const secretsMap = new Map<string, string>();
@@ -604,7 +604,7 @@ export async function* streamGenerateOrUpdateAppCode(
       projectSecrets.forEach(s => secretsMap.set(s.name, s.value));
       const combinedSecrets: Secret[] = Array.from(secretsMap, ([name, value]) => ({ name, value }));
       
-      finalResponse.previewHtml = injectSecrets(finalResponse.files[0].content, combinedSecrets);
+      finalResponse.previewHtml = injectSecrets(finalResponse.previewHtml, combinedSecrets);
     }
 
     yield { finalResponse };

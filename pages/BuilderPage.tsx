@@ -17,6 +17,7 @@ import ProjectSettingsModal from '../components/ProjectSettingsModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
 import MaxVibeAgentCursor from '../components/MaxVibeAgentCursor';
 import ExpoPreview from '../components/ExpoPreview';
+import FlutterPreview from '../components/FlutterPreview';
 import Terminal from '../components/Terminal';
 import { AppFile, SavedProject, ChatMessage, UserMessage, AssistantMessage, GitHubUser, GeminiResponse, SavedImage, GiphyGif, UnsplashPhoto, Secret, GeminiModelId, MaxIssue, TestStep, MaxReport, Version, AppMode, TerminalLine } from '../types';
 import { generateOrUpdateAppCode, streamGenerateOrUpdateAppCode, analyzeAppCode, determineModelForPrompt, generateMaxTestPlan } from '../services/geminiService';
@@ -610,9 +611,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   useEffect(() => {
     if (initialProject) {
       const appModeFromProject = initialProject.appMode;
-      const validAppMode: AppMode =
-        appModeFromProject === 'web' || appModeFromProject === 'expo' || appModeFromProject === 'react-ts'
-          ? appModeFromProject
+      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular'];
+      const validAppMode: AppMode = validAppModes.includes(appModeFromProject as AppMode)
+          ? appModeFromProject as AppMode
           : 'web';
 
       const newTab = createNewTab(
@@ -626,9 +627,9 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
-      const validAppMode: AppMode =
-        initialAppMode === 'web' || initialAppMode === 'expo' || initialAppMode === 'react-ts'
-          ? initialAppMode
+      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular'];
+      const validAppMode: AppMode = validAppModes.includes(initialAppMode as AppMode)
+          ? initialAppMode as AppMode
           : 'web';
       const newTab = createNewTab(
         `Project ${tabs.length + 1}`,
@@ -737,7 +738,11 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
     switch (activeTab.appMode) {
         case 'expo':
             return <ExpoPreview previewData={previewHtml} />;
+        case 'flutter':
+            return <FlutterPreview previewData={previewHtml} />;
         case 'react-ts':
+        case 'nextjs':
+        case 'angular':
         case 'web':
         default:
             return <Preview
@@ -791,7 +796,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
                   onOpenImageLibrary={() => setIsImageLibraryOpen(true)}
                   isGiphyConnected={isGiphyConnected} onAddGifClick={() => setIsGiphyModalOpen(true)}
                   isUnsplashConnected={isUnsplashConnected} onAddStockPhotoClick={() => setIsUnsplashModalOpen(true)}
-                  isYouTubeConnected={isYouTubeConnected} onAddYouTubeClick={() => setIsYouTubeModalOpen(true)}
+                  isYouTubeConnected={isYouTubeConnected} onAddYouTubeVideoClick={() => setIsYouTubeModalOpen(true)}
                   onStartMaxAgent={handleStartMaxAgent}
                   isMaxAgentRunning={activeTab.isMaxAgentRunning}
                   hasFiles={files.length > 0}
