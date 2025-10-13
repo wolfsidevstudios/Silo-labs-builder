@@ -634,7 +634,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
   useEffect(() => {
     if (initialProject) {
       const appModeFromProject = initialProject.appMode;
-      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular'];
+      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular', '3d'];
       const validAppMode: AppMode = validAppModes.includes(appModeFromProject as AppMode)
           ? appModeFromProject as AppMode
           : 'web';
@@ -650,7 +650,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
       setActiveTabId(newTab.id);
       initialGenerationDone.current.add(newTab.id);
     } else {
-      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular'];
+      const validAppModes: AppMode[] = ['web', 'expo', 'react-ts', 'flutter', 'nextjs', 'angular', '3d'];
       const validAppMode: AppMode = validAppModes.includes(initialAppMode as AppMode)
           ? initialAppMode as AppMode
           : 'web';
@@ -767,6 +767,7 @@ const BuilderPage: React.FC<BuilderPageProps> = ({ initialPrompt = '', initialPr
         case 'nextjs':
         case 'angular':
         case 'web':
+        case '3d':
         default:
             return <Preview
                 htmlContent={previewHtml}

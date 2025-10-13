@@ -14,6 +14,7 @@ import SparklesIcon from '../components/icons/SparklesIcon';
 import ZapIcon from '../components/icons/ZapIcon';
 import ChevronDownIcon from '../components/icons/ChevronDownIcon';
 import CheckIcon from '../components/icons/CheckIcon';
+import CubeIcon from '../components/icons/CubeIcon';
 
 
 interface HomePageProps {
@@ -241,6 +242,13 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
                                         <span>Flutter</span>
                                     </div>
                                     {activeMode === 'flutter' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
+                                </button>
+                                <button onClick={() => handleModeChange('3d')} className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <CubeIcon className="w-5 h-5 text-cyan-300" />
+                                        <span>3D Model</span>
+                                    </div>
+                                    {activeMode === '3d' && <CheckIcon className="w-5 h-5 text-indigo-400" />}
                                 </button>
                                 <div className="!my-2 h-px bg-slate-700"></div>
                                 <button onClick={() => { setIsRepoModalOpen(true); setIsModesMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors">
