@@ -9,7 +9,6 @@ import SiloMaxPage from './pages/SiloMaxPage';
 import CodePilotPage from './pages/CodePilotPage';
 import PlanPage from './pages/PlanPage';
 import BuildingPage from './pages/BuildingPage';
-import ThreeDPage from './pages/ThreeDPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -22,7 +21,7 @@ import { SavedProject, FirebaseUser, GitHubRepo, AppMode, AppPlan, GeminiRespons
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building' | 'threed';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building';
 
 const ICONS = {
     regular: {
@@ -144,8 +143,16 @@ const App: React.FC = () => {
 
   const handleStartBuilding = (prompt: string, isLisaActive: boolean, appMode: AppMode) => {
     if (appMode === '3d') {
-      setGenerationData({ prompt, isLisaActive, appMode });
-      setCurrentPage('threed');
+      // Create a placeholder plan to bypass the PlanPage
+      const placeholderPlan: AppPlan = {
+        features: [`Generate an interactive 3D scene of: ${prompt}`],
+        designDetails: ['Rendered with Three.js', 'Responsive canvas', 'Appropriate lighting and materials'],
+        pages: ['Main 3D Scene'],
+        colors: [{name: 'Background', hex: '#111827'}],
+        previewHtml: '<div></div>' // Not used, but required by type
+      };
+      setGenerationData({ prompt, isLisaActive, appMode, plan: placeholderPlan });
+      setCurrentPage('building');
     } else {
       setGenerationData({ prompt, isLisaActive, appMode });
       setCurrentPage('plan');
@@ -208,8 +215,6 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
-      case 'threed':
-        return generationData ? <ThreeDPage initialPrompt={generationData.prompt} /> : <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
       case 'plan':
           return generationData ? <PlanPage
               initialPrompt={generationData.prompt}
@@ -254,7 +259,7 @@ const App: React.FC = () => {
     return null;
   };
 
-  const showHeaderLogo = ['home', 'plan', 'building', 'threed'].includes(currentPage);
+  const showHeaderLogo = ['home', 'plan', 'building'].includes(currentPage);
 
   return (
     <>
