@@ -9,6 +9,27 @@ import EyeIcon from '../components/icons/EyeIcon';
 // Mock Prism for code highlighting
 declare var Prism: any;
 
+// Add TypeScript declarations for the <model-viewer> custom element
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          alt?: string;
+          ar?: boolean;
+          'auto-rotate'?: boolean;
+          'camera-controls'?: boolean;
+          'shadow-intensity'?: string;
+          exposure?: string;
+          'environment-image'?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 interface ThreeDPageProps {
   initialPrompt: string;
 }
@@ -37,7 +58,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
   }, []);
 
   useEffect(() => {
-    if (view === 'code' && codeRef.current) {
+    if (view === 'code' && codeRef.current && generatedCode) {
         Prism.highlightElement(codeRef.current);
     }
   }, [view, generatedCode]);
@@ -48,6 +69,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
     setIsLoading(true);
     setError(null);
     setModelUrl(null);
+    setCurrentPrompt(promptToGenerate); // Update current prompt immediately for loading text
     setLoadingStatus('Initializing task...');
 
     const apiKey = getTripoApiKey();
@@ -70,7 +92,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
         }),
       });
 
-      if (!generateResponse.ok) throw new Error(`Failed to start generation task. Status: ${generateResponse.status}`);
+      if (!generateResponse.ok) throw new Error(`Failed to start generation task (Status: ${generateResponse.status}). Please check your API key.`);
       const generateData = await generateResponse.json();
       const taskId = generateData.data.task_id;
 
@@ -81,9 +103,8 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
           headers: { 'Authorization': `Bearer ${apiKey}` },
         });
         if (!statusResponse.ok) {
-            // Stop polling on error
             clearInterval(pollingInterval.current!);
-            setError("Failed to get task status.");
+            setError("Failed to get task status. The generation may have failed.");
             setIsLoading(false);
             return;
         }
@@ -93,7 +114,6 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
           clearInterval(pollingInterval.current!);
           const url = statusData.data.result.output.model_url;
           setModelUrl(url);
-          setCurrentPrompt(promptToGenerate);
           setGeneratedCode(createHtmlCode(url, promptToGenerate));
           setIsLoading(false);
           setLoadingStatus('Finished!');
@@ -105,8 +125,12 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
       }, 5000);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+      setError(`Failed to generate model: ${errorMessage}. Please verify your Tripo AI key in Settings and check your network connection.`);
       setIsLoading(false);
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
     }
   };
 
@@ -149,7 +173,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
     if (modelUrl) {
       const a = document.createElement('a');
       a.href = modelUrl;
-      a.download = `${currentPrompt.replace(/\s+/g, '_')}.glb`;
+      a.download = `${currentPrompt.replace(/[^a-zA-Z0-9]/g, '_')}.glb`;
       a.click();
     }
   };
@@ -181,13 +205,17 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
         {view === 'preview' ? (
           <div className="w-full h-full flex items-center justify-center model-container">
             {isLoading && (
-              <div className="text-center text-white">
+              <div className="text-center text-white max-w-md mx-auto p-4">
                  <div className="w-10 h-10 border-4 border-t-transparent border-white rounded-full animate-spin mx-auto mb-4"></div>
-                 <p className="font-semibold">{loadingStatus}</p>
+                 <p className="font-semibold text-lg">{loadingStatus}</p>
+                 <p className="text-sm text-slate-400 mt-2">
+                    AI is generating the 3D model for: <br/>
+                    <span className="italic text-slate-300">"{currentPrompt}"</span>
+                 </p>
               </div>
             )}
-            {error && <p className="text-red-400">{error}</p>}
-            {modelUrl && (
+            {error && <p className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</p>}
+            {modelUrl && !isLoading && (
               <model-viewer
                 src={modelUrl}
                 alt={currentPrompt}
@@ -202,7 +230,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
           </div>
         ) : (
             <div className="h-full overflow-auto bg-slate-900">
-                <pre className="text-sm h-full"><code ref={codeRef} className="language-html">{generatedCode}</code></pre>
+                <pre className="text-sm h-full"><code ref={codeRef} className="language-html">{generatedCode || "<!-- Code will appear here once the model is generated -->"}</code></pre>
             </div>
         )}
       </main>
@@ -244,6 +272,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
             margin: 0;
             height: 100%;
             box-sizing: border-box;
+            padding: 1rem;
         }
       `}</style>
     </div>

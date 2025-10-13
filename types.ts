@@ -1,4 +1,5 @@
-import type * React from 'react';
+// FIX: Corrected React type import
+import type * as React from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 
