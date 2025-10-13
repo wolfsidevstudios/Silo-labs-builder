@@ -1,3 +1,4 @@
+
 import { DataCategory } from '../types';
 
 const DATA_KEYS: Record<DataCategory, string[]> = {
@@ -36,6 +37,7 @@ const DATA_KEYS: Record<DataCategory, string[]> = {
     'twilio_auth_token',
     'google_adsense_publisher_id',
     'google_analytics_measurement_id',
+    'tripo_api_key',
   ],
   settings: [
     'gemini_model',

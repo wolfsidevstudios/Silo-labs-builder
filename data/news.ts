@@ -1,3 +1,4 @@
+
 import { NewsItem } from '../types';
 import RocketIcon from '../components/icons/RocketIcon';
 import SparklesIcon from '../components/icons/SparklesIcon';
@@ -6,8 +7,17 @@ import DiamondIcon from '../components/icons/DiamondIcon';
 import GitHubIcon from '../components/icons/GitHubIcon';
 import NetlifyIcon from '../components/icons/NetlifyIcon';
 import GiftIcon from '../components/icons/GiftIcon';
+import CubeIcon from '../components/icons/CubeIcon';
 
 export const NEWS_ITEMS: NewsItem[] = [
+  {
+    id: '9',
+    date: 'October 8, 2025',
+    title: 'Enter the Third Dimension: 3D Model Generation is Here!',
+    icon: CubeIcon,
+    content:
+      "Unleash your creativity in 3D! We've integrated the powerful Tripo AI, allowing you to generate 3D models, scenes, and animations directly from a text prompt. Connect your Tripo AI key in Settings and start building immersive worlds and objects with just a few words.",
+  },
   {
     id: '8',
     date: 'October 7, 2025',
