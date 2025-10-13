@@ -29,7 +29,7 @@ import { getApiKey as getPolyApiKey, saveApiKey as savePolyApiKey, removeApiKey 
 import { getCredentials as getTwilioCredentials, saveCredentials as saveTwilioCredentials, removeCredentials as removeTwilioCredentials } from '../services/twilioService';
 import { getPublisherId as getAdsenseId, savePublisherId as saveAdsenseId, removePublisherId as removeAdsenseId } from '../services/googleAdsenseService';
 import { getMeasurementId as getAnalyticsId, saveMeasurementId as saveAnalyticsId, removeMeasurementId as removeAnalyticsId } from '../services/googleAnalyticsService';
-import { getApiKey as getTripoApiKey, saveApiKey as saveTripoApiKey, removeApiKey as removeTripoApiKey } from '../services/tripoService';
+
 import { getPersonalInfo, savePersonalInfo, clearPersonalInfo } from '../services/personalInfoService';
 // FIX: Import deleteSelectedAppData
 import { deleteSelectedAppData } from '../services/dataService';
@@ -75,7 +75,7 @@ import TwilioIcon from '../components/icons/TwilioIcon';
 import GoogleAdsenseIcon from '../components/icons/GoogleAdsenseIcon';
 import GoogleAnalyticsIcon from '../components/icons/GoogleAnalyticsIcon';
 import ShieldIcon from '../components/icons/ShieldIcon';
-import TripoIcon from '../components/icons/TripoIcon';
+
 
 
 interface SettingsPageProps {
@@ -156,7 +156,6 @@ const apiDocsLinks: Record<string, string> = {
   'Twilio': 'https://www.twilio.com/console',
   'Google AdSense': 'https://www.google.com/adsense/start/',
   'Google Analytics': 'https://analytics.google.com/',
-  'Tripo AI': 'https://docs.tripo3d.ai/',
 };
 
 
@@ -412,7 +411,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
       { name: 'Unsplash', icon: UnsplashIcon, get: getUnsplashAccessKey, save: saveUnsplashAccessKey, remove: removeUnsplashAccessKey, fields: [{name: 'Access Key', type: 'password'}] },
       { name: 'OpenAI', icon: OpenAiIcon, get: getOpenAiApiKey, save: saveOpenAiApiKey, remove: removeOpenAiApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Stability AI', icon: StableDiffusionIcon, get: getStabilityApiKey, save: saveStabilityApiKey, remove: removeStabilityApiKey, fields: [{name: 'API Key', type: 'password'}] },
-      { name: 'Tripo AI', icon: TripoIcon, get: getTripoApiKey, save: saveTripoApiKey, remove: removeTripoApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Pexels', icon: PexelsIcon, get: getPexelsApiKey, save: savePexelsApiKey, remove: removePexelsApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'FreeSound', icon: FreeSoundIcon, get: getFreeSoundApiKey, save: saveFreeSoundApiKey, remove: removeFreeSoundApiKey, fields: [{name: 'API Key', type: 'password'}] },
       { name: 'Spotify', icon: SpotifyIcon, getCreds: getSpotifyCredentials, saveCreds: saveSpotifyCredentials, removeCreds: removeSpotifyCredentials, fields: [{name: 'Client ID', type: 'text'}, {name: 'Client Secret', type: 'password'}] },

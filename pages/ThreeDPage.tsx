@@ -1,34 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getApiKey as getTripoApiKey } from '../services/tripoService';
+import { generateOrUpdateAppCode } from '../services/geminiService';
 import ArrowUpIcon from '../components/icons/ArrowUpIcon';
 import DownloadIcon from '../components/icons/DownloadIcon';
 import CopyIcon from '../components/icons/CopyIcon';
 import CodeIcon from '../components/icons/CodeIcon';
 import EyeIcon from '../components/icons/EyeIcon';
+import { AppFile } from '../types';
 
 // Mock Prism for code highlighting
 declare var Prism: any;
-
-// Add TypeScript declarations for the <model-viewer> custom element
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src?: string;
-          alt?: string;
-          ar?: boolean;
-          'auto-rotate'?: boolean;
-          'camera-controls'?: boolean;
-          'shadow-intensity'?: string;
-          exposure?: string;
-          'environment-image'?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
 
 interface ThreeDPageProps {
   initialPrompt: string;
@@ -37,151 +17,86 @@ interface ThreeDPageProps {
 const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
   const [currentPrompt, setCurrentPrompt] = useState(initialPrompt);
   const [modificationPrompt, setModificationPrompt] = useState('');
-  const [modelUrl, setModelUrl] = useState<string | null>(null);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'preview' | 'code'>('preview');
-  const [generatedCode, setGeneratedCode] = useState('');
   const [copyText, setCopyText] = useState('Copy');
   
   const codeRef = useRef<HTMLElement>(null);
-  const pollingInterval = useRef<number | null>(null);
 
   useEffect(() => {
-    generateModel(currentPrompt);
-    return () => {
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
-    };
+    generateScene(currentPrompt);
   }, []);
 
   useEffect(() => {
-    if (view === 'code' && codeRef.current && generatedCode) {
+    if (view === 'code' && codeRef.current && htmlContent) {
         Prism.highlightElement(codeRef.current);
     }
-  }, [view, generatedCode]);
+  }, [view, htmlContent]);
 
-  const generateModel = async (promptToGenerate: string) => {
+  const generateScene = async (promptToGenerate: string, existingFiles: AppFile[] | null = null) => {
     if (isLoading) return;
     
     setIsLoading(true);
     setError(null);
-    setModelUrl(null);
-    setCurrentPrompt(promptToGenerate); // Update current prompt immediately for loading text
-    setLoadingStatus('Initializing task...');
-
-    const apiKey = getTripoApiKey();
-    if (!apiKey) {
-      setError("Tripo AI API Key not found. Please add it in Settings > Integrations.");
-      setIsLoading(false);
-      return;
-    }
+    setHtmlContent(existingFiles ? existingFiles[0].content : null); // Keep old content while generating
     
+    const fullPrompt = existingFiles 
+        ? promptToGenerate 
+        : `Generate a 3D scene based on the prompt: "${promptToGenerate}"`;
+    
+    setCurrentPrompt(existingFiles ? `${currentPrompt}, ${promptToGenerate}`: promptToGenerate);
+    setLoadingStatus(existingFiles ? 'Modifying 3D scene...' : 'Generating 3D scene...');
+
     try {
-      const generateResponse = await fetch('https://api.tripo3d.ai/v2/fast_generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'text_to_model',
-          prompt: promptToGenerate,
-        }),
-      });
-
-      if (!generateResponse.ok) throw new Error(`Failed to start generation task (Status: ${generateResponse.status}). Please check your API key.`);
-      const generateData = await generateResponse.json();
-      const taskId = generateData.data.task_id;
-
-      setLoadingStatus('Generating model... this may take a minute.');
-
-      pollingInterval.current = window.setInterval(async () => {
-        const statusResponse = await fetch(`https://api.tripo3d.ai/v2/tasks/${taskId}`, {
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-        if (!statusResponse.ok) {
-            clearInterval(pollingInterval.current!);
-            setError("Failed to get task status. The generation may have failed.");
-            setIsLoading(false);
-            return;
+        const result = await generateOrUpdateAppCode(
+            promptToGenerate,
+            existingFiles,
+            null,
+            null,
+            {},
+            '3d'
+        );
+        
+        if (!result.previewHtml) {
+            throw new Error("The AI did not return any content for the 3D scene.");
         }
-        const statusData = await statusResponse.json();
 
-        if (statusData.data.status === 'success') {
-          clearInterval(pollingInterval.current!);
-          const url = statusData.data.result.output.model_url;
-          setModelUrl(url);
-          setGeneratedCode(createHtmlCode(url, promptToGenerate));
-          setIsLoading(false);
-          setLoadingStatus('Finished!');
-        } else if (statusData.data.status === 'failed') {
-          clearInterval(pollingInterval.current!);
-          setError(statusData.data.error_message || "Model generation failed.");
-          setIsLoading(false);
-        }
-      }, 5000);
-
+        setHtmlContent(result.previewHtml);
+        setIsLoading(false);
+        setLoadingStatus('Finished!');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-      setError(`Failed to generate model: ${errorMessage}. Please verify your Tripo AI key in Settings and check your network connection.`);
+      setError(`Failed to generate scene: ${errorMessage}`);
       setIsLoading(false);
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
     }
-  };
-
-  const createHtmlCode = (url: string, prompt: string) => {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Model Viewer: ${prompt}</title>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
-  <style>
-    body { margin: 0; font-family: sans-serif; background-color: #111; color: white; }
-    model-viewer { width: 100%; height: 100vh; }
-  </style>
-</head>
-<body>
-  <model-viewer 
-    src="${url}" 
-    alt="${prompt}" 
-    ar 
-    auto-rotate 
-    camera-controls
-    shadow-intensity="1"
-    exposure="1.2">
-  </model-viewer>
-</body>
-</html>`;
   };
 
   const handleModificationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (modificationPrompt.trim()) {
-      generateModel(`${currentPrompt}, ${modificationPrompt.trim()}`);
+    if (modificationPrompt.trim() && htmlContent) {
+      generateScene(modificationPrompt.trim(), [{ path: 'index.html', content: htmlContent }]);
       setModificationPrompt('');
     }
   };
 
   const handleDownload = () => {
-    if (modelUrl) {
+    if (htmlContent) {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = modelUrl;
-      a.download = `${currentPrompt.replace(/[^a-zA-Z0-9]/g, '_')}.glb`;
+      a.href = url;
+      a.download = `${currentPrompt.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
       a.click();
+      URL.revokeObjectURL(url);
     }
   };
 
   const handleCopy = () => {
-    if (modelUrl) {
-        const embedCode = `<model-viewer src="${modelUrl}" alt="${currentPrompt}" ar auto-rotate camera-controls></model-viewer>`;
-        navigator.clipboard.writeText(embedCode).then(() => {
+    if (htmlContent) {
+        navigator.clipboard.writeText(htmlContent).then(() => {
             setCopyText('Copied!');
             setTimeout(() => setCopyText('Copy'), 2000);
         });
@@ -197,40 +112,46 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
         </div>
       </div>
       <div className="absolute top-6 right-6 z-20 flex items-center gap-2">
-        <button onClick={handleDownload} disabled={!modelUrl} className="px-4 py-2 bg-white text-black font-semibold rounded-full text-sm hover:bg-gray-200 transition-colors disabled:bg-gray-500 disabled:text-gray-800 flex items-center gap-2"><DownloadIcon className="w-4 h-4"/>Download</button>
-        <button onClick={handleCopy} disabled={!modelUrl} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-full text-sm hover:bg-slate-600 transition-colors disabled:bg-slate-800 disabled:text-slate-500 flex items-center gap-2"><CopyIcon className="w-4 h-4"/>{copyText}</button>
+        <button onClick={handleDownload} disabled={!htmlContent} className="px-4 py-2 bg-white text-black font-semibold rounded-full text-sm hover:bg-gray-200 transition-colors disabled:bg-gray-500 disabled:text-gray-800 flex items-center gap-2"><DownloadIcon className="w-4 h-4"/>Download</button>
+        <button onClick={handleCopy} disabled={!htmlContent} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-full text-sm hover:bg-slate-600 transition-colors disabled:bg-slate-800 disabled:text-slate-500 flex items-center gap-2"><CopyIcon className="w-4 h-4"/>{copyText}</button>
       </div>
 
       <main className="flex-grow relative grid-background overflow-hidden">
         {view === 'preview' ? (
           <div className="w-full h-full flex items-center justify-center model-container">
-            {isLoading && (
+            {isLoading && !htmlContent && (
               <div className="text-center text-white max-w-md mx-auto p-4">
                  <div className="w-10 h-10 border-4 border-t-transparent border-white rounded-full animate-spin mx-auto mb-4"></div>
                  <p className="font-semibold text-lg">{loadingStatus}</p>
                  <p className="text-sm text-slate-400 mt-2">
-                    AI is generating the 3D model for: <br/>
+                    The AI is generating Three.js code for: <br/>
                     <span className="italic text-slate-300">"{currentPrompt}"</span>
                  </p>
               </div>
             )}
             {error && <p className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</p>}
-            {modelUrl && !isLoading && (
-              <model-viewer
-                src={modelUrl}
-                alt={currentPrompt}
-                ar
-                auto-rotate
-                camera-controls
-                shadow-intensity="1.5"
-                exposure="1"
-                environment-image="neutral"
-              />
+            {htmlContent && (
+              <div className="w-full h-full relative">
+                {isLoading && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10">
+                     <div className="text-center text-white">
+                        <div className="w-8 h-8 border-4 border-t-transparent border-white rounded-full animate-spin mx-auto mb-3"></div>
+                        <p>{loadingStatus}</p>
+                     </div>
+                  </div>
+                )}
+                <iframe
+                  srcDoc={htmlContent}
+                  title="3D Scene Preview"
+                  sandbox="allow-scripts"
+                  className="w-full h-full border-0"
+                />
+              </div>
             )}
           </div>
         ) : (
             <div className="h-full overflow-auto bg-slate-900">
-                <pre className="text-sm h-full"><code ref={codeRef} className="language-html">{generatedCode || "<!-- Code will appear here once the model is generated -->"}</code></pre>
+                <pre className="text-sm h-full"><code ref={codeRef} className="language-html">{htmlContent || "<!-- Code will appear here once the model is generated -->"}</code></pre>
             </div>
         )}
       </main>
@@ -242,7 +163,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
             value={modificationPrompt}
             onChange={e => setModificationPrompt(e.target.value)}
             placeholder="e.g., make it chrome plated, add wings..."
-            disabled={isLoading || !modelUrl}
+            disabled={isLoading || !htmlContent}
             className="w-full h-14 p-4 pr-16 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
           <button type="submit" disabled={isLoading || !modificationPrompt.trim()} className="absolute h-12 w-12 right-1 top-1/2 -translate-y-1/2 bg-white rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:bg-gray-600 group">
@@ -257,16 +178,6 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
                 linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
             background-size: 3rem 3rem;
-            perspective: 800px;
-        }
-        .model-container {
-            transform: rotateX(45deg);
-            transform-style: preserve-3d;
-        }
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            transform: translateY(-10%);
         }
         pre[class*="language-"] {
             margin: 0;
