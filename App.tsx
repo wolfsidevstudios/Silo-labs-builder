@@ -9,6 +9,7 @@ import SiloMaxPage from './pages/SiloMaxPage';
 import CodePilotPage from './pages/CodePilotPage';
 import PlanPage from './pages/PlanPage';
 import BuildingPage from './pages/BuildingPage';
+import ThreeDPage from './pages/ThreeDPage';
 import Sidebar, { SidebarPage } from './components/Sidebar';
 import ProBadge from './components/ProBadge';
 import ReferralModal from './components/ReferralModal';
@@ -21,7 +22,7 @@ import { SavedProject, FirebaseUser, GitHubRepo, AppMode, AppPlan, GeminiRespons
 import { auth } from './services/firebaseService';
 import FaceTrackingCursor from './components/FaceTrackingCursor';
 
-type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building';
+type Page = 'home' | 'builder' | 'projects' | 'settings' | 'plans' | 'news' | 'max' | 'codepilot' | 'plan' | 'building' | 'threed';
 
 const ICONS = {
     regular: {
@@ -142,8 +143,13 @@ const App: React.FC = () => {
   };
 
   const handleStartBuilding = (prompt: string, isLisaActive: boolean, appMode: AppMode) => {
-    setGenerationData({ prompt, isLisaActive, appMode });
-    setCurrentPage('plan');
+    if (appMode === '3d') {
+      setGenerationData({ prompt, isLisaActive, appMode });
+      setCurrentPage('threed');
+    } else {
+      setGenerationData({ prompt, isLisaActive, appMode });
+      setCurrentPage('plan');
+    }
   };
 
   const handleStartCodePilot = (repo: GitHubRepo) => {
@@ -202,6 +208,8 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
+      case 'threed':
+        return generationData ? <ThreeDPage initialPrompt={generationData.prompt} /> : <HomePage onGenerate={handleStartBuilding} onStartCodePilot={handleStartCodePilot} />;
       case 'plan':
           return generationData ? <PlanPage
               initialPrompt={generationData.prompt}
@@ -246,12 +254,14 @@ const App: React.FC = () => {
     return null;
   };
 
+  const showHeaderLogo = ['home', 'plan', 'building', 'threed'].includes(currentPage);
+
   return (
     <>
       {isFaceTrackingEnabled && <FaceTrackingCursor />}
       <header className="fixed top-6 left-[4.5rem] z-30 flex items-center gap-4">
           <button onClick={handleGoHome} aria-label="Go to Home page" className="transition-transform hover:scale-105">
-            <Logo type={currentPage === 'home' || currentPage === 'plan' || currentPage === 'building' ? 'full' : 'icon'} />
+            <Logo type={showHeaderLogo ? 'full' : 'icon'} />
           </button>
           {currentPage === 'home' && <ProBadge isVisible={isPro} />}
       </header>
