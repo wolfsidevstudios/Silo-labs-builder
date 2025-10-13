@@ -72,7 +72,7 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
 
       if (!generateResponse.ok) throw new Error(`Failed to start generation task. Status: ${generateResponse.status}`);
       const generateData = await generateResponse.json();
-      const taskId = generateData.task_id;
+      const taskId = generateData.data.task_id;
 
       setLoadingStatus('Generating model... this may take a minute.');
 
@@ -89,17 +89,17 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
         }
         const statusData = await statusResponse.json();
 
-        if (statusData.status === 'success') {
+        if (statusData.data.status === 'success') {
           clearInterval(pollingInterval.current!);
-          const url = statusData.result.output.model_url;
+          const url = statusData.data.result.output.model_url;
           setModelUrl(url);
           setCurrentPrompt(promptToGenerate);
           setGeneratedCode(createHtmlCode(url, promptToGenerate));
           setIsLoading(false);
           setLoadingStatus('Finished!');
-        } else if (statusData.status === 'failed') {
+        } else if (statusData.data.status === 'failed') {
           clearInterval(pollingInterval.current!);
-          setError(statusData.error_message || "Model generation failed.");
+          setError(statusData.data.error_message || "Model generation failed.");
           setIsLoading(false);
         }
       }, 5000);
@@ -239,6 +239,11 @@ const ThreeDPage: React.FC<ThreeDPageProps> = ({ initialPrompt }) => {
             width: 100%;
             height: 100%;
             transform: translateY(-10%);
+        }
+        pre[class*="language-"] {
+            margin: 0;
+            height: 100%;
+            box-sizing: border-box;
         }
       `}</style>
     </div>
