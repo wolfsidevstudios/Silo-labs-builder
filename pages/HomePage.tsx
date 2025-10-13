@@ -30,6 +30,26 @@ const suggestionPrompts = [
   { short: "Recipe Finder", long: "A recipe finder application. Include a search bar for ingredients or dish names. Display search results as cards with a photo, title, and a brief description." },
 ];
 
+const faqData = [
+  {
+    q: "What is Silo Build?",
+    a: "Silo Build is an AI-powered application builder that allows you to generate complete web and mobile applications from simple text prompts. It's designed for rapid prototyping, learning, and bringing ideas to life without extensive coding."
+  },
+  {
+    q: "What kind of apps can I build?",
+    a: "You can build a wide variety of applications, including interactive web apps (PWAs), mobile apps using Expo (React Native), and full-stack projects with React+TS, Next.js, and more. The AI can integrate with numerous third-party APIs to add powerful features to your apps."
+  },
+  {
+    q: "Do I need to know how to code?",
+    a: "No coding knowledge is required to get started! You can generate your first app just by describing it. However, familiarity with HTML, CSS, JavaScript, and React will help you understand, customize, and extend the generated code."
+  },
+  {
+    q: "How does the AI work?",
+    a: "Silo Build uses advanced generative AI models, including Google's Gemini family. When you enter a prompt, the AI acts as an expert software engineer, planning the architecture, writing the code, and designing the UI to create a fully functional application based on your request."
+  }
+];
+
+
 const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => {
   const [prompt, setPrompt] = useState('');
   const [isLisaActive, setIsLisaActive] = useState(false);
@@ -128,10 +148,10 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
         onClose={() => setIsRepoModalOpen(false)}
         onSelectRepo={handleRepoSelected}
       />
-      <div className="relative h-screen w-screen bg-black overflow-hidden">
+      <div className="relative min-h-screen w-screen bg-black overflow-y-auto">
         <HomePageBackground />
-        <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
-          <main className="flex flex-col items-center justify-center w-full flex-grow">
+        <div className="relative z-10 w-full flex flex-col items-center justify-center p-4 pt-24 md:pt-32 pb-16 selection:bg-indigo-500 selection:text-white pl-[4.5rem]">
+          <main className="flex flex-col items-center justify-center w-full mb-24 md:mb-32">
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-6 animate-fade-in-down">
               From Prompt to App
             </h1>
@@ -280,6 +300,21 @@ const HomePage: React.FC<HomePageProps> = ({ onGenerate, onStartCodePilot }) => 
               </div>
             </form>
           </main>
+
+          <div className="w-full max-w-5xl mx-auto mt-24 md:mt-32">
+              <h2 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-gray-200 via-white to-gray-400 text-transparent bg-clip-text mb-12">
+                  Frequently Asked Questions
+              </h2>
+              <div className="grid md:grid-cols-2 gap-x-8 gap-y-10">
+                  {faqData.map((item, index) => (
+                      <div key={index}>
+                          <h3 className="text-lg font-semibold text-white mb-2">{item.q}</h3>
+                          <p className="text-slate-400">{item.a}</p>
+                      </div>
+                  ))}
+              </div>
+          </div>
+
         </div>
 
         <style>{`
