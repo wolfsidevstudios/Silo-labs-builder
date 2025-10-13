@@ -321,3 +321,11 @@ export interface TerminalLine {
   type: 'command' | 'output';
   text: string;
 }
+
+export interface PersonalInfo {
+  fullName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  other?: string;
+}

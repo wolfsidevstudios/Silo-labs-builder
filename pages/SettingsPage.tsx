@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId, DataCategory, FirebaseUser } from '../types';
+import { Secret, Theme, GitHubUser, NetlifyUser, GeminiModelId, DataCategory, FirebaseUser, PersonalInfo } from '../types';
 import { THEMES } from '../data/themes';
 import { auth } from '../services/firebaseService';
 import { getSecrets, addSecret, removeSecret } from '../services/secretsService';
@@ -31,11 +30,13 @@ import { getCredentials as getTwilioCredentials, saveCredentials as saveTwilioCr
 import { getPublisherId as getAdsenseId, savePublisherId as saveAdsenseId, removePublisherId as removeAdsenseId } from '../services/googleAdsenseService';
 import { getMeasurementId as getAnalyticsId, saveMeasurementId as saveAnalyticsId, removeMeasurementId as removeAnalyticsId } from '../services/googleAnalyticsService';
 import { getApiKey as getTripoApiKey, saveApiKey as saveTripoApiKey, removeApiKey as removeTripoApiKey } from '../services/tripoService';
+import { getPersonalInfo, savePersonalInfo, clearPersonalInfo } from '../services/personalInfoService';
+// FIX: Import deleteSelectedAppData
+import { deleteSelectedAppData } from '../services/dataService';
 
 
 import ThemeTemplateCard from '../components/ThemeTemplateCard';
 import DeleteDataModal from '../components/DeleteDataModal';
-import { deleteSelectedAppData } from '../services/dataService';
 import SparklesIcon from '../components/icons/SparklesIcon';
 import PaintBrushIcon from '../components/icons/PaintBrushIcon';
 import KeyIcon from '../components/icons/KeyIcon';
@@ -74,6 +75,7 @@ import TwilioIcon from '../components/icons/TwilioIcon';
 import GoogleAdsenseIcon from '../components/icons/GoogleAdsenseIcon';
 import GoogleAnalyticsIcon from '../components/icons/GoogleAnalyticsIcon';
 import TripoIcon from '../components/icons/TripoIcon';
+import ShieldIcon from '../components/icons/ShieldIcon';
 
 
 interface SettingsPageProps {
@@ -182,6 +184,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
   const [appIcon, setAppIcon] = useState('regular');
   const [homeBackground, setHomeBackground] = useState('default');
   const [inputBarStyle, setInputBarStyle] = useState('glossy');
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({ fullName: '', address: '', phone: '', email: '', other: '' });
 
 
   // Account section states
@@ -229,6 +232,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     setSelectedTheme(localStorage.getItem('ui_theme_template') || 'none');
     // Load accessibility settings
     setIsFaceTrackingEnabled(localStorage.getItem('face_tracking_enabled') === 'true');
+    // Load personal info
+    setPersonalInfo(getPersonalInfo() || { fullName: '', address: '', phone: '', email: '', other: '' });
 
   }, []);
 
@@ -375,12 +380,22 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
     setInputBarStyle(styleKey);
     localStorage.setItem('input_bar_style', styleKey);
   };
+  
+  const handlePersonalInfoChange = (field: keyof PersonalInfo, value: string) => {
+    setPersonalInfo(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSavePersonalInfo = () => {
+    savePersonalInfo(personalInfo);
+    alert('Personal information saved!');
+  };
 
 
   const sections = [
     { id: 'account', name: 'Account', icon: UserIcon },
     { id: 'appearance', name: 'Appearance', icon: PaintBrushIcon },
     { id: 'accessibility', name: 'Accessibility', icon: AccessibilityIcon },
+    { id: 'personal-info', name: 'Personal Info', icon: ShieldIcon },
     { id: 'ai', name: 'AI Settings', icon: SparklesIcon },
     { id: 'secrets', name: 'Global Secrets', icon: KeyIcon },
     { id: 'integrations', name: 'Integrations', icon: ZapIcon },
@@ -603,6 +618,47 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isPro, onUpgradeClick, user
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {activeSection === 'personal-info' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Personal Information</h2>
+                   <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-6">
+                        <div className="p-4 bg-yellow-900/30 border border-yellow-700/50 rounded-lg mb-6 flex items-start gap-3">
+                            <AlertTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <h3 className="font-bold text-yellow-300">Safety Warning</h3>
+                                <p className="text-sm text-yellow-300/80 mt-1">This information is stored ONLY in your browser's local storage and is not sent to any server. It will be provided to the AI agent on this device to perform tasks on your behalf. Be cautious about what you save.</p>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+                                <input type="text" value={personalInfo.fullName} onChange={e => handlePersonalInfoChange('fullName', e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg"/>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+                                <input type="email" value={personalInfo.email} onChange={e => handlePersonalInfoChange('email', e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg"/>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Phone Number</label>
+                                <input type="tel" value={personalInfo.phone} onChange={e => handlePersonalInfoChange('phone', e.target.value)} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Address</label>
+                                <textarea value={personalInfo.address} onChange={e => handlePersonalInfoChange('address', e.target.value)} rows={3} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg resize-y"/>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Other Information</label>
+                                <textarea value={personalInfo.other} onChange={e => handlePersonalInfoChange('other', e.target.value)} rows={3} placeholder="e.g., allergies, preferences, membership numbers" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg resize-y"/>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-4">
+                            <button onClick={clearPersonalInfo} className="px-5 py-2 font-semibold rounded-lg bg-red-800/50 text-red-300 hover:bg-red-800/80">Clear All</button>
+                            <button onClick={handleSavePersonalInfo} className="px-5 py-2 font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">Save Info</button>
+                        </div>
+                   </div>
                 </div>
               )}
 
